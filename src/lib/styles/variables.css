@@ -1,0 +1,26 @@
+:root {
+	/* Layout dimensions */
+	--layout-app-max-width: 72rem; /* 1152px */
+	--layout-sidebar-width: 280px;
+	--layout-header-height: 60px;
+	--layout-composer-height: 80px;
+	--layout-container-padding: 1rem; /* 16px */
+	--layout-menu-padding: 0.75rem; /* 12px - px-3 from Menu.tsx */
+
+	/* Calculated positioning - based on actual layout structure */
+	--layout-app-left-offset: calc(
+		(100vw - var(--layout-app-max-width)) / 2 + var(--layout-container-padding)
+	);
+	--layout-sidebar-screen-position: calc(
+		var(--layout-app-left-offset) - var(--layout-menu-padding)
+	);
+	--layout-preview-offset: calc(-1 * var(--layout-sidebar-screen-position));
+
+	/* Existing variables... */
+	--animation-duration-fast: 150ms;
+	--animation-duration-normal: 250ms;
+	--animation-duration-slow: 400ms;
+	--animation-stagger-delay: 50ms;
+	--animation-easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+	--animation-easing-natural: ease-out;
+}
