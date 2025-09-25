@@ -4,13 +4,6 @@ This guide covers common patterns, gotchas, and best practices for Svelte 5 deve
 
 ## Table of Contents
 
-1. [Svelte 5 Key Changes](#svelte-5-key-changes)
-2. [Runes and State Management](#runes-and-state-management)
-3. [Third-Party Library Integration](#third-party-library-integration)
-4. [Common Gotchas and Solutions](#common-gotchas-and-solutions)
-5. [Migration Patterns](#migration-patterns)
-6. [Real-World Debugging Examples](#real-world-debugging-examples)
-
 ## Svelte 5 Key Changes
 
 ### Runes Replace Reactive Declarations
@@ -119,128 +112,62 @@ This guide covers common patterns, gotchas, and best practices for Svelte 5 deve
 </script>
 ```
 
-## Third-Party Library Integration
+### Accessing Store Values in Svelte 5
 
-### Melt UI Integration Patterns
+How you get a store's value depends on the context.
 
-#### ❌ Common Mistake - Wrong API Usage (Pre v0.86.6)
+#### 1. In the Template (`<template>`)
 
-```svelte
-<script>
-	import { createCollapsible } from '@melt-ui/svelte';
-
-	// WRONG: Trying to access trigger/content directly
-	const collapsible = createCollapsible();
-	// collapsible.trigger is undefined!
-</script>
-```
-
-#### ✅ Correct Pattern - Destructure Elements (v0.86.6+)
+Use the classic `$store` prefix. This creates a reactive subscription.
 
 ```svelte
 <script>
-	import { createCollapsible } from '@melt-ui/svelte';
-
-	// CORRECT: Destructure the returned object
-	const {
-		elements: { trigger, content },
-		states: { open }
-	} = createCollapsible({
-		defaultOpen: false,
-		onOpenChange: ({ next }) => {
-			console.log('Collapsible state changed:', next);
-			return next;
-		}
-	});
+  import { countStore } from './stores';
 </script>
 
-<button use:trigger>Toggle</button>
-<div use:content>
-	{#if $open}
-		<p>Content is visible!</p>
-	{/if}
-</div>
+<p>The count is: {$countStore}</p>
 ```
 
-#### ⚠️ CRITICAL: Melt UI API Changes in v0.86.6+
-
-**Before v0.86.6:**
-
-```svelte
-const collapsible = createCollapsible(); // Direct access: collapsible.trigger, collapsible.content
+2. In the Script `<script>` - Top Level
+You can use the $store prefix for top-level variables. This creates a reactive variable that updates whenever the store changes.
 ```
-
-**After v0.86.6:**
-
-```svelte
-const {
-  elements: { trigger, content },
-  states: { open }
-} = createCollapsible();
-// Destructured access required
-```
-
-**Always check what createCollapsible returns:**
-
-```svelte
 <script>
-	const result = createCollapsible();
-	console.log('Keys:', Object.keys(result));
-	// v0.86.6+: ['elements', 'states', 'options']
-	// Earlier: ['trigger', 'content', 'open', ...]
+  import { get } from 'svelte/store';
+  import { countStore } from './stores';
+
+  function logCurrentCount() {
+    // ✅ CORRECT: Use get() for a one-time value read inside a function
+    const currentValue = get(countStore);
+    console.log('The count right now is:', currentValue);
+  }
+
+  // ❌ WRONG: This will cause a compiler error
+  // function broken() {
+  //   console.log($countStore);
+  // }
 </script>
 ```
 
-#### Dynamic Melt UI Components in Loops - FIXED PATTERN
-
-```svelte
+3. In the Script (`<script>`) - Inside Functions or Loops
+You cannot use the $store prefix here. For one-time (non-reactive) reads, use the get() function.
+```
 <script>
-	import { createCollapsible } from '@melt-ui/svelte';
+  import { get } from 'svelte/store';
+  import { countStore } from './stores';
 
-	let projects = $state([
-		{ id: '1', name: 'Project A', open: true },
-		{ id: '2', name: 'Project B', open: false }
-	]);
+  function logCurrentCount() {
+    // ✅ CORRECT: Use get() for a one-time value read inside a function
+    const currentValue = get(countStore);
+    console.log('The count right now is:', currentValue);
+  }
 
-	// ✅ CORRECT: Create collapsibles in $effect with proper destructuring
-	$effect(() => {
-		projects.forEach((project) => {
-			if (!project.collapsible) {
-				const {
-					elements: { trigger, content },
-					states: { open }
-				} = createCollapsible({
-					defaultOpen: project.open,
-					onOpenChange: ({ next }) => {
-						// Sync with local state to avoid store subscription issues
-						project.open = next;
-						return next;
-					}
-				});
-
-				// Store destructured elements
-				project.collapsible = { trigger, content, open };
-			}
-		});
-	});
+  // ❌ WRONG: This will cause a compiler error
+  // function broken() {
+  //   console.log($countStore);
+  // }
 </script>
-
-{#each projects as project}
-	{#if project.collapsible}
-		<div>
-			<button use:project.collapsible.trigger>
-				{project.name} ({project.open ? 'Open' : 'Closed'})
-			</button>
-			<!-- Use local state, not store subscription -->
-			<div use:project.collapsible.content>
-				{#if project.open}
-					<p>Project content here</p>
-				{/if}
-			</div>
-		</div>
-	{/if}
-{/each}
 ```
+
 
 ### Store Subscription Gotchas
 
@@ -485,45 +412,6 @@ const {
 
 ## Real-World Debugging Examples
 
-### Debugging Melt UI Integration Issues
-
-#### Problem: `hasTrigger: false, hasContent: false`
-
-```svelte
-<script>
-	import { createCollapsible } from '@melt-ui/svelte';
-
-	// ❌ WRONG: This will fail in v0.86.6+
-	const collapsible = createCollapsible();
-	console.log('Has trigger:', !!collapsible.trigger); // false
-	console.log('Has content:', !!collapsible.content); // false
-</script>
-```
-
-#### Solution: Check API Structure First
-
-```svelte
-<script>
-	import { createCollapsible } from '@melt-ui/svelte';
-
-	// ✅ CORRECT: Always debug the return structure first
-	const result = createCollapsible();
-	console.log('🔍 Raw result:', result);
-	console.log('🔍 Available keys:', Object.keys(result));
-
-	// Then destructure properly
-	const {
-		elements: { trigger, content },
-		states: { open }
-	} = result;
-
-	console.log('✅ Elements extracted:', {
-		hasTrigger: !!trigger,
-		hasContent: !!content
-	});
-</script>
-```
-
 #### Problem: Content Not Hiding/Showing
 
 ```svelte
@@ -649,6 +537,11 @@ const {
 {/each}
 ```
 
+
+
+
+
+
 ### Debugging Tips
 
 #### Add Comprehensive Logging
@@ -748,3 +641,5 @@ Create isolated examples to verify library integration:
 - **Use Local State**: Prefer `$state()` and sync with external libraries via callbacks
 
 This guide should help avoid common pitfalls when working with Svelte 5 and third-party libraries!
+
+
