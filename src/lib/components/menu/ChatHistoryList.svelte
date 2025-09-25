@@ -6,21 +6,17 @@
 	import ChatHistory from './ChatHistory.svelte';
 	import { dndzone } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
+	import { tick } from 'svelte';
 
 	let { searchFilter }: { searchFilter: string } = $props();
 
 	const allChats = $chats;
 	const allFolders = $folders;
-
-	// ✅ FIX: Define `validChats` as its own top-level derived value.
-	// It is now reactive and available to all subsequent computations in this scope.
 	const validChats = $derived(allChats.filter(Boolean));
 
 	type DraggableItem = (Chat & { type: 'chat' }) | (Folder & { type: 'folder' });
-	type RenderableFolder = Folder & { chats: Chat[] };
-	type RenderableItem = RenderableFolder | Chat;
 
-	// This list is ONLY for the dndzone. It must be flat and complete.
+	// The single source of truth for the order of ALL items.
 	const draggableItems = $derived.by(() => {
 		const items: DraggableItem[] = [];
 
@@ -35,142 +31,143 @@
 		const unorganizedChats = validChats.filter((chat) => !chat.folder);
 		unorganizedChats.forEach((chat) => items.push({ ...chat, type: 'chat' }));
 
+		// --- [DND DEBUG 1] ---
+		console.log(
+			`[DND DEBUG 1] Master 'draggableItems' list created. Total items: ${items.length}`,
+			JSON.parse(JSON.stringify(items))
+		);
 		return items;
 	});
 
-	// ✅ THE DEFINITIVE FIX: Create a structured, pre-filtered list for rendering.
-	// The template will now be extremely simple and safe.
-	const renderableItems = $derived.by(() => {
+	const visibleItemIds = $derived.by(() => {
 		const searchTerm = searchFilter.toLowerCase();
-		const sortedFolders = Object.values(allFolders).sort((a, b) => a.order - b.order);
-		const validChats = allChats.filter(Boolean); // Safety filter
+		const visibleIds = new Set<string>();
 
 		if (!searchTerm) {
-			// No filter: return all folders with their chats, and all unorganized chats.
-			const foldersWithChats: RenderableFolder[] = sortedFolders.map((folder) => ({
-				...folder,
-				chats: validChats.filter((c) => c.folder === folder.id)
-			}));
-			const unorganizedChats = validChats.filter((chat) => !chat.folder);
-			return [...foldersWithChats, ...unorganizedChats];
+			draggableItems.forEach((item) => {
+				if (item.type === 'folder') {
+					visibleIds.add(item.id);
+				} else if (item.type === 'chat') {
+					if (!item.folder || allFolders[item.folder]?.expanded) {
+						visibleIds.add(item.id);
+					}
 		}
-
-		const finalItems: RenderableItem[] = [];
-
-		// Process folders
-		sortedFolders.forEach((folder) => {
-			const matchingChatsInFolder = validChats.filter(
-				(chat) =>
-					chat.folder === folder.id &&
-					typeof chat.title === 'string' && // Defensive check
-					chat.title.toLowerCase().includes(searchTerm)
-	);
-
-			// Check if the folder name itself matches
-			const folderNameMatches = folder.name.toLowerCase().includes(searchTerm);
-
-			if (folderNameMatches) {
-				// If folder name matches, include the folder and ALL its chats
-				finalItems.push({
-					...folder,
-					chats: validChats.filter((c) => c.folder === folder.id)
+			});
+		} else {
+		const matchingIds = new Set<string>();
+			draggableItems.forEach((item) => {
+			const title = item.type === 'folder' ? item.name : item.title;
+			if (title.toLowerCase().includes(searchTerm)) {
+				matchingIds.add(item.id);
+				if (item.type === 'chat' && item.folder) {
+					matchingIds.add(item.folder);
+				}
+			}
 				});
-			} else if (matchingChatsInFolder.length > 0) {
-				// If only chats match, include the folder but ONLY with the matching chats
-				finalItems.push({
-					...folder,
-					chats: matchingChatsInFolder
-				});
+
+			matchingIds.forEach((id) => {
+				const item = draggableItems.find((i) => i.id === id);
+			if (item?.type === 'folder') {
+					validChats.forEach((chat) => {
+					if (chat.folder === id) {
+						matchingIds.add(chat.id);
 			}
 		});
-		const matchingUnorganizedChats = validChats.filter(
-			(chat) =>
-				!chat.folder &&
-				typeof chat.title === 'string' && // Defensive check
-				chat.title.toLowerCase().includes(searchTerm)
-		);
-		finalItems.push(...matchingUnorganizedChats);
+		}
+		});
+			// Return matchingIds directly for search results
+		return matchingIds;
+		}
 
-		// --- DEBUG STEP 2: Log the final list that will be rendered ---
-		console.log('[DEBUG 2] Final `renderableItems`:', JSON.parse(JSON.stringify(finalItems)));
-		return finalItems;
+		// --- [DND DEBUG 2] ---
+		console.log(
+			`[DND DEBUG 2] 'visibleItemIds' calculated. Visible items: ${visibleIds.size}`,
+			visibleIds
+		);
+		return visibleIds;
 	});
 
-	function handleDndFinalize(e: CustomEvent) {
+// PASTE THIS FUNCTION INTO YOUR ChatHistoryList.svelte
+
+	async function handleDndFinalize(e: CustomEvent) {
 		const newOrderedItems: DraggableItem[] = e.detail.items;
+
+		// --- [DND DEBUG 3] ---
+		console.log(
+			`[DND DEBUG 3] 'handleDndFinalize' triggered. Received ${newOrderedItems.length} items from dnd-action.`,
+			JSON.parse(JSON.stringify(newOrderedItems))
+		);
+
+		// ✅ THE DEFINITIVE FIX: Use the .update() method to mutate the stores in place.
+		// This prevents Svelte from destroying and recreating the DOM nodes, which keeps
+		// the dnd-action library's internal references valid.
 
 		const newFolders: FolderCollection = {};
 		const newChats: Chat[] = [];
-
 		let currentFolderId: string | undefined = undefined;
 		let folderOrder = 0;
-
-		// Use the reactive `validChats` here as well for consistency.
 		const originalChatsMap = new Map(validChats.map((c) => [c.id, c]));
 
 		newOrderedItems.forEach((item) => {
 			if (item.type === 'folder') {
 				currentFolderId = item.id;
-				newFolders[item.id] = {
-					id: item.id,
-					name: item.name,
-					expanded: item.expanded,
-					order: folderOrder++,
-					color: item.color
-				};
+				newFolders[item.id] = { ...(item as Folder), order: folderOrder++ };
 			} else if (item.type === 'chat') {
-            // ✅ DEFINITIVE FIX: Look up the original, complete chat object.
-            const originalChat = originalChatsMap.get(item.id);
-
-            // Only proceed if we found a valid, original chat object.
-            if (originalChat) {
-				newChats.push({
-						...originalChat,
-						folder: currentFolderId
-				});
-            } else {
-					console.warn(`[DND-WARN] Could not find original chat data for item ID: ${item.id}. Skipping.`);
-			}
+				const originalChat = originalChatsMap.get(item.id);
+				if (originalChat) {
+					newChats.push({ ...originalChat, folder: currentFolderId });
+				} else {
+					console.error(`[DND ERROR] Could not find original chat for ID: ${item.id}`);
+				}
 			}
 		});
 
-		// --- DEBUG STEP 4: Log the data just before updating the store ---
-		console.log('[DEBUG 4] Data before setting store in handleDndFinalize:', { newFolders, newChats });
-		if (newChats.some(c => !c)) {
-			console.error('[CRITICAL] `newChats` in handleDndFinalize contains null/undefined entries!', newChats);
-		}
+		// --- [DND DEBUG 4] ---
+		console.log(`[DND DEBUG 4] Data constructed. About to update stores.`, {
+			newFolders: JSON.parse(JSON.stringify(newFolders)),
+			newChats: JSON.parse(JSON.stringify(newChats))
+		});
 
-		folders.set(newFolders);
-		chats.set(newChats);
+		// Instead of folders.set(), we use folders.update().
+		// We return the new object from the update function.
+		folders.update(() => newFolders);
+
+		// Instead of chats.set(), we use chats.update().
+		// We return the new array from the update function.
+		chats.update(() => newChats);
+
+		// Wait for Svelte to process the state change and update the DOM
+		await tick();
+		console.log('[DND DEBUG 5] Stores have been updated and DOM should be settled.');
 	}
 </script>
 
 <div
 	class="w-full"
 	use:dndzone={{ items: draggableItems, flipDurationMs: 150 }}
-	on:finalize={handleDndFinalize}
+	onfinalize={handleDndFinalize}
 >
-	<!-- ✅ The render loop is now simple and safe -->
-	{#each renderableItems as item (item.id)}
-		<div animate:flip={{ duration: 150 }}>
-			<!-- Check if the item is a folder by looking for the `chats` array we added -->
-			{#if 'chats' in item}
-				{@const folder = item as RenderableFolder}
-				<ChatFolder {folder}>
-					<!-- Simply iterate over the pre-filtered chats for this folder -->
-					{#each folder.chats as chat (chat.id)}
-						{@const chatIndex = validChats.findIndex((c) => c.id === chat.id)}
-							{#if chatIndex > -1}
-						<ChatHistory {chat} index={chatIndex} />
-						{/if}
-					{/each}
-				</ChatFolder>
+	{#each draggableItems as item (item.id)}
+		<!--
+      VISUAL DEBUGGING:
+      - Hidden items will be semi-transparent and have a dashed red border.
+      - This allows you to SEE what the `visibleItemIds` logic is doing.
+    -->
+		<div
+			animate:flip={{ duration: 150 }}
+			class:hidden={!visibleItemIds.has(item.id)}
+			class:opacity-30={!visibleItemIds.has(item.id)}
+			class:border={!visibleItemIds.has(item.id)}
+			class:border-dashed={!visibleItemIds.has(item.id)}
+			class:border-red-500={!visibleItemIds.has(item.id)}
+			class="transition-opacity duration-200"
+		>
+			{#if item.type === 'folder'}
+				<ChatFolder folder={item} />
 			{:else}
-				<!-- This can only be a valid, unorganized chat -->
-				{@const chat = item as Chat}
-				{@const chatIndex = validChats.findIndex((c) => c.id === chat.id)}
+				{@const chatIndex = validChats.findIndex((c) => c.id === item.id)}
 					{#if chatIndex > -1}
-				<ChatHistory {chat} index={chatIndex} />
+					<ChatHistory chat={item} index={chatIndex} />
 				{/if}
 			{/if}
 		</div>
