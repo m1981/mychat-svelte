@@ -1,0 +1,6 @@
+*.ts
+*.server*
+*.svelte
+*.js
+*.css
+package.json
