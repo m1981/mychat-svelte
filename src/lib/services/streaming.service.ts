@@ -1,36 +1,29 @@
 import { handleError } from '$lib/utils/error-handler';
 import { chats } from '$lib/stores/chat.store';
 import type { Chat } from '$lib/types/chat';
+import { writable, get } from 'svelte/store';
 
-// Use runes for reactive state. This is the key.
-let streamingContent = $state('');
-let isStreaming = $state(false);
-let streamingChatId = $state<string | null>(null);
-
-// This service is a singleton because it's a .ts file.
-// The state is global and shared across the app.
-export const streamingService = {
-	// A reactive property to get the current streaming content
-	get content() {
-		return streamingContent;
-	},
-	// A reactive property to check if we are streaming
-	get active() {
-		return isStreaming;
-	},
-	// A reactive property to know which chat is streaming
-	get activeChatId() {
-		return streamingChatId;
-	},
+// This function creates our custom store object
+function createStreamingStore() {
+	// Use writable stores for the internal state
+	const { subscribe, update } = writable({
+		content: '',
+		isActive: false,
+		activeChatId: null as string | null
+	});
 
 	// The main function to start the stream
-	async generateResponse(currentChat: Chat) {
-		if (isStreaming) return;
+	const generateResponse = async (currentChat: Chat) => {
+		// Prevent multiple streams at once
+		if (get({ subscribe }).isActive) return;
 
 		// --- Setup ---
-		isStreaming = true;
-		streamingContent = ''; // Reset content for the new stream
-		streamingChatId = currentChat.id;
+		update((state) => ({
+			...state,
+			isActive: true,
+			content: '', // Reset content
+			activeChatId: currentChat.id
+		}));
 
 		try {
 			const response = await fetch('/api/chat/generate', {
@@ -56,8 +49,11 @@ export const streamingService = {
 					try {
 						const chunk = JSON.parse(line);
 						if (chunk.type === 'chunk') {
-							// This is a reactive assignment. Svelte 5 will see this change instantly.
-							streamingContent += chunk.content;
+							// Use the `update` function to change the state
+							update((state) => ({
+								...state,
+								content: state.content + chunk.content
+							}));
 						}
 					} catch (error) {
 						console.error('Failed to parse stream chunk:', line, error);
@@ -66,30 +62,39 @@ export const streamingService = {
 			}
 
 			// --- Teardown and Persist Final State ---
-			// The backend already persists the message. Now, update the Svelte store.
+			const finalContent = get({ subscribe }).content;
 			chats.update((allChats) => {
 				const chatToUpdate = allChats.find((c) => c.id === currentChat.id);
 				if (chatToUpdate) {
-					chatToUpdate.messages.push({ role: 'assistant', content: streamingContent });
+					chatToUpdate.messages.push({ role: 'assistant', content: finalContent });
 				}
-				return allChats;
+				return [...allChats]; // Return new array to ensure reactivity
 			});
 
 		} catch (error) {
 			handleError(error, 'Failed to generate response.');
-			// Add error message to the chat
 			chats.update((allChats) => {
 				const chatToUpdate = allChats.find((c) => c.id === currentChat.id);
 				if (chatToUpdate) {
 					chatToUpdate.messages.push({ role: 'assistant', content: 'Sorry, an error occurred.' });
 				}
-				return allChats;
+				return [...allChats];
 			});
 		} finally {
 			// --- Reset State ---
-			isStreaming = false;
-			streamingChatId = null;
-			streamingContent = '';
+			update(() => ({
+				content: '',
+				isActive: false,
+				activeChatId: null
+			}));
 		}
-	}
-};
+	};
+
+	return {
+		subscribe,
+		generateResponse
+	};
+}
+
+// Export a singleton instance of our custom store
+export const streamingService = createStreamingStore();
