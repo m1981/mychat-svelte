@@ -82,7 +82,8 @@
 	onfinalize={handleDndFinalize}
 >
 	{#each filteredRenderList as item (item.id)}
-		<div animate:flip={{ duration: 150 }}>
+		<!-- Remove flip animation - it conflicts with dndzone's internal animations -->
+		<div>
 			{#if item.type === 'folder'}
 				{@const folderChats = allChats.filter((c) => c.folder === item.id)}
 				<!-- ✅ CORRECT: Pass allChats as a prop -->
