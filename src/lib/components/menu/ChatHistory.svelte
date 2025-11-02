@@ -6,6 +6,8 @@
 	import EditIcon from '$lib/components/icons/EditIcon.svelte';
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
 	import { chats } from '$lib/stores/chat.store';
+	import { toast } from '$lib/stores/toast.store';
+	import { withErrorHandling, handleError } from '$lib/utils/error-handler';
 	import { tick } from 'svelte';
 
 	let { chat, index }: { chat: Chat; index: number } = $props();
@@ -14,13 +16,16 @@
 	let editedTitle = $state(chat.title);
 	let hovered = $state(false);
 	let inputElement: HTMLInputElement | undefined = $state();
+	let isDeleting = $state(false);
 
 	// Check if this chat is active based on the current route
 	const isActive = $derived($page.url.pathname.endsWith(chat.id));
 
 	function navigateToChat() {
 		if (!isRenaming) {
-		goto(`/chat/${chat.id}`);
+			goto(`/chat/${chat.id}`).catch((error) => {
+				handleError(error, 'Failed to navigate to chat');
+			});
 	}
 	}
 
@@ -35,8 +40,21 @@
 		inputElement?.select();
 	}
 
-	function handleRename() {
-		if (editedTitle.trim() && editedTitle !== chat.title) {
+	async function handleRename() {
+		if (!editedTitle.trim()) {
+			toast.warning('Chat title cannot be empty');
+			editedTitle = chat.title;
+			isRenaming = false;
+			return;
+		}
+
+		if (editedTitle.trim() === chat.title) {
+			isRenaming = false;
+			return;
+		}
+
+		await withErrorHandling(
+			async () => {
 			chats.update((allChats) => {
 				const updatedChats = [...allChats];
 				const chatIndex = updatedChats.findIndex((c) => c.id === chat.id);
@@ -48,8 +66,19 @@
 				}
 				return updatedChats;
 			});
+
+				toast.success('Chat renamed successfully', {
+					duration: 2000
+				});
+
 			console.log(`✅ Renamed chat ${chat.id} to: ${editedTitle}`);
+			},
+			{
+				errorMessage: 'Failed to rename chat',
+				showToast: true
 		}
+		);
+
 		isRenaming = false;
 	}
 
@@ -58,7 +87,7 @@
 		editedTitle = chat.title;
 	}
 
-	function handleDelete(e: Event) {
+	async function handleDelete(e: Event) {
 		e.stopPropagation();
 
 		// Show confirmation dialog
@@ -66,6 +95,10 @@
 			return;
 		}
 
+		isDeleting = true;
+
+		await withErrorHandling(
+			async () => {
 		chats.update((allChats) => {
 			const updatedChats = allChats.filter((c) => c.id !== chat.id);
 
@@ -73,16 +106,32 @@
 			if (isActive && updatedChats.length > 0) {
 				// Navigate to the previous chat, or the first one if we deleted the first
 				const newIndex = Math.max(0, index - 1);
-				goto(`/chat/${updatedChats[newIndex].id}`);
+						goto(`/chat/${updatedChats[newIndex].id}`).catch((error) => {
+							handleError(error, 'Failed to navigate after deletion');
+						});
 			} else if (updatedChats.length === 0) {
 				// No chats left, go to home
-				goto('/');
+						goto('/').catch((error) => {
+							handleError(error, 'Failed to navigate to home');
+						});
 			}
 
 			return updatedChats;
 		});
 
+				toast.success('Chat deleted successfully', {
+					duration: 2000
+				});
+
 		console.log(`✅ Deleted chat: ${chat.id}`);
+			},
+			{
+				errorMessage: 'Failed to delete chat',
+				showToast: true
+			}
+		);
+
+		isDeleting = false;
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -100,6 +149,8 @@
 	class="chat-history-item"
 	class:chat-history-active={isActive}
 	class:chat-history-item--hovered={hovered}
+	class:opacity-50={isDeleting}
+	class:pointer-events-none={isDeleting}
 	onclick={navigateToChat}
 	onmouseenter={() => (hovered = true)}
 	onmouseleave={() => (hovered = false)}
@@ -115,6 +166,7 @@
 					onblur={handleRename}
 					onkeydown={handleKeydown}
 					onclick={(e) => e.stopPropagation()}
+					maxlength="100"
 				/>
 			{:else}
 				<span class="chat-title-text">{chat.title}</span>
@@ -132,11 +184,15 @@
 		class:chat-actions--active={isActive}
 		onclick={(e) => e.stopPropagation()}
 	>
+		{#if isDeleting}
+			<span class="loading loading-spinner loading-sm"></span>
+		{:else}
 		<button
 			class="chat-action-btn"
 			style="--button-index: 1;"
 			onclick={startRename}
 			title="Rename chat"
+				disabled={isDeleting}
 		>
 			<EditIcon />
 		</button>
@@ -145,8 +201,10 @@
 			style="--button-index: 0;"
 			onclick={handleDelete}
 			title="Delete chat"
+				disabled={isDeleting}
 >
 			<DeleteIcon />
 </button>
+		{/if}
 	</div>
 </div>
