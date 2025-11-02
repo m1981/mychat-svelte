@@ -4,28 +4,22 @@
 	import Header from '$lib/components/layout/Header.svelte';
 	import Main from '$lib/components/layout/Main.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
-	import Menu from '$lib/components/menu/Menu.svelte'; // <-- IMPORT MENU
+	import Menu from '$lib/components/menu/Menu.svelte';
+	import ErrorBoundary from '$lib/components/ui/ErrorBoundary.svelte';
+	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
 	import { hideSideMenu } from '$lib/stores/ui.store';
 
 	let { children } = $props();
 
-	// Use `$state` for reactive local variables in Svelte 5
 	let isTransitioning = $state(false);
 
-	// Use `$effect` for side effects instead of the legacy `$: {}` block.
-	// This code will re-run whenever `$hideSideMenu` changes.
 	$effect(() => {
-		// Reading the store value here makes it a dependency of the effect.
 		const isHidden = $hideSideMenu;
-
-		// To prevent the effect from running on the initial component mount,
-		// we can add a check, but for this simple transition, it's okay.
 			isTransitioning = true;
 		const timer = setTimeout(() => {
 				isTransitioning = false;
 			}, 300);
 
-		// The effect can return a cleanup function, which is perfect for timers.
 		return () => {
 			clearTimeout(timer);
 		};
@@ -37,6 +31,11 @@
 	<title>BetterChatGPT</title>
 </svelte:head>
 
+<!-- Global Toast Container -->
+<ToastContainer position="top-right" />
+
+<!-- Main App with Error Boundary -->
+<ErrorBoundary>
 <div
 	class="w-full h-screen flex justify-center bg-base-300"
 	style="padding: var(--layout-container-padding)"
@@ -52,9 +51,14 @@
       "sidebar content"
     `}
 	>
-		<!-- The `$hideSideMenu` syntax for reading store values in the template is correct -->
 		<Sidebar isVisible={!$hideSideMenu}>
-			<Menu /> <!-- <-- USE MENU COMPONENT -->
+				<!-- Wrap Menu in its own error boundary so sidebar errors don't crash the whole app -->
+				<ErrorBoundary
+					showToast={false}
+					logErrors={true}
+				>
+					<Menu />
+				</ErrorBoundary>
 		</Sidebar>
 
 		<Header>
@@ -62,7 +66,11 @@
 		</Header>
 
 		<Main>
+				<!-- Wrap main content in error boundary -->
+				<ErrorBoundary>
 			{@render children()}
+				</ErrorBoundary>
 		</Main>
 	</div>
 </div>
+</ErrorBoundary>
