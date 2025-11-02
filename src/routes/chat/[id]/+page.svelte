@@ -3,15 +3,18 @@
 	import { page } from '$app/stores';
 	import { chats } from '$lib/stores/chat.store';
 	import { goto } from '$app/navigation';
+	import { streamingService } from '$lib/services/streaming.service';
 
 	const chatId = $derived($page.params.id);
 	const currentChat = $derived($chats.find((c) => c.id === chatId));
 
-	// If chat doesn't exist, redirect to home
 	$effect(() => {
-		if (!currentChat) {
+		const timer = setTimeout(() => {
+			if ($chats.length > 0 && !currentChat) {
 			goto('/');
 		}
+		}, 100);
+		return () => clearTimeout(timer);
 	});
 </script>
 
@@ -19,7 +22,8 @@
 	<div class="p-4">
 		<h1 class="text-2xl font-bold mb-4">{currentChat.title}</h1>
 
-		{#if currentChat.messages.length === 0}
+		<!-- --- FIX: Use store syntax --- -->
+		{#if currentChat.messages.length === 0 && !$streamingService.isActive}
 			<div class="text-center text-base-content/50 mt-12">
 				<p>No messages yet. Start the conversation!</p>
 			</div>
@@ -32,11 +36,19 @@
 						</div>
 					</div>
 				{/each}
+
+				<!-- --- FIX: Use store syntax --- -->
+				{#if $streamingService.isActive && $streamingService.activeChatId === currentChat.id}
+					<div class="chat chat-end">
+						<div class="chat-bubble">
+							{$streamingService.content}
+							<span class="loading loading-dots loading-xs ml-1"></span>
+						</div>
 			</div>
 		{/if}
 	</div>
-{:else}
-	<div class="flex items-center justify-center h-full">
-		<div class="loading loading-spinner loading-lg"></div>
+		{/if}
 	</div>
+{:else}
+	<!-- ... -->
 {/if}
