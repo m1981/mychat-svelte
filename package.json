@@ -47,6 +47,8 @@
 		"vitest-browser-svelte": "^0.1.0"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "^0.68.0",
+		"openai": "^6.7.0",
 		"postgres": "^3.4.5",
 		"svelte-dnd-action": "^0.9.65"
 	},
