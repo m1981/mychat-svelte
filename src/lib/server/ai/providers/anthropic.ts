@@ -1,11 +1,9 @@
 // src/lib/server/ai/providers/anthropic.ts
-// You'll need to install the SDK: npm install @anthropic-ai/sdk
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '$env/dynamic/private';
 import type { AIProvider } from './index';
 import type { ChatConfig, Message } from '$lib/types/chat';
 import { AppError } from '$lib/utils/error-handler';
-// --- Add these imports ---
 import { db } from '$lib/server/db';
 import { messages as messagesTable } from '$lib/server/db/schema';
 
@@ -25,13 +23,12 @@ export class AnthropicProvider implements AIProvider {
 			.map((msg) => ({ role: msg.role, content: msg.content }));
 	}
 
-	// --- Update the function signature ---
 	async generate(
 		chatId: string,
 		messages: Message[],
 		config: ChatConfig['modelConfig']
 	): Promise<ReadableStream> {
-		const stream = await this.anthropic.messages.stream({
+		const anthropicStream = await this.anthropic.messages.stream({
 			model: config.model,
 			messages: this.formatMessages(messages),
 			max_tokens: config.max_tokens,
@@ -39,9 +36,10 @@ export class AnthropicProvider implements AIProvider {
 		});
 
 		let finalContent = '';
-		const transformStream = new TransformStream({
-			async transform(chunk, controller) {
-				// Anthropic SDK provides parsed chunks directly
+		// --- FIX: Correctly adapt the Anthropic stream to a ReadableStream ---
+		const readableStream = new ReadableStream({
+			async start(controller) {
+				for await (const chunk of anthropicStream) {
 					if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
 						const content = chunk.delta.text;
 						if (content) {
@@ -50,9 +48,8 @@ export class AnthropicProvider implements AIProvider {
 						controller.enqueue(new TextEncoder().encode(jsonChunk + '\n'));
 					}
 						}
-			},
-			async flush() {
-				// --- Add the persistence logic here ---
+				}
+				// When the loop finishes, the stream is done. Persist the final message.
 				if (finalContent) {
 					try {
 						await db.insert(messagesTable).values({
@@ -65,9 +62,13 @@ export class AnthropicProvider implements AIProvider {
 						console.error(`🚨 [AnthropicProvider] Failed to persist AI response for chat ${chatId}:`, err);
 					}
 				}
+				controller.close();
+			},
+			cancel() {
+				console.log('Stream cancelled by client.');
 			}
 		});
 
-		return stream.apiCall.body.pipeThrough(transformStream);
+		return readableStream;
 	}
 }
