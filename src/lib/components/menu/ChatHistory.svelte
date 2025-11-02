@@ -6,12 +6,14 @@
 	import EditIcon from '$lib/components/icons/EditIcon.svelte';
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
 	import { chats } from '$lib/stores/chat.store';
+	import { tick } from 'svelte';
 
 	let { chat, index }: { chat: Chat; index: number } = $props();
 
 	let isRenaming = $state(false);
 	let editedTitle = $state(chat.title);
 	let hovered = $state(false);
+	let inputElement: HTMLInputElement | undefined = $state();
 
 	// Check if this chat is active based on the current route
 	const isActive = $derived($page.url.pathname.endsWith(chat.id));
@@ -22,10 +24,15 @@
 	}
 	}
 
-	function startRename(e: Event) {
+	async function startRename(e: Event) {
 		e.stopPropagation();
 		isRenaming = true;
 		editedTitle = chat.title;
+
+		// Focus manually after DOM update (better than autofocus for a11y)
+		await tick();
+		inputElement?.focus();
+		inputElement?.select();
 	}
 
 	function handleRename() {
@@ -101,13 +108,13 @@
 		<div class="chat-title-container">
 			{#if isRenaming}
 				<input
+					bind:this={inputElement}
 					type="text"
 					class="chat-name-input"
 					bind:value={editedTitle}
 					onblur={handleRename}
 					onkeydown={handleKeydown}
 					onclick={(e) => e.stopPropagation()}
-					autofocus
 				/>
 			{:else}
 				<span class="chat-title-text">{chat.title}</span>

@@ -32,6 +32,16 @@ This guide covers common patterns, gotchas, and best practices for Svelte 5 deve
 <button onclick={handleClick}>Click me</button>
 ```
 
+**IMPORTANT**: All event handlers must use the new syntax:
+- `on:click` → `onclick`
+- `on:input` → `oninput`
+- `on:submit` → `onsubmit`
+- `on:mouseenter` → `onmouseenter`
+- `on:mouseleave` → `onmouseleave`
+- `on:blur` → `onblur`
+- `on:keydown` → `onkeydown`
+- Custom events: `on:finalize` → `onfinalize`, `on:consider` → `onconsider`, etc.
+
 ### Props Destructuring
 
 ```svelte
@@ -45,6 +55,79 @@ This guide covers common patterns, gotchas, and best practices for Svelte 5 deve
 <script>
   let { title, items = [] } = $props();
 </script>
+```
+
+### Slots Replaced with Snippets
+
+```svelte
+<!-- Svelte 4 -->
+<script>
+  // Parent component usage
+</script>
+<ChildComponent>
+  <p>Slot content</p>
+</ChildComponent>
+
+<!-- Child component -->
+<div>
+  <slot />
+</div>
+
+<!-- Svelte 5 -->
+<script>
+  // Parent component usage
+</script>
+<ChildComponent>
+  {#snippet children()}
+    <p>Snippet content</p>
+  {/snippet}
+</ChildComponent>
+
+<!-- Child component -->
+<script>
+  let { children }: { children: import('svelte').Snippet } = $props();
+</script>
+<div>
+  {@render children()}
+</div>
+```
+
+**Simplified Pattern (Most Common):**
+```svelte
+<!-- Parent automatically passes children -->
+<ChildComponent>
+  <p>Content here</p>
+</ChildComponent>
+
+<!-- Child receives and renders -->
+<script>
+  let { children }: { children: import('svelte').Snippet } = $props();
+</script>
+<div>
+  {@render children()}
+</div>
+```
+
+### Autofocus is Deprecated
+
+```svelte
+<!-- ❌ BAD: Using autofocus (accessibility issue) -->
+<input type="text" autofocus />
+
+<!-- ✅ GOOD: Manual focus with tick() -->
+<script>
+  import { tick } from 'svelte';
+  
+  let inputElement: HTMLInputElement | undefined = $state();
+  
+  async function focusInput() {
+    await tick(); // Wait for DOM update
+    inputElement?.focus();
+    inputElement?.select(); // Optional: select all text
+  }
+</script>
+
+<input bind:this={inputElement} type="text" />
 ```
 
 ## Runes and State Management
@@ -128,29 +211,24 @@ Use the classic `$store` prefix. This creates a reactive subscription.
 <p>The count is: {$countStore}</p>
 ```
 
-2. In the Script `<script>` - Top Level
+#### 2. In the Script `<script>` - Top Level
+
 You can use the $store prefix for top-level variables. This creates a reactive variable that updates whenever the store changes.
-```
+
+```svelte
 <script>
-  import { get } from 'svelte/store';
   import { countStore } from './stores';
 
-  function logCurrentCount() {
-    // ✅ CORRECT: Use get() for a one-time value read inside a function
-    const currentValue = get(countStore);
-    console.log('The count right now is:', currentValue);
-  }
-
-  // ❌ WRONG: This will cause a compiler error
-  // function broken() {
-  //   console.log($countStore);
-  // }
+  // ✅ CORRECT: Use $derived to create reactive derived state from store
+  const currentCount = $derived($countStore);
 </script>
 ```
 
-3. In the Script (`<script>`) - Inside Functions or Loops
+#### 3. In the Script (`<script>`) - Inside Functions or Loops
+
 You cannot use the $store prefix here. For one-time (non-reactive) reads, use the get() function.
-```
+
+```svelte
 <script>
   import { get } from 'svelte/store';
   import { countStore } from './stores';
@@ -410,9 +488,69 @@ You cannot use the $store prefix here. For one-time (non-reactive) reads, use th
 <button onclick={handleClick}>Click me</button>
 ```
 
+### From Slots to Snippets
+
+```svelte
+<!-- Svelte 4 Parent -->
+<Card>
+  <h2 slot="header">Title</h2>
+  <p>Content</p>
+  <button slot="footer">Action</button>
+</Card>
+
+<!-- Svelte 4 Card Component -->
+<script>
+  export let title;
+</script>
+<div class="card">
+  <header><slot name="header" /></header>
+  <main><slot /></main>
+  <footer><slot name="footer" /></footer>
+</div>
+
+<!-- Svelte 5 Parent -->
+<Card>
+  {#snippet header()}
+    <h2>Title</h2>
+  {/snippet}
+  
+  {#snippet children()}
+    <p>Content</p>
+  {/snippet}
+  
+  {#snippet footer()}
+    <button>Action</button>
+  {/snippet}
+</Card>
+
+<!-- Svelte 5 Card Component -->
+<script>
+  let { 
+    header, 
+    children, 
+    footer 
+  }: { 
+    header?: import('svelte').Snippet;
+    children?: import('svelte').Snippet;
+    footer?: import('svelte').Snippet;
+  } = $props();
+</script>
+<div class="card">
+  {#if header}
+    <header>{@render header()}</header>
+  {/if}
+  {#if children}
+    <main>{@render children()}</main>
+  {/if}
+  {#if footer}
+    <footer>{@render footer()}</footer>
+  {/if}
+</div>
+```
+
 ## Real-World Debugging Examples
 
-#### Problem: Content Not Hiding/Showing
+### Problem: Content Not Hiding/Showing
 
 ```svelte
 <!-- ❌ WRONG: Using action without conditional rendering -->
@@ -435,9 +573,16 @@ You cannot use the $store prefix here. For one-time (non-reactive) reads, use th
 </div>
 ```
 
-#### Problem: Store Subscription in Loops
+### Problem: Store Subscription in Loops
 
 ```svelte
+<!-- ❌ WRONG: Cannot subscribe to stores in loops -->
+{#each projects as project}
+	<div class={$project.collapsible.open ? 'open' : 'closed'}>
+		<!-- Error: store_invalid_scoped_subscription -->
+	</div>
+{/each}
+
 <!-- ✅ CORRECT: Use local state synced with onOpenChange -->
 <script>
 	$effect(() => {
@@ -454,13 +599,6 @@ You cannot use the $store prefix here. For one-time (non-reactive) reads, use th
 		});
 	});
 </script>
-
-<!-- ❌ WRONG: Cannot subscribe to stores in loops -->
-{#each projects as project}
-	<div class={$project.collapsible.open ? 'open' : 'closed'}>
-		<!-- Error: store_invalid_scoped_subscription -->
-	</div>
-{/each}
 
 {#each projects as project}
 	<div class={project.open ? 'open' : 'closed'}>
@@ -615,16 +753,19 @@ Create isolated examples to verify library integration:
 
 ## Best Practices Summary
 
-1. **Always destructure Melt UI returns**: `const { elements: { trigger, content }, states: { open } } = createCollapsible()`
-2. **Check API structure first**: Log `Object.keys(result)` to verify the structure
-3. **Use $state() for reactive data**: Replace `let` with `let variable = $state(initialValue)`
-4. **Use $derived() for computed values**: Replace `$:` with `let computed = $derived(expression)`
-5. **Use callback props instead of events**: Replace `createEventDispatcher` with prop functions
-6. **Avoid store subscriptions in loops**: Use regular state management and sync with `onOpenChange`
-7. **Sync external library state with local state**: Use callbacks to keep states in sync
-8. **Debug with comprehensive logging**: Log library returns, types, and state changes
-9. **Test simple cases first**: Create isolated examples to verify library integration
-10. **Always check library versions**: Ensure compatibility between Svelte 5 and third-party libraries
+1. **Always use new event syntax**: `onclick` instead of `on:click`
+2. **Use snippets instead of slots**: `{@render children()}` instead of `<slot />`
+3. **Avoid autofocus**: Use manual focus with `tick()` for better accessibility
+4. **Always destructure Melt UI returns**: `const { elements: { trigger, content }, states: { open } } = createCollapsible()`
+5. **Check API structure first**: Log `Object.keys(result)` to verify the structure
+6. **Use $state() for reactive data**: Replace `let` with `let variable = $state(initialValue)`
+7. **Use $derived() for computed values**: Replace `$:` with `let computed = $derived(expression)`
+8. **Use callback props instead of events**: Replace `createEventDispatcher` with prop functions
+9. **Avoid store subscriptions in loops**: Use regular state management and sync with `onOpenChange`
+10. **Sync external library state with local state**: Use callbacks to keep states in sync
+11. **Debug with comprehensive logging**: Log library returns, types, and state changes
+12. **Test simple cases first**: Create isolated examples to verify library integration
+13. **Always check library versions**: Ensure compatibility between Svelte 5 and third-party libraries
 
 ## Version-Specific Notes
 
@@ -640,6 +781,24 @@ Create isolated examples to verify library integration:
 - **Top-Level Only**: Store subscriptions must be at component top level
 - **Use Local State**: Prefer `$state()` and sync with external libraries via callbacks
 
+### Svelte 5 Deprecations
+
+- **Slots → Snippets**: `<slot />` is deprecated, use `{@render children()}`
+- **Event Directives**: `on:event` is deprecated, use `onevent`
+- **Autofocus**: `autofocus` attribute triggers accessibility warnings
+
 This guide should help avoid common pitfalls when working with Svelte 5 and third-party libraries!
+```
 
+## Key Additions:
 
+1. ✅ **Event Handler Syntax** - Comprehensive list of `on:` → `on` conversions
+2. ✅ **Slots to Snippets** - Complete migration guide with examples
+3. ✅ **Autofocus Deprecation** - Proper alternative using `tick()` and `bind:this`
+4. ✅ **Snippet Type Definitions** - TypeScript type for `children: import('svelte').Snippet`
+5. ✅ **Named Snippets Example** - Advanced pattern for header/footer/children
+6. ✅ **Migration Patterns Section** - Added "From Slots to Snippets" conversion
+7. ✅ **Best Practices Updated** - Added rules #1-3 for new syntax
+8. ✅ **Deprecations Section** - New section documenting all Svelte 5 deprecations
+
+This updated guide now covers all the modern Svelte 5 patterns! 🎉
