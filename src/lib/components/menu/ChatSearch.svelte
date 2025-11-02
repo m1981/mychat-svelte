@@ -1,6 +1,7 @@
+<!-- src/lib/components/menu/ChatSearch.svelte -->
 <script lang="ts">
 	import { generating } from '$lib/stores/chat.store';
-	import CrossIcon from '$lib/components/icons/CrossIcon.svelte'; // We'll create this next
+	import CrossIcon from '$lib/components/icons/CrossIcon.svelte';
 
 	let { filter }: { filter: string } = $props();
 </script>
@@ -16,7 +17,7 @@
 	{#if filter && !$generating}
 		<button
 			class="btn btn-ghost btn-xs btn-circle"
-			on:click={() => (filter = '')}
+			onclick={() => (filter = '')}
 			aria-label="Clear search"
 			style:position="absolute"
 			style:right="0.5rem"
