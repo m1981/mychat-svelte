@@ -1,3 +1,4 @@
+<!-- src/lib/components/menu/Menu.svelte -->
 <script lang="ts">
 	import { hideSideMenu } from '$lib/stores/ui.store';
 	import SidebarIcon from '$lib/components/icons/SidebarIcon.svelte';
@@ -19,7 +20,7 @@
 			<h2 class="text-sm font-medium text-base-content/70">Chat History</h2>
 			<button
 				class="sidebar-toggle-btn"
-				on:click={() => hideSideMenu.set(true)}
+				onclick={() => hideSideMenu.set(true)}
 				title="Close sidebar"
 			>
 				<SidebarIcon class="w-5 h-5" />

@@ -1,5 +1,6 @@
+<!-- src/lib/components/layout/Sidebar.svelte -->
 <script lang="ts">
-	let { isVisible }: { isVisible: boolean } = $props();
+	let { isVisible, children }: { isVisible: boolean; children: import('svelte').Snippet } = $props();
 </script>
 
 <aside
@@ -10,6 +11,6 @@
 	style:width={isVisible ? 'var(--layout-sidebar-width)' : '0px'}
 >
 	{#if isVisible}
-		<slot />
+		{@render children()}
 	{/if}
 </aside>
