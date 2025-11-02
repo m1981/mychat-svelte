@@ -79,7 +79,7 @@
 <div
 	class="w-full"
 	use:dndzone={{ items: draggableItems, flipDurationMs: 150 }}
-	on:finalize={handleDndFinalize}
+	onfinalize={handleDndFinalize}
 >
 	{#each filteredRenderList as item (item.id)}
 		<div animate:flip={{ duration: 150 }}>
