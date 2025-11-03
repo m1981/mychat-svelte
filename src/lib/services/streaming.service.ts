@@ -3,25 +3,19 @@ import { chats } from '$lib/stores/chat.store';
 import type { Chat } from '$lib/types/chat';
 import { writable, get } from 'svelte/store';
 
-// This function creates our custom store object
 function createStreamingStore() {
-	// Use writable stores for the internal state
 	const { subscribe, update } = writable({
-		content: '',
 		isActive: false,
 		activeChatId: null as string | null
+		// --- REMOVE `content` ---
 	});
 
-	// The main function to start the stream
-	const generateResponse = async (currentChat: Chat) => {
-		// Prevent multiple streams at once
+	const generateResponse = async (currentChat: Chat, assistantMessagePlaceholder: Message) => {
 		if (get({ subscribe }).isActive) return;
 
-		// --- Setup ---
 		update((state) => ({
 			...state,
 			isActive: true,
-			content: '', // Reset content
 			activeChatId: currentChat.id
 		}));
 
@@ -39,7 +33,6 @@ function createStreamingStore() {
 
 			const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
 
-			// --- Streaming Loop ---
 			while (true) {
 				const { value, done } = await reader.read();
 				if (done) break;
@@ -49,41 +42,23 @@ function createStreamingStore() {
 					try {
 						const chunk = JSON.parse(line);
 						if (chunk.type === 'chunk') {
-							// Use the `update` function to change the state
-							update((state) => ({
-								...state,
-								content: state.content + chunk.content
-							}));
+							// --- THE CORE FIX ---
+							// Directly mutate the placeholder and trigger a store update
+							assistantMessagePlaceholder.content += chunk.content;
+							chats.set(get(chats)); // Force update by setting the store to its current value
 						}
 					} catch (error) {
 						console.error('Failed to parse stream chunk:', line, error);
 					}
 				}
 			}
-
-			// --- Teardown and Persist Final State ---
-			const finalContent = get({ subscribe }).content;
-			chats.update((allChats) => {
-				const chatToUpdate = allChats.find((c) => c.id === currentChat.id);
-				if (chatToUpdate) {
-					chatToUpdate.messages.push({ role: 'assistant', content: finalContent });
-				}
-				return [...allChats]; // Return new array to ensure reactivity
-			});
-
+			// No need to update the chats store here, it's already been updated live.
 		} catch (error) {
 			handleError(error, 'Failed to generate response.');
-			chats.update((allChats) => {
-				const chatToUpdate = allChats.find((c) => c.id === currentChat.id);
-				if (chatToUpdate) {
-					chatToUpdate.messages.push({ role: 'assistant', content: 'Sorry, an error occurred.' });
-				}
-				return [...allChats];
-			});
+			assistantMessagePlaceholder.content = 'Sorry, an error occurred.';
+			chats.set(get(chats)); // Update with error message
 		} finally {
-			// --- Reset State ---
 			update(() => ({
-				content: '',
 				isActive: false,
 				activeChatId: null
 			}));
@@ -96,5 +71,4 @@ function createStreamingStore() {
 	};
 }
 
-// Export a singleton instance of our custom store
 export const streamingService = createStreamingStore();

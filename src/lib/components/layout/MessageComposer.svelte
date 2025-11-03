@@ -3,12 +3,12 @@
 	import { get } from 'svelte/store';
 	import { handleError } from '$lib/utils/error-handler';
 	import { streamingService } from '$lib/services/streaming.service';
+	import type { Message } from '$lib/types/chat';
 
 	let prompt = $state('');
 
 	async function handleSubmit() {
 		const currentPrompt = prompt.trim();
-		// --- FIX: Use store syntax ---
 		if (!currentPrompt || $streamingService.isActive) return;
 
 		prompt = '';
@@ -22,20 +22,26 @@
 			return;
 		}
 
+		// 1. Add user message
 		currentChat.messages.push({ role: 'user', content: currentPrompt });
-		chats.set([...allChats]);
 
+		// 2. Create the assistant placeholder and add it to the store immediately
+		const assistantMessagePlaceholder: Message = { role: 'assistant', content: '' };
+		currentChat.messages.push(assistantMessagePlaceholder);
+		chats.set([...allChats]); // Update UI with both messages
+
+		// 3. Create the API payload (without the placeholder)
 		const apiPayload = {
 			...currentChat,
-			messages: [...currentChat.messages]
+			// Send all messages *except* the last one (the placeholder)
+			messages: currentChat.messages.slice(0, -1)
 		};
 
-		streamingService.generateResponse(apiPayload);
+		// 4. Kick off the service, passing the placeholder object
+		streamingService.generateResponse(apiPayload, assistantMessagePlaceholder);
 			}
 
-	// Also update the `generating` store for other UI elements
 	$effect(() => {
-		// --- FIX: Use store syntax ---
 		generating.set($streamingService.isActive);
     });
 </script>
