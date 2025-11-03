@@ -22,8 +22,7 @@
 	<div class="p-4">
 		<h1 class="text-2xl font-bold mb-4">{currentChat.title}</h1>
 
-		<!-- --- FIX: Use store syntax --- -->
-		{#if currentChat.messages.length === 0 && !$streamingService.isActive}
+		{#if currentChat.messages.length === 0}
 			<div class="text-center text-base-content/50 mt-12">
 				<p>No messages yet. Start the conversation!</p>
 			</div>
@@ -33,19 +32,14 @@
 					<div class="chat" class:chat-start={message.role === 'user'} class:chat-end={message.role === 'assistant'}>
 						<div class="chat-bubble">
 							{message.content}
+							<!-- Add a subtle typing indicator to the last assistant message while streaming -->
+							{#if message.role === 'assistant' && $streamingService.isActive && $streamingService.activeChatId === currentChat.id && currentChat.messages.at(-1) === message}
+								<span class="loading loading-dots loading-xs ml-1"></span>
+							{/if}
 						</div>
 					</div>
 				{/each}
-
-				<!-- --- FIX: Use store syntax --- -->
-				{#if $streamingService.isActive && $streamingService.activeChatId === currentChat.id}
-					<div class="chat chat-end">
-						<div class="chat-bubble">
-							{$streamingService.content}
-							<span class="loading loading-dots loading-xs ml-1"></span>
-						</div>
-			</div>
-		{/if}
+				<!-- --- REMOVE THE SEPARATE STREAMING BLOCK --- -->
 	</div>
 		{/if}
 	</div>
