@@ -14,7 +14,15 @@ export async function generateResponse() {
     generating.set(true);
 
     // Add a placeholder for the assistant's message
-    const assistantMessage: Message = { role: 'assistant', content: '' };
+    const assistantMessage: Message = {
+        id: `msg-${Date.now()}`,
+        chatId: currentChat.id,
+        role: 'assistant',
+        content: '',
+        tags: [],
+        highlights: [],
+        createdAt: new Date()
+    };
     chats.update(c => {
         c[currentIndex].messages.push(assistantMessage);
         return c;
