@@ -48,9 +48,12 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.68.0",
+		"@types/pg": "^8.15.6",
+		"nanoid": "^5.1.6",
 		"openai": "^6.7.0",
 		"postgres": "^3.4.5",
-		"svelte-dnd-action": "^0.9.65"
+		"svelte-dnd-action": "^0.9.65",
+		"uuid": "^13.0.0"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
