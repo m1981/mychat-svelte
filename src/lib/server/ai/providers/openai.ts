@@ -30,34 +30,19 @@ export class OpenAIProvider implements AIProvider {
 		});
 
 		let finalContent = '';
-		const transformStream = new TransformStream({
-			async transform(chunk, controller) {
-				// Assuming chunk is a Uint8Array from the OpenAI stream
-				const text = new TextDecoder().decode(chunk);
-				// OpenAI streams send SSE events, often prefixed with "data: "
-				const lines = text.split('\n').filter((line) => line.trim().startsWith('data: '));
-
-				for (const line of lines) {
-					const data = line.replace(/^data: /, '');
-					if (data === '[DONE]') {
-						return; // Stream finished
-					}
-					try {
-						const parsed = JSON.parse(data);
-						const content = parsed.choices[0]?.delta?.content || '';
+		// FIX: Adapt the OpenAI SDK's async iterable stream to a standard ReadableStream
+		const readableStream = new ReadableStream({
+			async start(controller) {
+				for await (const chunk of stream) {
+					const content = chunk.choices[0]?.delta?.content || '';
 						if (content) {
 							finalContent += content;
 							const jsonChunk = JSON.stringify({ type: 'chunk', content });
 							controller.enqueue(new TextEncoder().encode(jsonChunk + '\n'));
 						}
-					} catch (error) {
-						console.error('Could not parse stream chunk:', data);
 					}
-				}
-			},
-			async flush() {
-				// This 'flush' method is called when the source stream is done.
-				// This is the perfect place to persist the final message.
+
+				// When the loop finishes, persist the final message.
 				if (finalContent) {
 					try {
 						await db.insert(messagesTable).values({
@@ -68,12 +53,15 @@ export class OpenAIProvider implements AIProvider {
 						console.log(`✅ [OpenAIProvider] Persisted assistant response for chat ${chatId}`);
 					} catch (err) {
 						console.error(`🚨 [OpenAIProvider] Failed to persist AI response for chat ${chatId}:`, err);
-						// In a production app, you might add this to a retry queue.
 					}
 				}
+				controller.close();
+			},
+			cancel() {
+				console.log('[OpenAIProvider] Stream cancelled by client.');
 			}
 		});
 
-		return stream.body!.pipeThrough(transformStream);
+		return readableStream;
 	}
 }

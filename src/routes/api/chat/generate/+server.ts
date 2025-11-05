@@ -23,13 +23,21 @@ export const POST: RequestHandler = async ({ request }) => {
 		await db.insert(chats)
 			.values({
 				id: body.id,
+				userId: body.userId,
 				title: body.title,
+				folderId: body.folderId,
 				config: body.config,
-				folder: body.folder
+				metadata: body.metadata || {}
 			})
 			.onConflictDoUpdate({
 				target: chats.id,
-				set: { title: body.title, config: body.config, folder: body.folder }
+				set: {
+					title: body.title,
+					config: body.config,
+					folderId: body.folderId,
+					metadata: body.metadata || {},
+					updatedAt: new Date()
+				}
 			});
 
 		await db.insert(messagesTable).values({
@@ -42,13 +50,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		const { provider } = body.config;
 		const aiProvider = getAIProvider(provider);
 
-		// --- FIX: Pass arguments in the correct order: (chatId, messages, modelConfig) ---
+		// FIX: Await the promise returned by the generate method
 		const stream = await aiProvider.generate(body.id, body.messages, body.config.modelConfig);
 
-		// 4. --- Return Stream to Client ---
+		// Return Stream to Client
 		return new Response(stream, {
 			headers: {
-				'Content-Type': 'application/x-ndjson', // Use x-ndjson for newline delimited JSON
+				'Content-Type': 'application/x-ndjson',
 				'Cache-Control': 'no-cache',
 				Connection: 'keep-alive'
 			}

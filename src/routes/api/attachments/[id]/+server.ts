@@ -3,7 +3,11 @@ import { attachmentService } from '$lib/server/services/attachment.service';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
-		const attachmentId = params.id;
+		const { id: attachmentId } = params;
+		// FIX: Validate that the ID parameter exists
+		if (!attachmentId) {
+			return json({ message: 'Attachment ID is required' }, { status: 400 });
+		}
 		const attachment = await attachmentService.getAttachment(attachmentId);
 		return json(attachment);
 	} catch (error) {
@@ -17,7 +21,11 @@ export const GET: RequestHandler = async ({ params }) => {
 
 export const DELETE: RequestHandler = async ({ params }) => {
 	try {
-		const attachmentId = params.id;
+		const { id: attachmentId } = params;
+		// FIX: Validate that the ID parameter exists
+		if (!attachmentId) {
+			return json({ message: 'Attachment ID is required' }, { status: 400 });
+		}
 		await attachmentService.deleteAttachment(attachmentId);
 		return new Response(null, { status: 204 });
 	} catch (error) {
