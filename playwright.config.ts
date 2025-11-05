@@ -5,5 +5,10 @@ export default defineConfig({
 		command: 'npm run build && npm run preview',
 		port: 4173
 	},
-	testDir: 'e2e'
+	testDir: 'tests',
+	use: {
+		baseURL: 'http://localhost:4173'
+	},
+	globalSetup: './tests/global-setup.ts',
+	globalTeardown: './tests/global-teardown.ts'
 });
