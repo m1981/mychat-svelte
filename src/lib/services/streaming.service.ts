@@ -42,7 +42,9 @@ function createStreamingStore() {
 						const chunk = JSON.parse(line);
 						if (chunk.type === 'chunk') {
 							assistantMessagePlaceholder.content += chunk.content;
-							chats.set(get(chats));
+							// Trigger reactivity by creating a new array reference
+							const currentChats = get(chats);
+							chats.set([...currentChats]);
 						}
 					} catch (error) {
 						console.error('Failed to parse stream chunk:', line, error);
@@ -52,7 +54,9 @@ function createStreamingStore() {
 		} catch (error) {
 			handleError(error, 'Failed to generate response.');
 			assistantMessagePlaceholder.content = 'Sorry, an error occurred.';
-			chats.set(get(chats));
+			// Trigger reactivity by creating a new array reference
+			const currentChats = get(chats);
+			chats.set([...currentChats]);
 		} finally {
 			update(() => ({
 				isActive: false,

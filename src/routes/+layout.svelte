@@ -8,24 +8,30 @@
 	import ErrorBoundary from '$lib/components/ui/ErrorBoundary.svelte';
 	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
 	import { hideSideMenu } from '$lib/stores/ui.store';
-    // --- ADD THESE IMPORTS ---
 	import { chats, folders, currentChatIndex } from '$lib/stores/chat.store';
 	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 
 	let { children, data } = $props(); // Get data from the server load function
 
-	// --- Initialize stores with server-side data ---
-	// This runs ONLY ONCE when the component is created.
+	// Initialize stores immediately with server-side data
+	chats.set(data.chats || []);
+	folders.set(data.folders || {});
+
+	// Update stores when data changes (e.g., navigation)
 	$effect(() => {
 		chats.set(data.chats || []);
 		folders.set(data.folders || {});
 	});
-	// --- Sync currentChatIndex with the URL ---
+
+	// Sync currentChatIndex with the URL
 	$effect(() => {
 		const chatId = $page.params.id;
-		if (chatId) {
+		if (chatId && $chats.length > 0) {
 			const index = $chats.findIndex(c => c.id === chatId);
-			currentChatIndex.set(index > -1 ? index : 0);
+			if (index > -1) {
+				currentChatIndex.set(index);
+			}
 		}
 	});
 

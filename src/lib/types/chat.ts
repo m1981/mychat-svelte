@@ -33,14 +33,14 @@ export interface Highlight {
 }
 
 export interface Message {
-	id: string;
-	chatId: string;
+	id?: string;
+	chatId?: string;
 	role: 'user' | 'assistant' | 'system';
 	content: string;
-	tags: Tag[];
-	highlights: Highlight[];
+	tags?: Tag[];
+	highlights?: Highlight[];
 	embedding?: number[];
-	createdAt: Date;
+	createdAt?: Date;
 }
 
 export interface ChatMetadata {

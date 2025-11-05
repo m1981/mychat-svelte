@@ -15,6 +15,17 @@
 
 		const allChats = get(chats);
 		const currentIndex = get(currentChatIndex);
+
+		if (!allChats || allChats.length === 0) {
+			handleError(new Error('No chats available.'));
+			return;
+		}
+
+		if (currentIndex < 0 || currentIndex >= allChats.length) {
+			handleError(new Error('Invalid chat index.'));
+			return;
+		}
+
 		const currentChat = allChats[currentIndex];
 
 		if (!currentChat) {
@@ -23,18 +34,31 @@
 		}
 
 		// 1. Add user message
-		currentChat.messages.push({ role: 'user', content: currentPrompt });
+		const userMessage: Message = { role: 'user', content: currentPrompt };
 
-		// 2. Create the assistant placeholder and add it to the store immediately
+		// 2. Create the assistant placeholder
 		const assistantMessagePlaceholder: Message = { role: 'assistant', content: '' };
-		currentChat.messages.push(assistantMessagePlaceholder);
-		chats.set([...allChats]); // Update UI with both messages
 
-		// 3. Create the API payload (without the placeholder)
-		const apiPayload = {
+		// 3. Create new messages array
+		const newMessages = [...currentChat.messages, userMessage, assistantMessagePlaceholder];
+
+		// 4. Create new chat object to trigger reactivity
+		const updatedChat = {
 			...currentChat,
-    		userId: 1,
-			messages: currentChat.messages.slice(0, -1)
+			messages: newMessages
+		};
+
+		// 5. Update the allChats array with the new chat object
+		allChats[currentIndex] = updatedChat;
+
+		// 6. Trigger reactivity by setting the store
+		chats.set([...allChats]);
+
+		// 7. Create the API payload (without the placeholder)
+		const apiPayload = {
+			...updatedChat,
+			userId: 1,
+			messages: updatedChat.messages.slice(0, -1)
 		};
 
 		// 4. Kick off the service, passing the placeholder object
@@ -53,7 +77,7 @@
 			disabled={$streamingService.isActive}
 			rows="1"
 			class="textarea textarea-bordered w-full pr-16 resize-none"
-			placeholder="Type your message..."
+			placeholder="Type a message..."
 			onkeydown={(e) => {
 				if (e.key === 'Enter' && !e.shiftKey) {
 					e.preventDefault();
@@ -65,7 +89,7 @@
 			type="submit"
 			class="btn btn-primary btn-square absolute bottom-2 right-2"
 			disabled={!prompt.trim() || $streamingService.isActive}
-			aria-label="Send message"
+			aria-label="Send"
 		>
 			{#if $streamingService.isActive}
 				<span class="loading loading-spinner"></span>
