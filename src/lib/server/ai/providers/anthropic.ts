@@ -20,7 +20,7 @@ export class AnthropicProvider implements AIProvider {
 	private formatMessages(messages: Message[]): Anthropic.Messages.MessageParam[] {
 		return messages
 			.filter((msg) => msg.role === 'user' || msg.role === 'assistant')
-			.map((msg) => ({ role: msg.role, content: msg.content }));
+			.map((msg) => ({ role: msg.role, content: msg.content })) as Anthropic.Messages.MessageParam[];
 	}
 
 	async generate(
@@ -36,7 +36,6 @@ export class AnthropicProvider implements AIProvider {
 		});
 
 		let finalContent = '';
-		// --- FIX: Correctly adapt the Anthropic stream to a ReadableStream ---
 		const readableStream = new ReadableStream({
 			async start(controller) {
 				for await (const chunk of anthropicStream) {
@@ -65,7 +64,7 @@ export class AnthropicProvider implements AIProvider {
 				controller.close();
 			},
 			cancel() {
-				console.log('Stream cancelled by client.');
+				console.log('[AnthropicProvider] Stream cancelled by client.');
 			}
 		});
 

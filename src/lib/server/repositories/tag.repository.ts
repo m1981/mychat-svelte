@@ -1,3 +1,6 @@
+// src/lib/server/repositories/tag.repository.ts
+// UPDATED VERSION - adds findByName and findOrCreate methods
+
 import { db } from '$lib/server/db';
 import { tags } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -56,6 +59,32 @@ export class TagRepository {
 		});
 
 		return results.map((r) => this.mapToDomain(r));
+	}
+
+	/**
+	 * Find tag by name (ADDED)
+	 */
+	async findByName(name: string, userId: number, type: 'CHAT' | 'MESSAGE' | 'NOTE'): Promise<Tag | null> {
+		const result = await db.query.tags.findFirst({
+			where: and(
+				eq(tags.name, name),
+				eq(tags.userId, userId),
+				eq(tags.type, type)
+			)
+		});
+
+		return result ? this.mapToDomain(result) : null;
+	}
+
+	/**
+	 * Find or create tag by name (ADDED)
+	 * Useful for auto-creating tags when applying them to items
+	 */
+	async findOrCreate(name: string, userId: number, type: 'CHAT' | 'MESSAGE' | 'NOTE'): Promise<Tag> {
+		const existing = await this.findByName(name, userId, type);
+		if (existing) return existing;
+
+		return this.create({ userId, name, type });
 	}
 
 	/**

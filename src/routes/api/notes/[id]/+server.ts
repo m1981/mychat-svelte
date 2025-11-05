@@ -4,7 +4,11 @@ import type { UpdateNoteDTO } from '$lib/types/note';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
-		const noteId = params.id;
+		const { id: noteId } = params;
+		// FIX: Validate that the ID parameter exists
+		if (!noteId) {
+			return json({ message: 'Note ID is required' }, { status: 400 });
+		}
 		const note = await noteService.getNote(noteId);
 		return json(note);
 	} catch (error) {
@@ -18,7 +22,11 @@ export const GET: RequestHandler = async ({ params }) => {
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
 	try {
-		const noteId = params.id;
+		const { id: noteId } = params;
+		// FIX: Validate that the ID parameter exists
+		if (!noteId) {
+			return json({ message: 'Note ID is required' }, { status: 400 });
+		}
 		const data: UpdateNoteDTO = await request.json();
 
 		const note = await noteService.updateNote(noteId, data);
@@ -34,7 +42,11 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
 export const DELETE: RequestHandler = async ({ params }) => {
 	try {
-		const noteId = params.id;
+		const { id: noteId } = params;
+		// FIX: Validate that the ID parameter exists
+		if (!noteId) {
+			return json({ message: 'Note ID is required' }, { status: 400 });
+		}
 		await noteService.deleteNote(noteId);
 		return new Response(null, { status: 204 });
 	} catch (error) {

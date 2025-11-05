@@ -1,3 +1,5 @@
+// src/lib/server/services/search.service.ts
+
 import { db } from '$lib/server/db';
 import { chats, messages, notes } from '$lib/server/db/schema';
 import { eq, and, or, like, sql } from 'drizzle-orm';
@@ -87,7 +89,70 @@ export class SearchService {
 
 	/**
 	 * Semantic search using embeddings
-	 * Note: Requires pgvector extension and embeddings to be generated
+	 *
+	 * TODO: Implement semantic search with OpenAI embeddings
+	 *
+	 * Implementation Guide:
+	 * 1. Install OpenAI SDK: npm install openai
+	 * 2. Enable pgvector extension: CREATE EXTENSION IF NOT EXISTS vector;
+	 * 3. Generate query embedding using OpenAI text-embedding-3-small
+	 * 4. Use pgvector cosine similarity: 1 - (embedding <=> query_embedding)
+	 * 5. Filter by minimum similarity threshold (e.g., 0.7)
+	 * 6. Return top 20 results
+	 *
+	 * Example Implementation:
+	 *
+	 * ```typescript
+	 * import OpenAI from 'openai';
+	 * import { env } from '$env/dynamic/private';
+	 *
+	 * const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+	 * const embeddingResponse = await openai.embeddings.create({
+	 *   model: 'text-embedding-3-small',
+	 *   input: query,
+	 *   encoding_format: 'float'
+	 * });
+	 *
+	 * const queryEmbedding = embeddingResponse.data[0].embedding;
+	 *
+	 * const results = await db.execute(sql`
+	 *   SELECT
+	 *     m.id as message_id,
+	 *     m.content as message_content,
+	 *     m.role as message_role,
+	 *     m.chat_id,
+	 *     c.title as chat_title,
+	 *     c.created_at,
+	 *     1 - (m.embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+	 *   FROM messages m
+	 *   JOIN chats c ON c.id = m.chat_id
+	 *   WHERE
+	 *     c.user_id = ${userId}
+	 *     AND m.embedding IS NOT NULL
+	 *   ORDER BY m.embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+	 *   LIMIT 20
+	 * `);
+	 *
+	 * return results.rows
+	 *   .filter(row => row.similarity > 0.7)
+	 *   .map(row => ({
+	 *     type: 'message' as const,
+	 *     id: row.message_id.toString(),
+	 *     chatId: row.chat_id,
+	 *     chatTitle: row.chat_title,
+	 *     content: row.message_content,
+	 *     snippet: this.createSnippet(row.message_content, query),
+	 *     score: row.similarity,
+	 *     highlights: [],
+	 *     metadata: {
+	 *       createdAt: row.created_at,
+	 *       messageRole: row.message_role
+	 *     }
+	 *   }));
+	 * ```
+	 *
+	 * Note: Requires embeddings to be generated for existing messages.
+	 * Create a background job to process existing content.
 	 */
 	private async semanticSearch(
 		query: string,
@@ -122,7 +187,8 @@ export class SearchService {
 			const existing = merged.get(key);
 
 			if (existing) {
-				existing.score = (existing.score + r.score) / 2;
+				// Weighted average: text 30%, semantic 70%
+				existing.score = (existing.score * 0.3) + (r.score * 0.7);
 			} else {
 				merged.set(key, r);
 			}

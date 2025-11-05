@@ -6,10 +6,10 @@ import { AppError } from '$lib/utils/error-handler';
 // Define a common interface for all AI providers
 export interface AIProvider {
 	generate(
-		chatId: string, // <-- Add chatId here
+		chatId: string,
 		messages: Message[],
 		config: ChatConfig['modelConfig']
-	): ReadableStream; // Return a generic ReadableStream
+	): Promise<ReadableStream>;
 }
 
 // A map of available providers

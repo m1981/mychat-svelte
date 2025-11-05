@@ -4,7 +4,11 @@ import type { UpdateHighlightDTO } from '$lib/types/highlight';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
-		const highlightId = params.id;
+		const { id: highlightId } = params;
+		// FIX: Validate that the ID parameter exists
+		if (!highlightId) {
+			return json({ message: 'Highlight ID is required' }, { status: 400 });
+		}
 		const highlight = await highlightService.getHighlight(highlightId);
 		return json(highlight);
 	} catch (error) {
@@ -18,7 +22,11 @@ export const GET: RequestHandler = async ({ params }) => {
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
 	try {
-		const highlightId = params.id;
+		const { id: highlightId } = params;
+		// FIX: Validate that the ID parameter exists
+		if (!highlightId) {
+			return json({ message: 'Highlight ID is required' }, { status: 400 });
+		}
 		const data: UpdateHighlightDTO = await request.json();
 
 		const highlight = await highlightService.updateHighlight(highlightId, data);
@@ -34,7 +42,11 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
 export const DELETE: RequestHandler = async ({ params }) => {
 	try {
-		const highlightId = params.id;
+		const { id: highlightId } = params;
+		// FIX: Validate that the ID parameter exists
+		if (!highlightId) {
+			return json({ message: 'Highlight ID is required' }, { status: 400 });
+		}
 		await highlightService.deleteHighlight(highlightId);
 		return new Response(null, { status: 204 });
 	} catch (error) {

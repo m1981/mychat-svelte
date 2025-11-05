@@ -33,7 +33,7 @@
 		// 3. Create the API payload (without the placeholder)
 		const apiPayload = {
 			...currentChat,
-			// Send all messages *except* the last one (the placeholder)
+    		userId: 1,
 			messages: currentChat.messages.slice(0, -1)
 		};
 
