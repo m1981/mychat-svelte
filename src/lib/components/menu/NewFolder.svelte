@@ -19,49 +19,49 @@
 
 		await withErrorHandling(
 			async () => {
-		// Generate unique ID using timestamp + random string
-		const folderId = `folder-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+				// Call API to create folder
+				const response = await fetch('/api/folders', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						name: 'Untitled Folder',
+						type: 'STANDARD',
+						color: '#3b82f6' // Default blue color
+					})
+				});
 
-		// Determine the next order number (highest current order + 1)
-		const currentFolders = $folders;
-		const maxOrder = Object.values(currentFolders).reduce(
-			(max, folder) => Math.max(max, folder.order),
-			-1
-		);
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.message || 'Failed to create folder');
+				}
 
-		// Create new folder object
-		const newFolder: Folder = {
-			id: folderId,
-			name: 'New Folder',
-			expanded: true, // Start expanded so user can see it
-			order: maxOrder + 1,
-			color: '#3b82f6' // Default blue color
-		};
+				// Get the created folder from the API response
+				const createdFolder: Folder = await response.json();
 
-		// Add the new folder to the store
-		folders.update((currentFolders: FolderCollection) => {
-			return {
-				...currentFolders,
-				[folderId]: newFolder
-			};
-		});
+				// Add the new folder to the store
+				folders.update((currentFolders: FolderCollection) => {
+					return {
+						...currentFolders,
+						[createdFolder.id]: createdFolder
+					};
+				});
 
 				// Show success toast
 				toast.success('Folder created successfully', {
 					duration: 2000
 				});
 
-		console.log(`✅ Created new folder: ${folderId} with order ${newFolder.order}`);
+				console.log(`✅ Created new folder: ${createdFolder.id}`);
 
 				// Auto-trigger rename mode after creation
 				await tick(); // Wait for DOM to update
-			const folderElement = document.querySelector(`[data-folder-id="${folderId}"]`);
-			if (folderElement) {
-				const editButton = folderElement.querySelector('[title="Edit folder name"]');
-				if (editButton instanceof HTMLElement) {
-					editButton.click();
+				const folderElement = document.querySelector(`[data-folder-id="${createdFolder.id}"]`);
+				if (folderElement) {
+					const editButton = folderElement.querySelector('[title="Edit folder name"]');
+					if (editButton instanceof HTMLElement) {
+						editButton.click();
+					}
 				}
-			}
 			},
 			{
 				errorMessage: 'Failed to create folder. Please try again.',
