@@ -1,3 +1,4 @@
+<!--src/routes/+layout.svelte-->
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
@@ -7,21 +8,51 @@
 	import Menu from '$lib/components/menu/Menu.svelte';
 	import ErrorBoundary from '$lib/components/ui/ErrorBoundary.svelte';
 	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
+    import SyncStatus from '$lib/components/SyncStatus.svelte';
 	import { hideSideMenu } from '$lib/stores/ui.store';
 	import { chats, folders, currentChatIndex } from '$lib/stores/chat.store';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+    import { browser } from '$app/environment';
+
+    // Import local-first functionality
+    import { initializeStores, isLoaded } from '$lib/stores/chat.store.enhanced';
 
 	let { children, data } = $props(); // Get data from the server load function
 
-	// Initialize stores immediately with server-side data
+    // Local-first initialization flag
+    let localFirstInitialized = $state(false);
+
+    onMount(async () => {
+        if (browser) {
+            try {
+                // Initialize local-first stores (IndexedDB + Sync Service)
+                console.log('🚀 Initializing local-first stores...');
+                await initializeStores();
+                localFirstInitialized = true;
+                console.log('✅ Local-first stores initialized');
+            } catch (error) {
+                console.error('❌ Failed to initialize local-first stores:', error);
+                // Fall back to server-side data
+                localFirstInitialized = true; // Still mark as initialized to show UI
+            }
+        }
+    });
+
+    // Initialize stores immediately with server-side data (server-side rendering)
+    // This ensures the app works even before IndexedDB loads
 	chats.set(data.chats || []);
 	folders.set(data.folders || {});
 
 	// Update stores when data changes (e.g., navigation)
+    // This maintains backward compatibility with server-side updates
 	$effect(() => {
+        // Only update from server if local-first hasn't initialized yet
+        // Once local-first is active, it manages the store
+        if (!localFirstInitialized) {
 		chats.set(data.chats || []);
 		folders.set(data.folders || {});
+        }
 	});
 
 	// Sync currentChatIndex with the URL
@@ -58,8 +89,15 @@
 <!-- Global Toast Container -->
 <ToastContainer position="top-right" />
 
+<!-- Sync Status Indicator (bottom-right) -->
+{#if browser && localFirstInitialized && $isLoaded}
+    <SyncStatus />
+{/if}
+
 <!-- Main App with Error Boundary -->
 <ErrorBoundary>
+    {#if !browser || localFirstInitialized}
+        <!-- Show app once local-first is initialized or in SSR mode -->
 <div
 	class="w-full h-screen flex justify-center bg-base-300"
 	style="padding: var(--layout-container-padding)"
@@ -97,4 +135,13 @@
 		</Main>
 	</div>
 </div>
+    {:else}
+        <!-- Loading state while initializing local-first -->
+        <div class="w-full h-screen flex items-center justify-center bg-base-300">
+            <div class="text-center">
+                <div class="loading loading-spinner loading-lg mb-4"></div>
+                <p class="text-base-content/70">Initializing local storage...</p>
+            </div>
+        </div>
+    {/if}
 </ErrorBoundary>

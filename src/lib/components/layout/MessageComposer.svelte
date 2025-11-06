@@ -55,11 +55,23 @@
 		chats.set([...allChats]);
 
 		// 7. Create the API payload (without the placeholder)
+		// Normalize messages to only include role and content for API
+		const normalizedMessages = updatedChat.messages.slice(0, -1).map(msg => ({
+			role: msg.role,
+			content: msg.content
+		}));
+
 		const apiPayload = {
 			...updatedChat,
 			userId: 1,
-			messages: updatedChat.messages.slice(0, -1)
+			messages: normalizedMessages
 		};
+
+		console.log('📤 Sending to API:', {
+			chatId: updatedChat.id,
+			messageCount: normalizedMessages.length,
+			lastMessage: normalizedMessages[normalizedMessages.length - 1]
+		});
 
 		// 4. Kick off the service, passing the placeholder object
 		streamingService.generateResponse(apiPayload, assistantMessagePlaceholder);

@@ -11,16 +11,19 @@
 	/**
 	 * Creates a new chat with default configuration and navigates to it
 	 */
-	function addChat() {
+	async function addChat() {
 		if ($generating) return;
 
 		// Generate unique ID using timestamp + random string
 		const chatId = `chat-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+		const now = new Date();
 
-		// Create new chat object with default configuration
+		// Create new chat object with ALL required fields
 		const newChat: Chat = {
 			id: chatId,
+			userId: 1, // TODO: Get from auth context
 			title: 'New Chat',
+			folderId: folder, // Use folderId (correct field name)
 			messages: [],
 			config: {
 				provider: 'anthropic',
@@ -33,8 +36,38 @@
 					frequency_penalty: 0
 				}
 			},
-			folder: folder // Will be undefined if creating at root level
+			tags: [],
+			metadata: {
+				tokenCount: 0,
+				messageCount: 0,
+				lastMessageAt: now
+			},
+			createdAt: now,
+			updatedAt: now,
+			folder: folder // Keep for backward compatibility
 		};
+
+		try {
+			// Save to database first
+			const response = await fetch('/api/chats', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(newChat)
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				console.error('Failed to create chat:', error);
+				// Still add to local store for offline-first experience
+			} else {
+				// Use server response with DB-generated fields
+				const savedChat = await response.json();
+				Object.assign(newChat, savedChat);
+			}
+		} catch (error) {
+			console.error('Failed to save chat to database:', error);
+			// Continue with local-only chat
+		}
 
 		// Add the new chat to the store
 		chats.update((currentChats) => {
@@ -47,8 +80,8 @@
 					return updatedChats;
 				}
 			}
-			// Otherwise, add to the end
-			return [...currentChats, newChat];
+			// Otherwise, add to the beginning (most recent first)
+			return [newChat, ...currentChats];
 		});
 
 		// Navigate to the newly created chat
