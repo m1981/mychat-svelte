@@ -6,6 +6,7 @@
 	import ChatMessages from '$lib/components/chat/ChatMessages.svelte';
 	import NotesPanel from '$lib/components/chat/NotesPanel.svelte';
 	import HighlightsPanel from '$lib/components/chat/HighlightsPanel.svelte';
+	import { setContext } from 'svelte';
 
 	const chatId = $derived($page.params.id);
 	const currentChat = $derived($chats.find((c) => c.id === chatId));
