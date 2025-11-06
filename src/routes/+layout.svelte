@@ -14,6 +14,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
     import { browser } from '$app/environment';
+    import { eventBus } from '$lib/events/eventBus'; // New: For top-level event handling
 
     // Import local-first functionality
     import { initializeStores, isLoaded } from '$lib/stores/chat.store.enhanced';
@@ -36,6 +37,38 @@
                 // Fall back to server-side data
                 localFirstInitialized = true; // Still mark as initialized to show UI
             }
+
+            // New: Top-level event handlers (e.g., for analytics, logging side effects)
+            // Keeps components dumb - they just call store methods
+            const handleNoteCreated = (e: CustomEvent) => {
+                console.log('Analytics: Note created', e.detail); // e.g., send to analytics service
+            };
+
+            const handleNoteUpdated = (e: CustomEvent) => {
+                console.log('Analytics: Note updated', e.detail);
+            };
+
+            const handleNoteDeleted = (e: CustomEvent) => {
+                console.log('Analytics: Note deleted', e.detail);
+            };
+
+            // Similar for highlights and attachments...
+            const handleHighlightCreated = (e: CustomEvent) => {
+                console.log('Analytics: Highlight created', e.detail);
+            };
+
+            eventBus.addEventListener('note:created', handleNoteCreated);
+            eventBus.addEventListener('note:updated', handleNoteUpdated);
+            eventBus.addEventListener('note:deleted', handleNoteDeleted);
+            eventBus.addEventListener('highlight:created', handleHighlightCreated);
+
+            // Cleanup on unmount
+            return () => {
+                eventBus.removeEventListener('note:created', handleNoteCreated);
+                eventBus.removeEventListener('note:updated', handleNoteUpdated);
+                eventBus.removeEventListener('note:deleted', handleNoteDeleted);
+                eventBus.removeEventListener('highlight:created', handleHighlightCreated);
+            };
         }
     });
 

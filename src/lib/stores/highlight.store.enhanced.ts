@@ -1,6 +1,6 @@
 // src/lib/stores/highlight.store.enhanced.ts
 /**
- * Enhanced Highlight Store with Local-First Architecture
+ * Enhanced Highlight Store with Local-First Architecture + Event Dispatching
  */
 
 import { writable, get } from 'svelte/store';
@@ -8,6 +8,7 @@ import type { Highlight, CreateHighlightDTO, UpdateHighlightDTO } from '$lib/typ
 import { localDB } from '$lib/services/local-db';
 import { syncService } from '$lib/services/sync.service';
 import { toast } from './toast.store';
+import { eventBus } from '$lib/events/eventBus'; // New: For pub/sub events
 import { browser } from '$app/environment';
 
 // Core store
@@ -33,7 +34,7 @@ export async function loadHighlightsByMessageId(messageId: string): Promise<void
 }
 
 /**
- * Create a new highlight (local-first)
+ * Create a new highlight (local-first) + Dispatch Event
  */
 export async function createHighlight(data: CreateHighlightDTO): Promise<Highlight | null> {
 	if (!browser) return null;
@@ -62,6 +63,9 @@ export async function createHighlight(data: CreateHighlightDTO): Promise<Highlig
 		// 3. Queue for server sync
 		await syncService.queueOperation('CREATE', 'HIGHLIGHT', highlightId, newHighlight);
 
+		// 4. Dispatch custom event
+		eventBus.dispatchEvent(new CustomEvent('highlight:created', { detail: newHighlight }));
+
 		toast.success('Highlight created');
 		console.log(`✅ Highlight created locally: ${highlightId}`);
 
@@ -74,7 +78,7 @@ export async function createHighlight(data: CreateHighlightDTO): Promise<Highlig
 }
 
 /**
- * Update a highlight (local-first)
+ * Update a highlight (local-first) + Dispatch Event
  */
 export async function updateHighlight(highlightId: string, data: UpdateHighlightDTO): Promise<void> {
 	if (!browser) return;
@@ -101,6 +105,9 @@ export async function updateHighlight(highlightId: string, data: UpdateHighlight
 		// 5. Queue for server sync
 		await syncService.queueOperation('UPDATE', 'HIGHLIGHT', highlightId, data);
 
+		// 6. Dispatch custom event
+		eventBus.dispatchEvent(new CustomEvent('highlight:updated', { detail: updatedHighlight }));
+
 		toast.success('Highlight updated');
 		console.log(`✅ Highlight updated locally: ${highlightId}`);
 	} catch (error) {
@@ -110,7 +117,7 @@ export async function updateHighlight(highlightId: string, data: UpdateHighlight
 }
 
 /**
- * Delete a highlight (local-first)
+ * Delete a highlight (local-first) + Dispatch Event
  */
 export async function deleteHighlight(highlightId: string): Promise<void> {
 	if (!browser) return;
@@ -124,6 +131,9 @@ export async function deleteHighlight(highlightId: string): Promise<void> {
 
 		// 3. Queue for server sync
 		await syncService.queueOperation('DELETE', 'HIGHLIGHT', highlightId, null);
+
+		// 4. Dispatch custom event
+		eventBus.dispatchEvent(new CustomEvent('highlight:deleted', { detail: { id: highlightId } }));
 
 		toast.success('Highlight deleted');
 		console.log(`✅ Highlight deleted locally: ${highlightId}`);

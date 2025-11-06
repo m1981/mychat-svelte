@@ -1,6 +1,6 @@
 // src/lib/stores/note.store.enhanced.ts
 /**
- * Enhanced Note Store with Local-First Architecture
+ * Enhanced Note Store with Local-First Architecture + Event Dispatching
  */
 
 import { writable, get } from 'svelte/store';
@@ -8,6 +8,7 @@ import type { Note, CreateNoteDTO, UpdateNoteDTO } from '$lib/types/note';
 import { localDB } from '$lib/services/local-db';
 import { syncService } from '$lib/services/sync.service';
 import { toast } from './toast.store';
+import { eventBus } from '$lib/events/eventBus'; // New: For pub/sub events
 import { browser } from '$app/environment';
 
 // Core store
@@ -29,7 +30,7 @@ export async function loadNotesByChatId(chatId: string): Promise<void> {
 }
 
 /**
- * Create a new note (local-first)
+ * Create a new note (local-first) + Dispatch Event
  */
 export async function createNote(data: CreateNoteDTO): Promise<Note | null> {
 	if (!browser) return null;
@@ -58,6 +59,9 @@ export async function createNote(data: CreateNoteDTO): Promise<Note | null> {
 		// 3. Queue for server sync
 		await syncService.queueOperation('CREATE', 'NOTE', noteId, newNote);
 
+		// 4. Dispatch custom event for extensibility (e.g., analytics in +layout.svelte)
+		eventBus.dispatchEvent(new CustomEvent('note:created', { detail: newNote }));
+
 		toast.success('Note created');
 		console.log(`✅ Note created locally: ${noteId}`);
 
@@ -70,7 +74,7 @@ export async function createNote(data: CreateNoteDTO): Promise<Note | null> {
 }
 
 /**
- * Update a note (local-first)
+ * Update a note (local-first) + Dispatch Event
  */
 export async function updateNote(noteId: string, data: UpdateNoteDTO): Promise<void> {
 	if (!browser) return;
@@ -98,6 +102,9 @@ export async function updateNote(noteId: string, data: UpdateNoteDTO): Promise<v
 		// 5. Queue for server sync
 		await syncService.queueOperation('UPDATE', 'NOTE', noteId, data);
 
+		// 6. Dispatch custom event
+		eventBus.dispatchEvent(new CustomEvent('note:updated', { detail: updatedNote }));
+
 		toast.success('Note updated');
 		console.log(`✅ Note updated locally: ${noteId}`);
 	} catch (error) {
@@ -107,7 +114,7 @@ export async function updateNote(noteId: string, data: UpdateNoteDTO): Promise<v
 }
 
 /**
- * Delete a note (local-first)
+ * Delete a note (local-first) + Dispatch Event
  */
 export async function deleteNote(noteId: string): Promise<void> {
 	if (!browser) return;
@@ -121,6 +128,9 @@ export async function deleteNote(noteId: string): Promise<void> {
 
 		// 3. Queue for server sync
 		await syncService.queueOperation('DELETE', 'NOTE', noteId, null);
+
+		// 4. Dispatch custom event
+		eventBus.dispatchEvent(new CustomEvent('note:deleted', { detail: { id: noteId } }));
 
 		toast.success('Note deleted');
 		console.log(`✅ Note deleted locally: ${noteId}`);

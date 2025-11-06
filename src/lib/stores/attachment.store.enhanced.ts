@@ -1,6 +1,6 @@
 // src/lib/stores/attachment.store.enhanced.ts
 /**
- * Enhanced Attachment Store with Local-First Architecture
+ * Enhanced Attachment Store with Local-First Architecture + Event Dispatching
  */
 
 import { writable, get } from 'svelte/store';
@@ -8,6 +8,7 @@ import type { Attachment, CreateAttachmentDTO } from '$lib/types/attachment';
 import { localDB } from '$lib/services/local-db';
 import { syncService } from '$lib/services/sync.service';
 import { toast } from './toast.store';
+import { eventBus } from '$lib/events/eventBus'; // New: For pub/sub events
 import { browser } from '$app/environment';
 
 // Core store
@@ -32,7 +33,7 @@ export async function loadAttachmentsByChatId(chatId: string): Promise<void> {
 }
 
 /**
- * Create a new attachment (local-first)
+ * Create a new attachment (local-first) + Dispatch Event
  */
 export async function createAttachment(data: CreateAttachmentDTO): Promise<Attachment | null> {
 	if (!browser) return null;
@@ -59,6 +60,9 @@ export async function createAttachment(data: CreateAttachmentDTO): Promise<Attac
 		// 3. Queue for server sync
 		await syncService.queueOperation('CREATE', 'ATTACHMENT', attachmentId, newAttachment);
 
+		// 4. Dispatch custom event
+		eventBus.dispatchEvent(new CustomEvent('attachment:created', { detail: newAttachment }));
+
 		toast.success('Attachment added');
 		console.log(`✅ Attachment created locally: ${attachmentId}`);
 
@@ -71,7 +75,7 @@ export async function createAttachment(data: CreateAttachmentDTO): Promise<Attac
 }
 
 /**
- * Delete an attachment (local-first)
+ * Delete an attachment (local-first) + Dispatch Event
  */
 export async function deleteAttachment(attachmentId: string): Promise<void> {
 	if (!browser) return;
@@ -85,6 +89,9 @@ export async function deleteAttachment(attachmentId: string): Promise<void> {
 
 		// 3. Queue for server sync
 		await syncService.queueOperation('DELETE', 'ATTACHMENT', attachmentId, null);
+
+		// 4. Dispatch custom event
+		eventBus.dispatchEvent(new CustomEvent('attachment:deleted', { detail: { id: attachmentId } }));
 
 		toast.success('Attachment deleted');
 		console.log(`✅ Attachment deleted locally: ${attachmentId}`);

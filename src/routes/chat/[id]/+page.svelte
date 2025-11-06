@@ -3,10 +3,14 @@
 	import { page } from '$app/stores';
 	import { chats } from '$lib/stores/chat.store';
 	import { goto } from '$app/navigation';
+	import { getContext } from 'svelte'; // New: For accessing grouped stores via context
 	import ChatMessages from '$lib/components/chat/ChatMessages.svelte';
 	import NotesPanel from '$lib/components/chat/NotesPanel.svelte';
 	import HighlightsPanel from '$lib/components/chat/HighlightsPanel.svelte';
-	import { setContext } from 'svelte';
+	import type { Note, Highlight, Attachment } from '$lib/types/entities'; // For type safety with context
+
+	// Access grouped stores via context (reduces direct imports)
+	const chatStores = getContext<{ notes: Note[]; highlights: Highlight[]; attachments: Attachment[]; totalItems: number }>('chatStores');
 
 	const chatId = $derived($page.params.id);
 	const currentChat = $derived($chats.find((c) => c.id === chatId));
@@ -111,7 +115,7 @@
 					aria-selected={activeTab === 'notes'}
 					onclick={() => (activeTab = 'notes')}
 				>
-					Notes
+					Notes ({$chatStores.notes.length})
 				</button>
 				<button
 					role="tab"
@@ -120,7 +124,7 @@
 					aria-selected={activeTab === 'highlights'}
 					onclick={() => (activeTab = 'highlights')}
 				>
-					Highlights
+					Highlights ({$chatStores.highlights.length})
 				</button>
 			</div>
 
