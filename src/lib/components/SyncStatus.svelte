@@ -1,6 +1,6 @@
 <!-- src/lib/components/SyncStatus.svelte -->
 <script lang="ts">
-	import { syncStatus, refreshFromServer } from '$lib/stores/chat.store.enhanced';
+	import { syncStatus, refreshFromServer } from '$lib/stores/chat.store';
 
 	let expanded = $state(false);
 

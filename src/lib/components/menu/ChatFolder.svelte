@@ -9,9 +9,8 @@
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
 	import ArchiveIcon from '$lib/components/icons/ArchiveIcon.svelte';
 	import ColorPicker from '$lib/components/ui/ColorPicker.svelte';
-	import { folders } from '$lib/stores/chat.store';
+	import { folders, updateFolder, deleteFolder } from '$lib/stores/chat.store';
 	import { toast } from '$lib/stores/toast.store';
-	import { withErrorHandling } from '$lib/utils/error-handler';
 	import { tick } from 'svelte';
 
 	let {
@@ -66,42 +65,20 @@
 			return;
 		}
 
-		await withErrorHandling(
-			async () => {
-				// Call API to update folder name
-				const response = await fetch(`/api/folders/${folder.id}`, {
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ name: editedName.trim() })
-				});
+		try {
+			// Use enhanced store function (local-first)
+			await updateFolder(folder.id, { name: editedName.trim() });
 
-				if (!response.ok) {
-					const error = await response.json();
-					throw new Error(error.message || 'Failed to rename folder');
-				}
+			toast.success('Folder renamed successfully', {
+				duration: 2000
+			});
 
-				// Update local store
-				folders.update((allFolders) => {
-					if (allFolders[folder.id]) {
-						allFolders[folder.id] = {
-							...allFolders[folder.id],
-							name: editedName.trim()
-						};
-					}
-					return { ...allFolders };
-				});
-
-				toast.success('Folder renamed successfully', {
-					duration: 2000
-				});
-
-				console.log(`✅ Renamed folder ${folder.id} to: ${editedName}`);
-			},
-			{
-				errorMessage: 'Failed to rename folder',
-				showToast: true
-			}
-		);
+			console.log(`✅ Renamed folder ${folder.id} to: ${editedName}`);
+		} catch (error) {
+			console.error('Failed to rename folder:', error);
+			toast.error('Failed to rename folder');
+			editedName = folder.name;
+		}
 
 		isRenaming = false;
 	}
@@ -134,36 +111,19 @@
 
 		isDeleting = true;
 
-		await withErrorHandling(
-			async () => {
-				// Call API to delete folder (with cascade to move chats to root)
-				const response = await fetch(`/api/folders/${folder.id}?cascade=true`, {
-					method: 'DELETE'
-				});
+		try {
+			// Use enhanced store function (local-first)
+			await deleteFolder(folder.id);
 
-				if (!response.ok) {
-					const error = await response.json();
-					throw new Error(error.message || 'Failed to delete folder');
-				}
+			toast.success('Folder deleted successfully', {
+				duration: 2000
+			});
 
-				// Remove folder from local store
-				folders.update((allFolders) => {
-					const updated = { ...allFolders };
-					delete updated[folder.id];
-					return updated;
-				});
-
-				toast.success('Folder deleted successfully', {
-					duration: 2000
-				});
-
-				console.log(`✅ Deleted folder: ${folder.id}`);
-			},
-			{
-				errorMessage: 'Failed to delete folder',
-				showToast: true
-			}
-		);
+			console.log(`✅ Deleted folder: ${folder.id}`);
+		} catch (error) {
+			console.error('Failed to delete folder:', error);
+			toast.error('Failed to delete folder');
+		}
 
 		isDeleting = false;
 	}
@@ -174,44 +134,21 @@
 	}
 
 	async function handleColorChange(newColor: string) {
-		await withErrorHandling(
-			async () => {
-				// Call API to update folder color
-				const response = await fetch(`/api/folders/${folder.id}`, {
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ color: newColor || null })
-				});
+		try {
+			// Use enhanced store function (local-first)
+			await updateFolder(folder.id, { color: newColor || undefined });
 
-				if (!response.ok) {
-					const error = await response.json();
-					throw new Error(error.message || 'Failed to update folder color');
-				}
+			selectedColor = newColor;
 
-				// Update local store
-				folders.update((allFolders) => {
-					if (allFolders[folder.id]) {
-						allFolders[folder.id] = {
-							...allFolders[folder.id],
-							color: newColor || undefined
-						};
-					}
-					return { ...allFolders };
-				});
+			toast.success('Folder color updated successfully', {
+				duration: 2000
+			});
 
-				selectedColor = newColor;
-
-				toast.success('Folder color updated successfully', {
-					duration: 2000
-				});
-
-				console.log(`✅ Updated folder ${folder.id} color to: ${newColor || 'none'}`);
-			},
-			{
-				errorMessage: 'Failed to update folder color',
-				showToast: true
-			}
-		);
+			console.log(`✅ Updated folder ${folder.id} color to: ${newColor || 'none'}`);
+		} catch (error) {
+			console.error('Failed to update folder color:', error);
+			toast.error('Failed to update folder color');
+		}
 	}
 
 	async function handleArchive(e: Event) {
@@ -233,42 +170,19 @@
 
 		isArchiving = true;
 
-		await withErrorHandling(
-			async () => {
-				// Call API to update folder type
-				const response = await fetch(`/api/folders/${folder.id}`, {
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ type: newType })
-				});
+		try {
+			// Use enhanced store function (local-first)
+			await updateFolder(folder.id, { type: newType });
 
-				if (!response.ok) {
-					const error = await response.json();
-					throw new Error(error.message || `Failed to ${action.toLowerCase()} folder`);
-				}
+			toast.success(`Folder ${action.toLowerCase()}d successfully`, {
+				duration: 2000
+			});
 
-				// Update local store
-				folders.update((allFolders) => {
-					if (allFolders[folder.id]) {
-						allFolders[folder.id] = {
-							...allFolders[folder.id],
-							type: newType
-						};
-					}
-					return { ...allFolders };
-				});
-
-				toast.success(`Folder ${action.toLowerCase()}d successfully`, {
-					duration: 2000
-				});
-
-				console.log(`✅ ${action}d folder: ${folder.id}`);
-			},
-			{
-				errorMessage: `Failed to ${action.toLowerCase()} folder`,
-				showToast: true
-			}
-		);
+			console.log(`✅ ${action}d folder: ${folder.id}`);
+		} catch (error) {
+			console.error(`Failed to ${action.toLowerCase()} folder:`, error);
+			toast.error(`Failed to ${action.toLowerCase()} folder`);
+		}
 
 		isArchiving = false;
 	}

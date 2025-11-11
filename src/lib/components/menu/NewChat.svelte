@@ -1,102 +1,51 @@
 <!-- src/lib/components/menu/NewChat.svelte -->
 <script lang="ts">
 	import PlusIcon from '$lib/components/icons/PlusIcon.svelte';
-	import { chats, generating } from '$lib/stores/chat.store';
+	import { generating, createChat } from '$lib/stores/chat.store';
 	import { goto } from '$app/navigation';
-	import type { Chat } from '$lib/types/chat';
+	import { toast } from '$lib/stores/toast.store';
 
 	let { folder, showOnHover = false }: { folder?: string; showOnHover?: boolean } = $props();
 	let hovered = $state(false);
+	let isCreating = $state(false);
 
 	/**
-	 * Creates a new chat with default configuration and navigates to it
+	 * Creates a new chat with local-first approach
+	 * - Saves to IndexedDB immediately
+	 * - Updates UI optimistically
+	 * - Syncs to server in background
 	 */
 	async function addChat() {
-		if ($generating) return;
+		if ($generating || isCreating) return;
 
-		// Generate unique ID using timestamp + random string
-		const chatId = `chat-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-		const now = new Date();
-
-		// Create new chat object with ALL required fields
-		const newChat: Chat = {
-			id: chatId,
-			userId: 1, // TODO: Get from auth context
-			title: 'New Chat',
-			folderId: folder, // Use folderId (correct field name)
-			messages: [],
-			config: {
-				provider: 'anthropic',
-				modelConfig: {
-					model: 'claude-3-7-sonnet-20250219',
-					max_tokens: 4096,
-					temperature: 0.7,
-					top_p: 1,
-					presence_penalty: 0,
-					frequency_penalty: 0
-				}
-			},
-			tags: [],
-			metadata: {
-				tokenCount: 0,
-				messageCount: 0,
-				lastMessageAt: now
-			},
-			createdAt: now,
-			updatedAt: now,
-			folder: folder // Keep for backward compatibility
-		};
+		isCreating = true;
 
 		try {
-			// Save to database first
-			const response = await fetch('/api/chats', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(newChat)
+			// Create chat using enhanced store (local-first)
+			const newChat = await createChat({
+				title: 'New Chat',
+				folderId: folder
 			});
 
-			if (!response.ok) {
-				const error = await response.json();
-				console.error('Failed to create chat:', error);
-				// Still add to local store for offline-first experience
-			} else {
-				// Use server response with DB-generated fields
-				const savedChat = await response.json();
-				Object.assign(newChat, savedChat);
-			}
+			// Navigate to the newly created chat
+			goto(`/chat/${newChat.id}`);
+
+			console.log(`✅ Created new chat: ${newChat.id}${folder ? ` in folder ${folder}` : ''}`);
 		} catch (error) {
-			console.error('Failed to save chat to database:', error);
-			// Continue with local-only chat
+			console.error('Failed to create chat:', error);
+			toast.error('Failed to create chat. Please try again.');
+		} finally {
+			isCreating = false;
 		}
-
-		// Add the new chat to the store
-		chats.update((currentChats) => {
-			// If folder is specified, add after other chats in that folder
-			if (folder) {
-				const folderChatIndex = currentChats.findLastIndex((c) => c.folder === folder);
-				if (folderChatIndex !== -1) {
-					const updatedChats = [...currentChats];
-					updatedChats.splice(folderChatIndex + 1, 0, newChat);
-					return updatedChats;
-				}
-			}
-			// Otherwise, add to the beginning (most recent first)
-			return [newChat, ...currentChats];
-		});
-
-		// Navigate to the newly created chat
-		goto(`/chat/${chatId}`);
-
-		console.log(`✅ Created new chat: ${chatId}${folder ? ` in folder ${folder}` : ''}`);
 	}
 </script>
 
 	{#if folder}
 	<button
 		class="new-chat-btn new-chat-btn--folder"
-		class:new-chat-btn--normal={!$generating}
-		class:new-chat-btn--disabled={$generating}
-		disabled={$generating}
+		class:new-chat-btn--normal={!$generating && !isCreating}
+		class:new-chat-btn--disabled={$generating || isCreating}
+		disabled={$generating || isCreating}
 		onclick={addChat}
 		onmouseenter={() => (hovered = true)}
 		onmouseleave={() => (hovered = false)}
@@ -107,19 +56,28 @@
 			class:new-chat-folder-content--visible={showOnHover || hovered}
 			class:new-chat-folder-content--hidden={!showOnHover && !hovered}
 		>
-			<PlusIcon /> New Chat
+			{#if isCreating}
+				<span class="loading loading-spinner loading-xs"></span>
+			{:else}
+				<PlusIcon />
+			{/if}
+			New Chat
 		</div>
 	</button>
 	{:else}
 	<button
 		class="new-chat-btn new-chat-btn--standalone"
-		class:new-chat-btn--normal={!$generating}
-		class:new-chat-btn--disabled={$generating}
-		disabled={$generating}
+		class:new-chat-btn--normal={!$generating && !isCreating}
+		class:new-chat-btn--disabled={$generating || isCreating}
+		disabled={$generating || isCreating}
 		onclick={addChat}
 		aria-label="New Chat"
 	>
-		<PlusIcon />
+		{#if isCreating}
+			<span class="loading loading-spinner loading-sm"></span>
+		{:else}
+			<PlusIcon />
+		{/if}
 		New Chat
 	</button>
 	{/if}

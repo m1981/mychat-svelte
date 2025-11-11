@@ -1,7 +1,7 @@
 <!-- src/lib/components/menu/NewChat.enhanced.svelte -->
 <script lang="ts">
 	import PlusIcon from '$lib/components/icons/PlusIcon.svelte';
-	import { generating, createChat } from '$lib/stores/chat.store.enhanced';
+	import { generating, createChat } from '$lib/stores/chat.store';
 	import { goto } from '$app/navigation';
 	import { toast } from '$lib/stores/toast.store';
 
