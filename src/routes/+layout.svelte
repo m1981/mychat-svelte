@@ -13,12 +13,15 @@
 
 	// Initialize stores on mount (client-side only)
     onMount(async () => {
+		console.log('📍 Layout onMount fired');
 		console.log('🚀 Initializing application stores...');
             try {
                 await initializeStores();
 			console.log('✅ Application stores initialized successfully');
+			console.log('📍 After init, isLoaded =', $isLoaded);
             } catch (error) {
 			console.error('❌ Failed to initialize stores:', error);
+			console.log('📍 After error, isLoaded =', $isLoaded);
       }
 	});
 </script>
@@ -38,11 +41,59 @@
 		<ToastContainer />
     {:else}
 		<!-- Loading state while stores initialize from IndexedDB -->
-		<div class="flex items-center justify-center h-screen bg-surface-50-950">
-			<div class="text-center space-y-4">
+		<div class="loading-container">
+			<div class="loading-content">
 				<div class="loading loading-spinner loading-lg text-primary"></div>
-				<p class="text-surface-600-400 font-medium">Loading your conversations...</p>
+				<p class="loading-text">Loading your conversations...</p>
             </div>
         </div>
     {/if}
 </ErrorBoundary>
+
+<style>
+	.app-container {
+		display: flex;
+		height: 100vh;
+		overflow: hidden;
+		background-color: var(--color-surface-50);
+	}
+
+	:global(.dark) .app-container {
+		background-color: var(--color-surface-950);
+	}
+
+	.main-content {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		overflow: hidden;
+	}
+
+	.loading-container {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 100vh;
+		background-color: var(--color-surface-50);
+	}
+
+	:global(.dark) .loading-container {
+		background-color: var(--color-surface-950);
+	}
+
+	.loading-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.loading-text {
+		color: var(--color-surface-600);
+		font-weight: 500;
+	}
+
+	:global(.dark) .loading-text {
+		color: var(--color-surface-400);
+	}
+</style>

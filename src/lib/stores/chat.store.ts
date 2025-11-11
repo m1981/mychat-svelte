@@ -45,14 +45,25 @@ export const folderCount = derived(
  * Call this once on app startup
  */
 export async function initializeStores(): Promise<void> {
-	if (!browser) return;
+	console.log('📍 initializeStores called, browser =', browser);
+
+	if (!browser) {
+		console.warn('⚠️ Not in browser, skipping IndexedDB initialization');
+		// CRITICAL: Still mark as loaded so SSR works
+		isLoaded.set(true);
+		return;
+	}
 
 	try {
+		console.log('📍 Initializing sync service...');
 		// Initialize sync service (which initializes IndexedDB)
 		await syncService.init();
+		console.log('✅ Sync service initialized');
 
+		console.log('📍 Loading data from IndexedDB...');
 		// Load data from IndexedDB
 		await loadFromLocal();
+		console.log('✅ Data loaded from IndexedDB');
 
 		isLoaded.set(true);
 		console.log('✅ Chat stores initialized from local database');
@@ -60,6 +71,7 @@ export async function initializeStores(): Promise<void> {
 		console.error('❌ Failed to initialize chat stores:', error);
 		// Still mark as loaded to allow app to work (degraded mode)
 		isLoaded.set(true);
+		console.log('⚠️ Marked as loaded despite error (degraded mode)');
 	}
 }
 
@@ -71,13 +83,25 @@ async function loadFromLocal(): Promise<void> {
 
 	// Load chats
 	const localChats = await localDB.getAllChats(userId);
-	chats.set(localChats.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()));
+
+	// Fix: Ensure dates are Date objects (IndexedDB may return strings)
+	const chatsWithDates = localChats.map(chat => ({
+		...chat,
+		createdAt: chat.createdAt instanceof Date ? chat.createdAt : new Date(chat.createdAt),
+		updatedAt: chat.updatedAt instanceof Date ? chat.updatedAt : new Date(chat.updatedAt)
+	}));
+
+	chats.set(chatsWithDates.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()));
 
 	// Load folders
 	const localFolders = await localDB.getAllFolders(userId);
 	const folderCollection: FolderCollection = {};
 	localFolders.forEach((folder) => {
-		folderCollection[folder.id] = folder;
+		folderCollection[folder.id] = {
+			...folder,
+			createdAt: folder.createdAt instanceof Date ? folder.createdAt : new Date(folder.createdAt),
+			updatedAt: folder.updatedAt instanceof Date ? folder.updatedAt : new Date(folder.updatedAt)
+		};
 	});
 	folders.set(folderCollection);
 }
@@ -135,8 +159,11 @@ export async function createChat(chatData: Partial<Chat>): Promise<Chat> {
 		return [newChat, ...current];
 	});
 
-	// 3. Queue for server sync (async, non-blocking)
-	syncService.queueOperation('CREATE', 'CHAT', chatId, newChat).catch((error) => {
+	// 3. Queue for server sync (send without userId - server will add it)
+	// Remove userId from data sent to server
+	const { userId: _, ...chatDataForServer } = newChat;
+
+	syncService.queueOperation('CREATE', 'CHAT', chatId, chatDataForServer).catch((error) => {
 		console.error('❌ Failed to queue chat creation for sync:', error);
 	});
 

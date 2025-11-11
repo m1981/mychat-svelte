@@ -1,3 +1,4 @@
+// src/lib/server/repositories/chat.repository.ts
 import { db } from '$lib/server/db';
 import { chats, messages, chatTags, tags, folders } from '$lib/server/db/schema';
 import { eq, and, desc, asc, inArray, like } from 'drizzle-orm';
