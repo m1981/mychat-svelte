@@ -18,7 +18,8 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "tsx scripts/migrate.ts",
 		"db:drop": "tsx scripts/drop-all.ts",
-		"db:studio": "drizzle-kit studio"
+		"db:studio": "drizzle-kit studio",
+		"db:migrate-models": "tsx scripts/migrate-models.ts"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",

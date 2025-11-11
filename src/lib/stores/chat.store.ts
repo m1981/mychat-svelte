@@ -12,6 +12,7 @@ import type { Chat, FolderCollection, Folder } from '$lib/types/chat';
 import { localDB } from '$lib/services/local-db';
 import { syncService } from '$lib/services/sync.service';
 import { browser } from '$app/environment';
+import { DEFAULT_ANTHROPIC_MODEL_ID } from '$lib/config/models.config';
 
 // Core stores
 export const chats = writable<Chat[]>([]);
@@ -123,9 +124,10 @@ export async function createChat(chatData: Partial<Chat>): Promise<Chat> {
 		config: chatData.config || {
 			provider: 'anthropic',
 			modelConfig: {
-				model: 'claude-3-7-sonnet-20250219',
+            // Use the centralized default model ID
+            model: DEFAULT_ANTHROPIC_MODEL_ID,
 				max_tokens: 4096,
-				temperature: 0.7,
+            temperature: 0.7,
 				top_p: 1,
 				presence_penalty: 0,
 				frequency_penalty: 0
