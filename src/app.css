@@ -337,20 +337,17 @@
     @apply text-tertiary-400;
   }
 
-  /* Loading Spinner */
-  .loading {
+  /* Loading Spinner - Fixed for Skeleton v4 compatibility */
+  .spinner {
     @apply inline-block animate-spin rounded-full border-2 border-solid border-current border-r-transparent;
   }
-  .loading-spinner {
-    @apply loading;
-  }
-  .loading-sm {
+  .spinner-sm {
     @apply w-4 h-4;
   }
-  .loading-xs {
+  .spinner-xs {
     @apply w-3 h-3;
   }
-  .loading-lg {
+  .spinner-lg {
     @apply w-8 h-8;
   }
 
