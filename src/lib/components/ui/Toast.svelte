@@ -23,12 +23,12 @@
 		</svg>`
 	};
 
-	// DaisyUI alert classes for each type
+	// Skeleton alert classes for each type
 	const alertClasses = {
-		success: 'alert-success',
-		error: 'alert-error',
-		warning: 'alert-warning',
-		info: 'alert-info'
+		success: 'bg-success/20 text-success border border-success/30',
+		error: 'bg-error/20 text-error border border-error/30',
+		warning: 'bg-warning/20 text-warning border border-warning/30',
+		info: 'bg-info/20 text-info border border-info/30'
 	};
 
 	function handleDismiss() {
@@ -63,6 +63,7 @@
 			class="btn btn-sm btn-ghost btn-circle"
 			onclick={handleDismiss}
 			aria-label="Dismiss notification"
+			type="button"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"

@@ -115,10 +115,12 @@
 
 					{#if import.meta.env.DEV}
 						<div class="mt-4">
-							<details class="collapse collapse-arrow bg-base-300">
-								<summary class="collapse-title text-sm font-medium">Error Details (Dev Mode)</summary>
-								<div class="collapse-content">
-									<pre class="text-xs overflow-auto max-h-[200px] mt-2">{error.stack}</pre>
+							<details class="border border-base-300 rounded bg-base-300/50">
+								<summary class="cursor-pointer p-3 text-sm font-medium hover:bg-base-300/70 transition-colors">
+									Error Details (Dev Mode)
+								</summary>
+								<div class="border-t border-base-300 p-3">
+									<pre class="text-xs overflow-auto max-h-[200px] bg-base-100 p-2 rounded">{error.stack}</pre>
 								</div>
 							</details>
 						</div>
@@ -128,7 +130,7 @@
 						<button class="btn btn-ghost" onclick={() => window.location.reload()}>
 							Reload Page
 						</button>
-						<button class="btn btn-primary" onclick={resetError}>
+						<button class="btn btn-filled-primary" onclick={resetError}>
 							Try Again
 						</button>
 					</div>

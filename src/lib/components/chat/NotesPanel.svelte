@@ -106,7 +106,7 @@
 	<div class="p-4 border-b flex justify-between items-center">
 		<h3 class="font-semibold">Notes ({$notes.length})</h3>
 		<button
-			class="btn btn-sm btn-primary"
+			class="btn btn-sm btn-filled-primary"
 			onclick={createNote}
 			aria-label="Add note"
 		>
@@ -123,12 +123,12 @@
 					<div class="card-body p-3">
 						<div class="flex justify-between items-start">
 							<div class="flex-1">
-								<div class="badge badge-sm mb-2">{note.type}</div>
+								<div class="badge badge-sm mb-2 bg-primary text-primary-content">{note.type}</div>
 								<p class="text-sm whitespace-pre-wrap">{note.content}</p>
 							</div>
 							<div class="flex gap-1">
 								<button
-									class="btn btn-ghost btn-xs btn-square"
+									class="btn btn-ghost btn-xs btn-icon"
 									onclick={() => editNote(note)}
 									aria-label="Edit note"
 									data-testid="edit-note"
@@ -136,7 +136,7 @@
 									<EditIcon class="w-4 h-4" />
 								</button>
 								<button
-									class="btn btn-ghost btn-xs btn-square"
+									class="btn btn-ghost btn-xs btn-icon"
 									onclick={() => deleteNote(note.id)}
 									aria-label="Delete note"
 									data-testid="delete-note"
@@ -154,12 +154,13 @@
 	{#if isEditing}
 		<div class="border-t p-4">
 			<div class="mb-3">
-				<span class="label-text mb-2 block">Note Type</span>
+				<label class="block text-sm font-medium mb-2">Note Type</label>
 				<div class="flex gap-2">
 					<button
 						type="button"
 						class="btn btn-sm"
-						class:btn-primary={editingType === 'SCRATCH'}
+						class:btn-filled-primary={editingType === 'SCRATCH'}
+						class:btn-ghost={editingType !== 'SCRATCH'}
 						onclick={() => (editingType = 'SCRATCH')}
 					>
 						SCRATCH
@@ -167,7 +168,8 @@
 					<button
 						type="button"
 						class="btn btn-sm"
-						class:btn-primary={editingType === 'SUMMARY'}
+						class:btn-filled-primary={editingType === 'SUMMARY'}
+						class:btn-ghost={editingType !== 'SUMMARY'}
 						onclick={() => (editingType = 'SUMMARY')}
 					>
 						SUMMARY
@@ -175,7 +177,8 @@
 					<button
 						type="button"
 						class="btn btn-sm"
-						class:btn-primary={editingType === 'TODO'}
+						class:btn-filled-primary={editingType === 'TODO'}
+						class:btn-ghost={editingType !== 'TODO'}
 						onclick={() => (editingType = 'TODO')}
 					>
 						TODO
@@ -185,14 +188,14 @@
 			<textarea
 				bind:value={editingContent}
 				oninput={handleInput}
-				class="textarea textarea-bordered w-full"
+				class="textarea w-full border border-base-300 rounded p-2"
 				placeholder="Write your note..."
 				rows="4"
 				data-testid="note-editor"
 			></textarea>
 			<div class="flex gap-2 mt-2">
 				<button
-					class="btn btn-sm btn-primary"
+					class="btn btn-sm btn-filled-primary"
 					onclick={saveNote}
 					disabled={!editingContent.trim()}
 					aria-label="Save"
@@ -200,7 +203,7 @@
 					Save
 				</button>
 				<button
-					class="btn btn-sm"
+					class="btn btn-sm btn-ghost"
 					onclick={() => {
 						isEditing = false;
 						editingContent = '';

@@ -1,7 +1,5 @@
 # Svelte 5 Development Guide
 
-This guide covers common patterns, gotchas, and best practices for Svelte 5 development, especially when working with third-party libraries like Melt UI.
-
 ## Table of Contents
 
 ## Svelte 5 Key Changes

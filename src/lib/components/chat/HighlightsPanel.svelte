@@ -119,7 +119,7 @@
 							<div class="flex gap-1">
 								<div class="relative">
 									<button
-										class="btn btn-ghost btn-xs btn-square"
+										class="btn btn-ghost btn-xs btn-icon"
 										onclick={() => showColorPicker = showColorPicker === highlight.id ? null : highlight.id}
 										aria-label="Change color"
 										data-testid="color-picker"
@@ -135,7 +135,7 @@
 														style="background-color: {color.value}"
 														onclick={() => changeColor(highlight.id, color.value)}
 														aria-label={color.name}
-														role="button"
+														type="button"
 													></button>
 												{/each}
 											</div>
@@ -143,7 +143,7 @@
 									{/if}
 								</div>
 								<button
-									class="btn btn-ghost btn-xs btn-square"
+									class="btn btn-ghost btn-xs btn-icon"
 									onclick={() => deleteHighlight(highlight.id)}
 									aria-label="Delete highlight"
 									data-testid="delete-highlight"

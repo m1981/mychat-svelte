@@ -31,7 +31,7 @@
 		<div class="bg-base-200 rounded-lg shadow-lg p-4 min-w-[280px] border border-base-300">
 			<div class="flex items-center justify-between mb-3">
 				<h3 class="font-semibold text-sm">Sync Status</h3>
-				<button onclick={toggleExpanded} class="btn btn-ghost btn-xs btn-circle">
+				<button onclick={toggleExpanded} class="btn btn-ghost btn-xs btn-circle" aria-label="Close sync status">
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 					</svg>
@@ -104,10 +104,11 @@
 		<button
 			onclick={toggleExpanded}
 			class="btn btn-circle btn-sm shadow-lg"
-			class:btn-success={$syncStatus.isOnline && $syncStatus.pendingOperations === 0}
-			class:btn-warning={$syncStatus.pendingOperations > 0}
-			class:btn-error={!$syncStatus.isOnline || $syncStatus.failedOperations > 0}
+			class:btn-filled-success={$syncStatus.isOnline && $syncStatus.pendingOperations === 0}
+			class:btn-filled-warning={$syncStatus.pendingOperations > 0}
+			class:btn-filled-error={!$syncStatus.isOnline || $syncStatus.failedOperations > 0}
 			title="Sync Status"
+			aria-label="Sync status indicator"
 		>
 			{#if $syncStatus.isSyncing}
 				<span class="loading loading-spinner loading-xs"></span>
