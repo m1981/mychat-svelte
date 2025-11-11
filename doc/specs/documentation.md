@@ -50,18 +50,18 @@ The application follows a layered, local-first architecture separating client an
 ```mermaid
 classDiagram
     direction TB
-    subgraph Client (Browser)
+    subgraph Client
         direction LR
-        ClientUI["UI Components (.svelte)"]
-        ClientStores["Svelte Stores (Local State)"]
-        ClientServices["Services (LocalDB, Sync, API)"]
+        ClientUI
+        ClientStores
+        ClientServices
     end
-    subgraph Server (SvelteKit)
+    subgraph Server
         direction LR
-        ServerAPI["API Endpoints (+server.ts)"]
-        ServerServices["Service Layer (Business Logic)"]
-        ServerRepos["Repository Layer (Data Access)"]
-        ServerData["Database (Postgres + Drizzle)"]
+        ServerAPI
+        ServerServices
+        ServerRepos
+        ServerData
     end
 
     ClientUI --> ClientStores : Subscribes to state
