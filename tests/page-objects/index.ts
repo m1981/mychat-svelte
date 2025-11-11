@@ -63,6 +63,62 @@ export class SidebarPage extends BasePage {
 		await this.page.getByRole('button', { name: folderName }).click();
 	}
 
+	// --- NEW: Helper to get a specific chat item by its title ---
+	getChatItem(chatTitle: string): Locator {
+		return this.chatsList.locator('.chat-history-item', { hasText: chatTitle });
+	}
+
+	// --- NEW: Helper to get a specific folder item by its name ---
+	getFolderItem(folderName: string): Locator {
+		return this.foldersList.locator('.chat-folder', { has: this.page.locator(`text="${folderName}"`) });
+	}
+
+	// --- NEW: Action to rename a chat from the sidebar ---
+	async renameChat(oldTitle: string, newTitle: string) {
+		const chatItem = this.getChatItem(oldTitle);
+		await chatItem.hover();
+		await chatItem.getByRole('button', { name: /rename chat/i }).click();
+
+		const input = chatItem.locator('input[type="text"]');
+		await expect(input).toBeVisible();
+		await input.fill(newTitle);
+		await input.press('Enter');
+	}
+
+	// --- NEW: Action to delete a chat from the sidebar ---
+	async deleteChat(chatTitle: string) {
+		const chatItem = this.getChatItem(chatTitle);
+		await chatItem.hover();
+
+		// Handle confirmation dialog
+		this.page.once('dialog', dialog => dialog.accept());
+
+		await chatItem.getByRole('button', { name: /delete chat/i }).click();
+	}
+
+	// --- NEW: Action to rename a folder ---
+	async renameFolder(oldName: string, newName: string) {
+		const folderItem = this.getFolderItem(oldName);
+		await folderItem.hover();
+		await folderItem.getByRole('button', { name: /edit folder name/i }).click();
+
+		const input = folderItem.locator('input[type="text"]');
+		await expect(input).toBeVisible();
+		await input.fill(newName);
+		await input.press('Enter');
+	}
+
+
+	async deleteFolder(folderName: string) {
+		const folderItem = this.getFolderItem(folderName);
+		await folderItem.hover();
+
+		// Handle confirmation dialog
+		this.page.once('dialog', dialog => dialog.accept());
+
+		await folderItem.getByRole('button', { name: /delete folder/i }).click();
+	}
+
 	async selectChat(chatTitle: string) {
 		await this.page.getByRole('link', { name: chatTitle }).click();
 	}
@@ -117,12 +173,22 @@ export class SidebarPage extends BasePage {
 	}
 
 	// Assertions
-	async expectFolderExists(folderName: string) {
-		await expect(this.page.getByRole('button', { name: folderName })).toBeVisible();
+	async expectFolderExists(folderName: string, { isVisible = true } = {}) {
+		const folderItem = this.getFolderItem(folderName);
+		if (isVisible) {
+			await expect(folderItem).toBeVisible();
+		} else {
+			await expect(folderItem).not.toBeVisible();
+		}
 	}
 
-	async expectChatExists(chatTitle: string) {
-		await expect(this.page.getByRole('link', { name: chatTitle })).toBeVisible();
+	async expectChatExists(chatTitle: string, { isVisible = true } = {}) {
+		const chatItem = this.getChatItem(chatTitle);
+		if (isVisible) {
+			await expect(chatItem).toBeVisible();
+		} else {
+			await expect(chatItem).not.toBeVisible();
+		}
 	}
 
 	async expectFolderCount(count: number) {

@@ -1,35 +1,14 @@
+<!-- src/lib/components/chat/NotesPanel.svelte -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import { getContext } from 'svelte';
+	import { notes as noteStore } from '$lib/stores/note.store'; // CORRECTED IMPORT
+	import type { Note } from '$lib/types/note';
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
 	import EditIcon from '$lib/components/icons/EditIcon.svelte';
-	import { offlineFetcher } from '$lib/services/offline-fetcher';
-	import { notes as noteStore } from '$lib/stores/note.store.enhanced'; // Direct store (SSR-safe)
-	import type { Note, CreateNoteDTO } from '$lib/types/note';
 
-	interface Props {
-		chatId: string;
-	}
+	let { chatId }: { chatId: string } = $props();
 
-	let { chatId }: Props = $props();
-
-	// Fixed: Derive directly from store (valid subscribe-able input)
-	// $derived(noteStore) subscribes to noteStore; $notes is reactive value
 	const notes = $derived(noteStore);
-
-	// Debug: Client-only effect to log context/store state (SSR-safe: no logs)
-	$effect(() => {
-		if (browser) {
-	const chatStores = getContext<{ notes: Note[] }>('chatStores');
-		if (chatStores) {
-				console.log('NotesPanel: Context available (length:', chatStores.notes?.length || 0, '); using derived store');
-			} else {
-				console.log('NotesPanel: No context; using direct store (length:', $notes.length, ')');
-		}
-		}
-		// SSR: Derivation runs silently; log not needed (server console separate)
-	});
 
 	let isEditing = $state(false);
 	let editingContent = $state('');
@@ -37,13 +16,11 @@
 	let editingNoteId = $state<string | null>(null);
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	async function loadNotes() {
-		console.log('NotesPanel: Loading notes for chat', chatId, '- current length:', $notes.length);
-		// Trigger load via store method (local-first); derived reacts
-		if ('loadByChatId' in noteStore) await (noteStore as any).loadByChatId(chatId);
-	}
+	onMount(() => {
+		noteStore.loadByChatId(chatId);
+	});
 
-	async function createNote() {
+	function createNote() {
 		isEditing = true;
 		editingContent = '';
 		editingType = 'SCRATCH';
@@ -53,14 +30,13 @@
 	async function saveNote() {
 		if (!editingContent.trim()) return;
 
-		try {
 			if (editingNoteId) {
-				await offlineFetcher.updateNote(editingNoteId, {
+			await noteStore.update(editingNoteId, {
 						content: editingContent,
 						type: editingType
 				});
 			} else {
-				await offlineFetcher.createNote({
+			await noteStore.create({
 						chatId,
 						content: editingContent,
 						type: editingType
@@ -69,9 +45,6 @@
 			isEditing = false;
 			editingContent = '';
 			editingNoteId = null;
-		} catch (error) {
-			console.error('Failed to save note:', error);
-		}
 	}
 
 	function editNote(note: Note) {
@@ -82,10 +55,8 @@
 	}
 
 	async function deleteNote(noteId: string) {
-		try {
-			await offlineFetcher.deleteNote(noteId);
-		} catch (error) {
-			console.error('Failed to delete note:', error);
+		if (confirm('Are you sure you want to delete this note?')) {
+			await noteStore.delete(noteId);
 		}
 	}
 
@@ -95,16 +66,11 @@
 			if (editingContent.trim() && editingNoteId) saveNote();
 		}, 1000);
 	}
-
-	onMount(() => {
-		console.log('NotesPanel: Mounted - initial notes length:', $notes.length);
-		loadNotes();
-	});
 </script>
 
 <div class="flex flex-col h-full">
 	<div class="p-4 border-b flex justify-between items-center">
-		<h3 class="font-semibold">Notes ({$notes.length})</h3>
+		<h3 class="font-semibold">Notes ({notes.length})</h3>
 		<button
 			class="btn btn-sm btn-filled-primary"
 			onclick={createNote}
@@ -115,10 +81,10 @@
 	</div>
 
 	<div class="flex-1 overflow-y-auto p-4" data-testid="notes-list">
-		{#if $notes.length === 0 && !isEditing}
+		{#if notes.length === 0 && !isEditing}
 			<p class="text-center text-base-content/50">No notes yet</p>
 		{:else}
-			{#each $notes as note}
+			{#each notes as note (note.id)}
 				<div class="card bg-base-200 mb-3" data-testid="note-item">
 					<div class="card-body p-3">
 						<div class="flex justify-between items-start">

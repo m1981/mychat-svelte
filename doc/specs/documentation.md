@@ -1,6 +1,257 @@
-Of course. As a precise TypeScript engineer, here is the concise documentation for your `documentation.md` file, adhering to your structure and referencing the codebase to avoid duplication.
+## Client-Side Architecture Flow
+```mermaid
+flowchart TD
+    subgraph "📁 lib/types (Foundation)"
+        direction LR
+        ChatTypes[Chat & Folder Types]
+        NoteTypes[Note & Highlight Types]
+    end
 
----
+    subgraph "📦 lib/services (Core Logic)"
+        direction LR
+        LocalDB["LocalDB (IndexedDB)"]
+        SyncService["SyncService (Offline Queue)"]
+        StreamingService["StreamingService (AI Chunks)"]
+    end
+
+    subgraph "🗃️ lib/stores (State Management)"
+        direction LR
+        ChatStore["chat.store.ts"]
+        NoteStore["note.store.enhanced.ts"]
+        UIStore["ui.store.ts"]
+    end
+
+    subgraph "🎨 lib/components (UI Layer)"
+        direction LR
+        Menu["Menu Components"]
+        ChatUI["Chat UI (Messages, Composer)"]
+        Panels["Side Panels (Notes, Highlights)"]
+    end
+
+    subgraph "🗺️ routes (App Entry)"
+        direction LR
+        Layout["+layout.svelte"]
+        ChatPage["/chat/[id]/+page.svelte"]
+    end
+
+    %% Dependencies
+    ChatTypes & NoteTypes --> ChatStore & NoteStore
+    ChatTypes & NoteTypes --> LocalDB
+
+    LocalDB --> SyncService
+    SyncService --> ChatStore
+    StreamingService --> ChatStore
+
+    ChatStore & NoteStore & UIStore --> Menu
+    ChatStore & NoteStore & UIStore --> ChatUI
+    ChatStore & NoteStore & UIStore --> Panels
+
+    Menu & ChatUI & Panels --> ChatPage
+    ChatPage --> Layout
+
+    %% Critical Path Highlighting
+    LocalDB -.->|"Critical: Offline Persistence"| ChatStore
+    SyncService -.->|"Critical: Data Synchronization"| ChatStore
+    ChatStore -.->|"Critical: Single Source of Truth"| Layout
+
+    %% Styling
+    classDef foundation fill:#e0f2f1,stroke:#00695c
+    classDef services fill:#fff3e0,stroke:#ef6c00
+    classDef stores fill:#e3f2fd,stroke:#1565c0
+    classDef ui fill:#f3e5f5,stroke:#6a1b9a
+    classDef routes fill:#ffebee,stroke:#c62828
+    classDef critical stroke:#d32f2f,stroke-width:2px,stroke-dasharray: 5 5
+
+    class ChatTypes,NoteTypes foundation
+    class LocalDB,SyncService,StreamingService services
+    class ChatStore,NoteStore,UIStore stores
+    class Menu,ChatUI,Panels ui
+    class Layout,ChatPage routes
+```
+
+## Server-Side Architecture Flow
+```mermaid
+flowchart TD
+    subgraph "🌐 API Layer (routes/api)"
+        ChatEndpoints["/api/chats/**/+server.ts"]
+        FolderEndpoints["/api/folders/**/+server.ts"]
+        GenerateEndpoint["/api/chat/generate/+server.ts"]
+    end
+
+    subgraph "⚙️ Service Layer (lib/server/services)"
+        ChatService["chat.service.ts"]
+        FolderService["folder.service.ts"]
+        AIProvider["AI Provider Factory"]
+    end
+
+    subgraph "🗄️ Repository Layer (lib/server/repositories)"
+        ChatRepo["chat.repository.ts"]
+        FolderRepo["folder.repository.ts"]
+    end
+
+    subgraph "💾 Data Layer (lib/server/db)"
+        Drizzle["Drizzle ORM Instance"]
+        Schema["schema.ts"]
+        Postgres[("PostgreSQL")]
+    end
+
+    %% Dependencies
+    ChatEndpoints --> ChatService
+    FolderEndpoints --> FolderService
+    GenerateEndpoint --> AIProvider
+
+    ChatService --> ChatRepo
+    FolderService --> FolderRepo
+
+    ChatRepo --> Drizzle
+    FolderRepo --> Drizzle
+
+    Drizzle -- Uses --> Schema
+    Schema -- Maps to --> Postgres
+
+    %% Critical Path Highlighting
+    ChatEndpoints -.->|"Request Entry"| ChatService
+    ChatService -.->|"Business Logic"| ChatRepo
+    ChatRepo -.->|"Data Access"| Drizzle
+
+    %% Styling
+    classDef api fill:#e3f2fd,stroke:#1565c0
+    classDef services fill:#e8f5e9,stroke:#2e7d32
+    classDef repos fill:#fbe9e7,stroke:#d84315
+    classDef data fill:#eceff1,stroke:#37474f
+    classDef critical stroke:#d32f2f,stroke-width:2px,stroke-dasharray: 5 5
+
+    class ChatEndpoints,FolderEndpoints,GenerateEndpoint api
+    class ChatService,FolderService,AIProvider services
+    class ChatRepo,FolderRepo repos
+    class Drizzle,Schema,Postgres data
+```
+
+## Local-First Data Sync Flow
+```mermaid
+flowchart TD
+    subgraph "📱 User Action (UI)"
+        CreateChat["User creates a new chat"]
+    end
+
+    subgraph "🗃️ State Update (lib/stores)"
+        UpdateStore["1. chat.store.ts updates its state"]
+        QueueOp["2. Queues operation with SyncService"]
+    end
+
+    subgraph "💾 Local Persistence (lib/services)"
+        SaveToIDB["3. Data is saved to IndexedDB via local-db.ts"]
+        AddToQueue["4. Operation added to 'syncQueue' table in IDB"]
+    end
+
+    subgraph "🔄 Background Sync (lib/services)"
+        CheckOnline{"5. Is Online?"}
+        ProcessQueue["6. sync.service.ts processes queue"]
+        MakeRequest["7. Makes API request to server"]
+    end
+
+    subgraph "☁️ Server API (routes/api)"
+        ReceiveRequest["8. Endpoint receives request"]
+        PersistToDB["9. Data is saved to PostgreSQL"]
+    end
+
+    %% Flow
+    CreateChat --> UpdateStore
+    UpdateStore --> QueueOp
+    QueueOp --> SaveToIDB
+    SaveToIDB --> AddToQueue
+    AddToQueue --> CheckOnline
+
+    CheckOnline -- Yes --> ProcessQueue
+    CheckOnline -- No --> AddToQueue
+    ProcessQueue --> MakeRequest
+    MakeRequest --> ReceiveRequest
+    ReceiveRequest --> PersistToDB
+
+    %% Critical Path Highlighting
+    UpdateStore -.->|"Optimistic UI Update"| CreateChat
+    SaveToIDB -.->|"Offline Persistence"| UpdateStore
+    ProcessQueue -.->|"Synchronization Logic"| AddToQueue
+
+    %% Styling
+    classDef ui fill:#f3e5f5,stroke:#6a1b9a
+    classDef stores fill:#e3f2fd,stroke:#1565c0
+    classDef local fill:#fff3e0,stroke:#ef6c00
+    classDef sync fill:#d1c4e9,stroke:#4527a0
+    classDef server fill:#c8e6c9,stroke:#2e7d32
+    classDef critical stroke:#d32f2f,stroke-width:2px,stroke-dasharray: 5 5
+
+    class CreateChat ui
+    class UpdateStore,QueueOp stores
+    class SaveToIDB,AddToQueue local
+    class CheckOnline,ProcessQueue,MakeRequest sync
+    class ReceiveRequest,PersistToDB server
+```
+
+## AI Response streaming
+```mermaid
+flowchart TD
+    subgraph "💬 User Input (UI)"
+        SendMessage["User sends a prompt"]
+    end
+
+    subgraph "📡 Client-Side Service (lib/services)"
+        StartStream["1. streaming.service.ts is called"]
+        MakeRequest["2. POSTs to /api/chat/generate"]
+    end
+
+    subgraph "☁️ SvelteKit Endpoint (Server)"
+        GenerateEndpoint["3. /api/chat/generate receives request"]
+        PersistUserMsg["4. Persists user message to DB"]
+        CallAI["5. Calls AI Provider (e.g., Anthropic)"]
+    end
+
+    subgraph "🤖 AI Provider (Server)"
+        AIStream["6. AI streams back response chunks"]
+    end
+
+    subgraph "🔄 Stream Handling"
+        ServerStream["7. Server pipes AI stream to client"]
+        ClientStream["8. streaming.service.ts reads chunks"]
+        UpdateStore["9. Updates chat.store.ts with new content"]
+        PersistAIMsg["10. AI Provider persists full AI message on completion"]
+    end
+
+    subgraph "🖥️ UI Update"
+        RenderUI["11. UI re-renders reactively"]
+    end
+
+    %% Flow
+    SendMessage --> StartStream
+    StartStream --> MakeRequest
+    MakeRequest --> GenerateEndpoint
+    GenerateEndpoint --> PersistUserMsg
+    PersistUserMsg --> CallAI
+    CallAI --> AIStream
+    AIStream --> ServerStream
+    ServerStream --> ClientStream
+    ClientStream --> UpdateStore
+    UpdateStore --> RenderUI
+    AIStream -.-> PersistAIMsg
+
+    %% Critical Path Highlighting
+    MakeRequest -.->|"Critical: Initiates Stream"| GenerateEndpoint
+    ClientStream -.->|"Critical: Client-side Processing"| UpdateStore
+
+    %% Styling
+    classDef ui fill:#f3e5f5,stroke:#6a1b9a
+    classDef client-service fill:#e3f2fd,stroke:#1565c0
+    classDef server fill:#c8e6c9,stroke:#2e7d32
+    classDef ai fill:#ffecb3,stroke:#ff8f00
+    classDef stream fill:#d1c4e9,stroke:#4527a0
+    classDef critical stroke:#d32f2f,stroke-width:2px,stroke-dasharray: 5 5
+
+    class SendMessage,RenderUI ui
+    class StartStream,MakeRequest client-service
+    class GenerateEndpoint,PersistUserMsg,CallAI server
+    class AIStream ai
+    class ServerStream,ClientStream,UpdateStore,PersistAIMsg stream
+```
 
 ## 1. Domain Understanding
 
