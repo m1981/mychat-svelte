@@ -1,263 +1,71 @@
-Act as commercial grade SvelteKit v5 developer and TypesScript expert.
-
-
-Here are propose changes and details are in api_contracts.md
-Please carry one implementation step by step along with minimalistic UTs (Vitest) to prove implementation works.
-
-📊 Update Domain Model
 ```mermaid
-
 classDiagram
-    %% ============================================
-    %% CORE DOMAIN ENTITIES
-    %% ============================================
-    class Chat {
-        +string id
-        +string title
-        +string? folderId
-        +Message[] messages
-        +ChatConfig config
-        +string[] tags
-        +Metadata metadata
-        +createdAt timestamp
-        +updatedAt timestamp
+    direction TB
+    %% Client Components
+    class ClientUI {
+        <<Assembly>>
+        +Menu, ChatHistoryList, ChatFolder
+        +ChatMessages, NotesPanel, HighlightsPanel
+        +AttachmentsPanel, ToastContainer
+    }
+    class ClientStores {
+        <<Assembly>>
+        +ChatStore (enhanced: createChat, queueOp)
+        +NoteStore (enhanced: local-first CRUD)
+        +HighlightStore (enhanced: local-first)
+        +AttachmentStore (enhanced: local-first)
+        +SearchStore, ToastStore, UIStore
+    }
+    class ClientServices {
+        <<Assembly>>
+        +LocalDB (IndexedDB: chats/notes/etc.)
+        +SyncService (queue, push/pull)
+        +StreamingService (AI response)
+        +ApiClient (fetch wrappers)
     }
 
-    class Folder {
-        +string id
-        +string name
-        +string? parentId
-        +boolean expanded
-        +number order
-        +string? color
-        +string[] tags
-        +FolderType type
+    %% Server Components
+    class ServerAPI {
+        <<Assembly>>
+        +/api/chats, /api/folders
+        +/api/notes, /api/highlights, /api/attachments
+        +/api/search, /api/chat/generate
+        +/api/sync/* (delta pulls)
+    }
+    class ServerServices {
+        <<Assembly>>
+        +ChatService (CRUD + context build)
+        +FolderService (tree + validation)
+        +NoteService, HighlightService, AttachmentService
+        +SearchService (text/semantic)
+    }
+    class ServerRepos {
+        <<Assembly>>
+        +ChatRepository (with tags)
+        +FolderRepository (hierarchy)
+        +NoteRepository (with tags)
+        +HighlightRepository (offsets)
+        +AttachmentRepository
+        +TagRepository (findOrCreate)
+    }
+    class ServerData {
+        <<Assembly>>
+        +DrizzleSchema (pg: chats/messages/folders/notes/highlights/attachments/tags)
+        +AIProviderFactory (OpenAI/Anthropic)
     }
 
-    class Message {
-        +string id
-        +string chatId
-        +string role
-        +string content
-        +string[] tags
-        +Highlight[] highlights
-        +timestamp createdAt
-    }
+    %% Dependencies (Client)
+    ClientUI --> ClientStores : subscribes/updates
+    ClientStores --> ClientServices : uses (LocalDB/Sync)
+    ClientServices --> ServerAPI : HTTP (optimistic fallback)
 
-    class Note {
-        +string id
-        +string chatId
-        +string? messageId
-        +string content
-        +string[] tags
-        +NoteType type
-        +timestamp createdAt
-        +timestamp updatedAt
-    }
+    %% Dependencies (Server)
+    ServerAPI --> ServerServices : delegates
+    ServerServices --> ServerRepos : CRUD
+    ServerRepos --> ServerData : queries
+    ServerServices --> ServerData : AI generate
 
-    class Highlight {
-        +string id
-        +string messageId
-        +string text
-        +number startOffset
-        +number endOffset
-        +string? color
-        +string? note
-        +timestamp createdAt
-    }
-
-    class Attachment {
-        +string id
-        +string chatId
-        +AttachmentType type
-        +string content
-        +Metadata metadata
-        +timestamp createdAt
-    }
-
-    class Tag {
-        +string id
-        +string name
-        +string? color
-        +TagType type
-    }
-
-    class Reference {
-        +string id
-        +ReferenceType type
-        +string targetId
-        +string context
-    }
-
-    %% ============================================
-    %% ENUMS & VALUE OBJECTS
-    %% ============================================
-    class FolderType {
-        <<enumeration>>
-        STANDARD
-        ARCHIVE
-        FAVORITE
-    }
-
-    class AttachmentType {
-        <<enumeration>>
-        FILE
-        URL
-        IMAGE
-    }
-
-    class NoteType {
-        <<enumeration>>
-        SCRATCH
-        SUMMARY
-        TODO
-    }
-
-    class TagType {
-        <<enumeration>>
-        CHAT
-        MESSAGE
-        NOTE
-    }
-
-    class ReferenceType {
-        <<enumeration>>
-        CHAT
-        FOLDER
-        MESSAGE
-    }
-
-    class Metadata {
-        +number tokenCount
-        +string? embedding
-        +Record~string, any~ custom
-    }
-
-    %% ============================================
-    %% RELATIONSHIPS
-    %% ============================================
-    Folder "1" --> "*" Chat : contains
-    Folder "1" --> "*" Folder : contains
-    Chat "1" --> "*" Message : contains
-    Chat "1" --> "*" Note : has
-    Chat "1" --> "*" Attachment : has
-    Chat "*" --> "*" Tag : tagged with
-    Message "1" --> "*" Highlight : contains
-    Message "*" --> "*" Tag : tagged with
-    Note "*" --> "*" Tag : tagged with
-    Reference --> Chat : references
-    Reference --> Folder : references
-    Reference --> Message : references
-```
-
-🏗️ Architecture Layers
-
-```mermaid
-graph TB
-    subgraph "PRESENTATION - Svelte Components"
-        A1[ChatView]
-        A2[Sidebar<br/>- Highlights<br/>- Notes<br/>- Attachments]
-        A3[FolderTree]
-        A4[MessageComposer<br/>with References]
-        A5[SearchPanel]
-    end
-
-    subgraph "STATE MANAGEMENT - Stores"
-        B1[chat.store]
-        B2[folder.store]
-        B3[note.store]
-        B4[highlight.store]
-        B5[attachment.store]
-        B6[tag.store]
-        B7[reference.store]
-        B8[search.store]
-    end
-
-    subgraph "API CLIENT"
-        C1[api/chats]
-        C2[api/notes]
-        C3[api/highlights]
-        C4[api/attachments]
-        C5[api/search]
-        C6[api/embeddings]
-    end
-
-    subgraph "SERVER ROUTES"
-        D1["#47;api#47;chats"]
-        D2["#47;api#47;notes"]
-        D3["#47;api#47;highlights"]
-        D4["#47;api#47;attachments"]
-        D5["#47;api#47;search"]
-        D6["#47;api#47;embeddings"]
-    end
-
-    subgraph "SERVICES - Business Logic"
-        E1[ChatService]
-        E2[NoteService]
-        E3[HighlightService]
-        E4[AttachmentService]
-        E5[SearchService]
-        E6[EmbeddingService]
-    end
-
-    subgraph "REPOSITORIES - Data Access"
-        F1[ChatRepository]
-        F2[NoteRepository]
-        F3[HighlightRepository]
-        F4[AttachmentRepository]
-        F5[TagRepository]
-    end
-
-    subgraph "DATABASE"
-        G1[(PostgreSQL)]
-        G2[(pgvector<br/>Embeddings)]
-    end
-
-    subgraph "EXTERNAL"
-        H1[OpenAI<br/>Embeddings API]
-    end
-
-    A1 --> B1
-    A2 --> B3
-    A2 --> B4
-    A2 --> B5
-    A3 --> B2
-    A4 --> B7
-    A5 --> B8
-
-    B1 --> C1
-    B3 --> C2
-    B4 --> C3
-    B5 --> C4
-    B8 --> C5
-
-    C1 --> D1
-    C2 --> D2
-    C3 --> D3
-    C4 --> D4
-    C5 --> D5
-    C6 --> D6
-
-    D1 --> E1
-    D2 --> E2
-    D3 --> E3
-    D4 --> E4
-    D5 --> E5
-
-    E1 --> F1
-    E2 --> F2
-    E3 --> F3
-    E4 --> F4
-    E5 --> F1
-    E5 --> F2
-    E6 --> F1
-
-    F1 --> G1
-    F2 --> G1
-    F3 --> G1
-    F4 --> G1
-    F5 --> G1
-
-    E6 --> H1
-    E6 --> G2
+    %% Cross-Cutting
+    ClientUI ..> ErrorHandler : wraps (utils/error-handler.ts)
+    ServerServices ..> ErrorHandler : throws (AppError)
 ```

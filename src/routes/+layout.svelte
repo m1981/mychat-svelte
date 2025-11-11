@@ -17,7 +17,7 @@
     import { eventBus } from '$lib/events/eventBus'; // New: For top-level event handling
 
     // Import local-first functionality
-    import { initializeStores, isLoaded } from '$lib/stores/chat.store.enhanced';
+  import { initializeStores, isLoaded } from '$lib/stores/chat.store.enhanced';
 
 	let { children, data } = $props(); // Get data from the server load function
 
@@ -28,15 +28,15 @@
         if (browser) {
             try {
                 // Initialize local-first stores (IndexedDB + Sync Service)
-                console.log('🚀 Initializing local-first stores...');
+        console.log('🚀 Initializing local-first stores...');
                 await initializeStores();
                 localFirstInitialized = true;
-                console.log('✅ Local-first stores initialized');
+        console.log('✅ Local-first stores initialized');
             } catch (error) {
                 console.error('❌ Failed to initialize local-first stores:', error);
                 // Fall back to server-side data
                 localFirstInitialized = true; // Still mark as initialized to show UI
-            }
+			}
 
             // New: Top-level event handlers (e.g., for analytics, logging side effects)
             // Keeps components dumb - they just call store methods
@@ -69,35 +69,35 @@
                 eventBus.removeEventListener('note:deleted', handleNoteDeleted);
                 eventBus.removeEventListener('highlight:created', handleHighlightCreated);
             };
-        }
-    });
+		}
+	});
 
     // Initialize stores immediately with server-side data (server-side rendering)
     // This ensures the app works even before IndexedDB loads
-	chats.set(data.chats || []);
-	folders.set(data.folders || {});
+  chats.set(data.chats || []);
+  folders.set(data.folders || {});
 
 	// Update stores when data changes (e.g., navigation)
     // This maintains backward compatibility with server-side updates
-	$effect(() => {
+  $effect(() => {
         // Only update from server if local-first hasn't initialized yet
         // Once local-first is active, it manages the store
-        if (!localFirstInitialized) {
-		chats.set(data.chats || []);
-		folders.set(data.folders || {});
-        }
-	});
+    if (!localFirstInitialized) {
+      chats.set(data.chats || []);
+      folders.set(data.folders || {});
+    }
+  });
 
 	// Sync currentChatIndex with the URL
-	$effect(() => {
-		const chatId = $page.params.id;
-		if (chatId && $chats.length > 0) {
-			const index = $chats.findIndex(c => c.id === chatId);
-			if (index > -1) {
-				currentChatIndex.set(index);
-			}
-		}
-	});
+  $effect(() => {
+    const chatId = $page.params.id;
+    if (chatId && $chats.length > 0) {
+      const index = $chats.findIndex(c => c.id === chatId);
+      if (index > -1) {
+        currentChatIndex.set(index);
+      }
+    }
+  });
 
 	let isTransitioning = $state(false);
 
@@ -124,7 +124,7 @@
 
 <!-- Sync Status Indicator (bottom-right) -->
 {#if browser && localFirstInitialized && $isLoaded}
-    <SyncStatus />
+  <SyncStatus />
 {/if}
 
 <!-- Main App with Error Boundary -->
