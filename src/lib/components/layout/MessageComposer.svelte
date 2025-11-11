@@ -1,5 +1,6 @@
+<!-- src/lib/components/layout/MessageComposer.svelte -->
 <script lang="ts">
-	import { chats, generating, currentChatIndex } from '$lib/stores/chat.store';
+	import { chats, currentChatIndex, updateChat } from '$lib/stores/chat.store';
 	import { get } from 'svelte/store';
 	import { handleError } from '$lib/utils/error-handler';
 	import { streamingService } from '$lib/services/streaming.service';
@@ -11,11 +12,13 @@
 		const currentPrompt = prompt.trim();
 		if (!currentPrompt || $streamingService.isActive) return;
 
+		// Clear input immediately for better UX
 		prompt = '';
 
 		const allChats = get(chats);
 		const currentIndex = get(currentChatIndex);
 
+		// Validation
 		if (!allChats || allChats.length === 0) {
 			handleError(new Error('No chats available.'));
 			return;
@@ -33,29 +36,29 @@
 			return;
 		}
 
-		// 1. Add user message
+		// 1. Create user message
 		const userMessage: Message = { role: 'user', content: currentPrompt };
 
-		// 2. Create the assistant placeholder
+		// 2. Create assistant placeholder
 		const assistantMessagePlaceholder: Message = { role: 'assistant', content: '' };
 
-		// 3. Create new messages array
+		// 3. Create updated messages array
 		const newMessages = [...currentChat.messages, userMessage, assistantMessagePlaceholder];
 
-		// 4. Create new chat object to trigger reactivity
+		// 4. Update chat in store (optimistic update for UI)
 		const updatedChat = {
 			...currentChat,
 			messages: newMessages
 		};
 
-		// 5. Update the allChats array with the new chat object
-		allChats[currentIndex] = updatedChat;
+		// Temporarily update store for immediate UI feedback
+		chats.update(allChats => {
+			const updated = [...allChats];
+			updated[currentIndex] = updatedChat;
+			return updated;
+		});
 
-		// 6. Trigger reactivity by setting the store
-		chats.set([...allChats]);
-
-		// 7. Create the API payload (without the placeholder)
-		// Normalize messages to only include role and content for API
+		// 5. Prepare API payload (without placeholder, normalized messages)
 		const normalizedMessages = updatedChat.messages.slice(0, -1).map(msg => ({
 			role: msg.role,
 			content: msg.content
@@ -63,7 +66,7 @@
 
 		const apiPayload = {
 			...updatedChat,
-			userId: 1,
+			userId: 1, // TODO: Get from auth
 			messages: normalizedMessages
 		};
 
@@ -73,13 +76,43 @@
 			lastMessage: normalizedMessages[normalizedMessages.length - 1]
 		});
 
-		// 4. Kick off the service, passing the placeholder object
-		streamingService.generateResponse(apiPayload, assistantMessagePlaceholder);
-			}
+		// 6. Start streaming (service will update the placeholder)
+		try {
+			await streamingService.generateResponse(apiPayload, assistantMessagePlaceholder);
 
-	$effect(() => {
-		generating.set($streamingService.isActive);
+			// ✅ 7. CRITICAL: After streaming completes, persist to IndexedDB via store
+			const finalChat = get(chats)[currentIndex];
+			if (finalChat) {
+				console.log('💾 Persisting chat after streaming complete');
+				await updateChat(finalChat.id, {
+					messages: finalChat.messages,
+					metadata: {
+						...finalChat.metadata,
+						messageCount: finalChat.messages.length,
+						tokenCount: (finalChat.metadata?.tokenCount || 0) +
+							finalChat.messages[finalChat.messages.length - 1].content.length,
+						lastMessageAt: new Date()
+					}
+				});
+				console.log('✅ Chat persisted to IndexedDB');
+			}
+		} catch (error) {
+			console.error('❌ Streaming failed:', error);
+			handleError(error as Error);
+
+			// Remove the failed assistant message placeholder
+			chats.update(allChats => {
+				const updated = [...allChats];
+				if (updated[currentIndex]) {
+					updated[currentIndex] = {
+						...updated[currentIndex],
+						messages: updated[currentIndex].messages.slice(0, -1)
+					};
+				}
+				return updated;
     });
+		}
+	}
 </script>
 
 <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="w-full max-w-4xl mx-auto">
