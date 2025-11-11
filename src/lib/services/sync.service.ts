@@ -7,6 +7,7 @@
 import { localDB, type SyncOperation } from './local-db';
 import { writable, get } from 'svelte/store';
 import type { Chat, Folder } from '$lib/types/chat';
+import { dev } from '$app/environment'; // Import dev flag
 
 export interface SyncStatus {
 	isOnline: boolean;
@@ -18,7 +19,8 @@ export interface SyncStatus {
 
 class SyncService {
 	private syncStatus = writable<SyncStatus>({
-		isOnline: navigator.onLine,
+		// Use navigator.onLine as the initial state
+		isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
 		isSyncing: false,
 		lastSyncTime: null,
 		pendingOperations: 0,
@@ -47,14 +49,16 @@ class SyncService {
 		this.updateStatus({ lastSyncTime });
 
 		// Setup online/offline listeners
+		if (typeof window !== 'undefined') {
 		window.addEventListener('online', () => this.handleOnline());
 		window.addEventListener('offline', () => this.handleOffline());
+		}
 
 		// Start periodic sync (every 30 seconds when online)
 		this.startPeriodicSync();
 
 		// Initial sync if online
-		if (navigator.onLine) {
+		if (get(this.syncStatus).isOnline) {
 			await this.sync();
 		}
 
@@ -79,6 +83,29 @@ class SyncService {
 		this.updateStatus({ isOnline: false });
 	}
 
+	// --- START: New methods for testing ---
+	/**
+	 * Manually simulates going offline. (DEV ONLY)
+	 */
+	public forceOffline(): void {
+		if (dev) {
+			console.warn('🧪 Forcing OFFLINE state for testing.');
+			this.handleOffline();
+		}
+	}
+
+	/**
+	 * Manually simulates going online. (DEV ONLY)
+	 */
+	public forceOnline(): void {
+		if (dev) {
+			console.warn('🧪 Forcing ONLINE state for testing.');
+			this.handleOnline();
+		}
+	}
+	// --- END: New methods for testing ---
+
+
 	/**
 	 * Start periodic background sync
 	 */
@@ -86,7 +113,7 @@ class SyncService {
 		if (this.syncInterval) return;
 
 		this.syncInterval = window.setInterval(async () => {
-			if (navigator.onLine && !get(this.syncStatus).isSyncing) {
+			if (get(this.syncStatus).isOnline && !get(this.syncStatus).isSyncing) {
 				await this.sync();
 			}
 		}, 30000); // 30 seconds
@@ -106,7 +133,7 @@ class SyncService {
 	 * Main sync function - bidirectional sync
 	 */
 	async sync(): Promise<void> {
-		if (!navigator.onLine) {
+		if (!get(this.syncStatus).isOnline) {
 			console.log('⚠️ Offline - skipping sync');
 			return;
 		}
@@ -301,7 +328,7 @@ class SyncService {
 		await this.updatePendingCount();
 
 		// Try to sync immediately if online
-		if (navigator.onLine) {
+		if (get(this.syncStatus).isOnline) {
 			this.sync();
 		}
 	}
@@ -360,8 +387,10 @@ class SyncService {
 	 */
 	destroy(): void {
 		this.stopPeriodicSync();
+		if (typeof window !== 'undefined') {
 		window.removeEventListener('online', () => this.handleOnline());
 		window.removeEventListener('offline', () => this.handleOffline());
+		}
 		localDB.close();
 	}
 }

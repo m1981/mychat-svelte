@@ -1,11 +1,14 @@
 <!-- src/lib/components/SyncStatus.svelte -->
 <script lang="ts">
+	import { syncService } from '$lib/services/sync.service';
 	import { syncStatus, refreshFromServer, chats, chatCount } from '$lib/stores/chat.store';
 	import { onMount } from 'svelte';
+	import { dev } from '$app/environment'; // Import dev flag
 
 	let expanded = $state(false);
 	let remoteChatCount = $state<number | null>(null);
 	let isLoadingRemoteCount = $state(false);
+	let testMode = $state(false); // New state for test mode UI
 
 	function toggleExpanded() {
 		expanded = !expanded;
@@ -50,11 +53,12 @@
 	$effect(() => {
 		if ($syncStatus.pendingOperations > 0) {
 			expanded = true;
-			setTimeout(() => {
+			const timer = setTimeout(() => {
 				if ($syncStatus.pendingOperations === 0) {
 					expanded = false;
 				}
 			}, 5000);
+			return () => clearTimeout(timer);
 		}
 	});
 
@@ -225,6 +229,42 @@
 					{/if}
 				</button>
 			</div>
+
+			<!-- START: New Test Mode Section -->
+			{#if dev}
+				<div class="mt-3 pt-3 border-t border-surface-300-700">
+					<div class="flex justify-between items-center mb-2">
+						<label for="test-mode-toggle" class="text-xs font-bold uppercase text-surface-500">
+							Test Mode
+						</label>
+						<input id="test-mode-toggle" type="checkbox" class="toggle toggle-sm" bind:checked={testMode} />
+					</div>
+					{#if testMode}
+						<div class="p-2 bg-warning-500/10 rounded-md space-y-2">
+							<p class="text-xs text-warning-700 dark:text-warning-300">
+								Simulate network status. This will override the browser's actual connection state.
+							</p>
+							<div class="flex gap-2">
+								<button
+									class="btn btn-sm flex-1 variant-soft-error"
+									onclick={() => syncService.forceOffline()}
+									disabled={!$syncStatus.isOnline}
+								>
+									Go Offline
+								</button>
+								<button
+									class="btn btn-sm flex-1 variant-soft-success"
+									onclick={() => syncService.forceOnline()}
+									disabled={$syncStatus.isOnline}
+								>
+									Go Online
+								</button>
+							</div>
+						</div>
+					{/if}
+				</div>
+			{/if}
+			<!-- END: New Test Mode Section -->
 		</div>
 	{:else}
 		<!-- Compact indicator -->
