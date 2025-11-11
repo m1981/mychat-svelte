@@ -252,6 +252,8 @@ class SyncService {
 				break;
 		}
 
+	console.log(`🔄 Syncing ${type} ${entity} ${entityId} to ${endpoint}`);
+
 		const response = await fetch(endpoint, {
 			method,
 			headers: { 'Content-Type': 'application/json' },
@@ -259,9 +261,23 @@ class SyncService {
 		});
 
 		if (!response.ok) {
-			const error = await response.json();
-			throw new Error(error.message || `Server error: ${response.status}`);
+		const errorText = await response.text();
+		let errorMessage = `Server error: ${response.status}`;
+
+		try {
+			const errorJson = JSON.parse(errorText);
+			errorMessage = errorJson.message || errorMessage;
+			console.error(`❌ Sync failed for ${entity} ${entityId}:`, errorJson);
+		} catch {
+			// Error response wasn't JSON, use text
+			errorMessage = errorText || errorMessage;
+			console.error(`❌ Sync failed for ${entity} ${entityId}:`, errorText);
 		}
+
+		throw new Error(errorMessage);
+	}
+
+	console.log(`✅ Synced ${type} ${entity} ${entityId} successfully`);
 	}
 
 	/**
