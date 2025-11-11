@@ -1,15 +1,15 @@
 <!-- src/routes/chat/[id]/+page.svelte -->
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { chats } from '$lib/stores/chat.store';
+	import { chats, updateChat } from '$lib/stores/chat.store';
 	import { goto } from '$app/navigation';
-	import { getContext } from 'svelte'; // New: For accessing grouped stores via context
+	import { getContext } from 'svelte';
 	import ChatMessages from '$lib/components/chat/ChatMessages.svelte';
 	import NotesPanel from '$lib/components/chat/NotesPanel.svelte';
 	import HighlightsPanel from '$lib/components/chat/HighlightsPanel.svelte';
-	import type { Note, Highlight, Attachment } from '$lib/types/entities'; // For type safety with context
+	import type { Note, Highlight, Attachment } from '$lib/types/entities';
 
-	// Access grouped stores via context (reduces direct imports)
+	// Access grouped stores via context
 	const chatStores = getContext<{ notes: Note[]; highlights: Highlight[]; attachments: Attachment[]; totalItems: number }>('chatStores');
 
 	const chatId = $derived($page.params.id);
@@ -47,19 +47,13 @@
 		}
 
 		try {
-			const response = await fetch(`/api/chats/${currentChat.id}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ title: editedTitle.trim() })
+			// ✅ CORRECT: Use store function
+			await updateChat(currentChat.id, {
+				title: editedTitle.trim()
 			});
-
-			if (response.ok) {
-				const updated = await response.json();
-				currentChat.title = updated.title;
-				chats.set([...$chats]);
-			}
 		} catch (error) {
-			console.error('Failed to update title:', error);
+			console.error('❌ Failed to update title:', error);
+			// TODO: Show error toast using uiBus
 		}
 		isEditingTitle = false;
 	}
@@ -114,7 +108,7 @@
 					aria-selected={activeTab === 'notes'}
 					onclick={() => (activeTab = 'notes')}
 				>
-					Notes ({$chatStores.notes.length})
+					Notes ({$chatStores?.notes?.length || 0})
 				</button>
 				<button
 					role="tab"
@@ -122,7 +116,7 @@
 					aria-selected={activeTab === 'highlights'}
 					onclick={() => (activeTab = 'highlights')}
 				>
-					Highlights ({$chatStores.highlights.length})
+					Highlights ({$chatStores?.highlights?.length || 0})
 				</button>
 			</div>
 

@@ -1,10 +1,9 @@
-<!-- src/routes/+page.svelte - Migrated to Pure Skeleton -->
+<!-- src/routes/+page.svelte - CORRECTED to use store functions -->
 <script lang="ts">
-	import { chats, generating } from '$lib/stores/chat.store';
+	import { chats, generating, createChat } from '$lib/stores/chat.store';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import PlusIcon from '$lib/components/icons/PlusIcon.svelte';
-	import type { Chat } from '$lib/types/chat';
 
 	let isCreating = $state(false);
 
@@ -21,49 +20,16 @@
 		isCreating = true;
 
 		try {
-			const chatId = `chat-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-			const now = new Date();
-
-			const newChat: Chat = {
-				id: chatId,
-				userId: 1,
-				title: 'New Chat',
-				folderId: undefined,
-				messages: [],
-				config: {
-					provider: 'anthropic',
-					modelConfig: {
-						model: 'claude-3-7-sonnet-20250219',
-						max_tokens: 4096,
-						temperature: 0.7,
-						top_p: 1,
-						presence_penalty: 0,
-						frequency_penalty: 0
-					}
-				},
-				tags: [],
-				metadata: {
-					tokenCount: 0,
-					messageCount: 0,
-					lastMessageAt: now
-				},
-				createdAt: now,
-				updatedAt: now
-			};
-
-			const response = await fetch('/api/chats', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(newChat)
+			// ✅ CORRECT: Use store function instead of raw fetch
+			const newChat = await createChat({
+				title: 'New Chat'
 			});
 
-			if (response.ok) {
-				const savedChat = await response.json();
-				chats.update(current => [savedChat, ...current]);
-				goto(`/chat/${savedChat.id}`);
-			}
+			// Navigate to the new chat
+			goto(`/chat/${newChat.id}`);
 		} catch (error) {
-			console.error('Failed to create chat:', error);
+			console.error('❌ Failed to create chat:', error);
+			// TODO: Show error toast using uiBus
 		} finally {
 			isCreating = false;
 		}

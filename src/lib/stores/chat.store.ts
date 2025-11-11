@@ -1,6 +1,7 @@
-// src/lib/stores/chat.store.enhanced.ts
+// src/lib/stores/chat.store.ts
 /**
- * Enhanced Chat Store with Local-First Architecture
+ * SINGLE SOURCE OF TRUTH for Chat State
+ * Local-First Architecture:
  * - Writes to IndexedDB first (optimistic updates)
  * - Queues operations for server sync
  * - Reads from IndexedDB on load
@@ -25,8 +26,23 @@ export const currentChat = derived(
 	([$chats, $index]) => $chats[$index] || null
 );
 
+export const chatCount = derived(
+	chats,
+	($chats) => $chats.length
+);
+
+export const folderCount = derived(
+	folders,
+	($folders) => Object.keys($folders).length
+);
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
 /**
  * Initialize stores from IndexedDB
+ * Call this once on app startup
  */
 export async function initializeStores(): Promise<void> {
 	if (!browser) return;
@@ -39,9 +55,9 @@ export async function initializeStores(): Promise<void> {
 		await loadFromLocal();
 
 		isLoaded.set(true);
-		console.log('✅ Stores initialized from local database');
+		console.log('✅ Chat stores initialized from local database');
 	} catch (error) {
-		console.error('Failed to initialize stores:', error);
+		console.error('❌ Failed to initialize chat stores:', error);
 		// Still mark as loaded to allow app to work (degraded mode)
 		isLoaded.set(true);
 	}
@@ -51,7 +67,7 @@ export async function initializeStores(): Promise<void> {
  * Load all data from IndexedDB
  */
 async function loadFromLocal(): Promise<void> {
-	const userId = 1; // TODO: Get from auth
+	const userId = 1; // TODO: Get from auth context
 
 	// Load chats
 	const localChats = await localDB.getAllChats(userId);
@@ -67,10 +83,10 @@ async function loadFromLocal(): Promise<void> {
 }
 
 /**
- * Create a new chat (local-first)
+ * Create a new chat (local-first with optimistic update)
  */
 export async function createChat(chatData: Partial<Chat>): Promise<Chat> {
-	const userId = 1; // TODO: Get from auth
+	const userId = 1; // TODO: Get from auth context
 	const chatId = `chat-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 	const now = new Date();
 
@@ -104,7 +120,7 @@ export async function createChat(chatData: Partial<Chat>): Promise<Chat> {
 	// 1. Save to IndexedDB immediately (optimistic)
 	await localDB.saveChat(newChat);
 
-	// 2. Update store
+	// 2. Update store (triggers UI reactivity)
 	chats.update((current) => {
 		if (newChat.folderId) {
 			// Insert after other chats in same folder
@@ -119,20 +135,22 @@ export async function createChat(chatData: Partial<Chat>): Promise<Chat> {
 		return [newChat, ...current];
 	});
 
-	// 3. Queue for server sync
-	await syncService.queueOperation('CREATE', 'CHAT', chatId, newChat);
+	// 3. Queue for server sync (async, non-blocking)
+	syncService.queueOperation('CREATE', 'CHAT', chatId, newChat).catch((error) => {
+		console.error('❌ Failed to queue chat creation for sync:', error);
+	});
 
 	console.log(`✅ Chat created locally: ${chatId}`);
 	return newChat;
 }
 
 /**
- * Update a chat (local-first)
+ * Update a chat (local-first with optimistic update)
  */
 export async function updateChat(chatId: string, updates: Partial<Chat>): Promise<void> {
 	// 1. Get current chat from IndexedDB
 	const chat = await localDB.getChat(chatId);
-	if (!chat) throw new Error('Chat not found');
+	if (!chat) throw new Error(`Chat not found: ${chatId}`);
 
 	// 2. Apply updates
 	const updatedChat: Chat = {
@@ -144,38 +162,74 @@ export async function updateChat(chatId: string, updates: Partial<Chat>): Promis
 	// 3. Save to IndexedDB
 	await localDB.saveChat(updatedChat);
 
-	// 4. Update store
+	// 4. Update store (triggers UI reactivity)
 	chats.update((current) =>
 		current.map((c) => (c.id === chatId ? updatedChat : c))
 	);
 
-	// 5. Queue for server sync
-	await syncService.queueOperation('UPDATE', 'CHAT', chatId, updates);
+	// 5. Queue for server sync (async, non-blocking)
+	syncService.queueOperation('UPDATE', 'CHAT', chatId, updates).catch((error) => {
+		console.error('❌ Failed to queue chat update for sync:', error);
+	});
 
 	console.log(`✅ Chat updated locally: ${chatId}`);
 }
 
 /**
- * Delete a chat (local-first)
+ * Delete a chat (local-first with optimistic update)
  */
 export async function deleteChat(chatId: string): Promise<void> {
 	// 1. Delete from IndexedDB
 	await localDB.deleteChat(chatId);
 
-	// 2. Update store
+	// 2. Update store (triggers UI reactivity)
 	chats.update((current) => current.filter((c) => c.id !== chatId));
 
-	// 3. Queue for server sync
-	await syncService.queueOperation('DELETE', 'CHAT', chatId, null);
+	// 3. Reset current chat index if needed
+	const allChats = get(chats);
+	const currentIndex = get(currentChatIndex);
+	if (currentIndex >= allChats.length && allChats.length > 0) {
+		currentChatIndex.set(allChats.length - 1);
+	} else if (allChats.length === 0) {
+		currentChatIndex.set(0);
+	}
+
+	// 4. Queue for server sync (async, non-blocking)
+	syncService.queueOperation('DELETE', 'CHAT', chatId, null).catch((error) => {
+		console.error('❌ Failed to queue chat deletion for sync:', error);
+	});
 
 	console.log(`✅ Chat deleted locally: ${chatId}`);
 }
 
 /**
- * Create a new folder (local-first)
+ * Get a chat by ID (from store, not IndexedDB)
+ */
+export function getChatById(chatId: string): Chat | undefined {
+	const allChats = get(chats);
+	return allChats.find((c) => c.id === chatId);
+}
+
+/**
+ * Set the active chat by ID
+ */
+export function setCurrentChatById(chatId: string): void {
+	const allChats = get(chats);
+	const index = allChats.findIndex((c) => c.id === chatId);
+	if (index !== -1) {
+		currentChatIndex.set(index);
+	}
+}
+
+// ============================================
+// FOLDER OPERATIONS
+// ============================================
+
+/**
+ * Create a new folder (local-first with optimistic update)
  */
 export async function createFolder(folderData: Partial<Folder>): Promise<Folder> {
-	const userId = 1; // TODO: Get from auth
+	const userId = 1; // TODO: Get from auth context
 	const folderId = `folder-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 	const now = new Date();
 
@@ -202,26 +256,28 @@ export async function createFolder(folderData: Partial<Folder>): Promise<Folder>
 	// 1. Save to IndexedDB
 	await localDB.saveFolder(newFolder);
 
-	// 2. Update store
+	// 2. Update store (triggers UI reactivity)
 	folders.update((current) => ({
 		...current,
 		[folderId]: newFolder
 	}));
 
-	// 3. Queue for server sync
-	await syncService.queueOperation('CREATE', 'FOLDER', folderId, newFolder);
+	// 3. Queue for server sync (async, non-blocking)
+	syncService.queueOperation('CREATE', 'FOLDER', folderId, newFolder).catch((error) => {
+		console.error('❌ Failed to queue folder creation for sync:', error);
+	});
 
 	console.log(`✅ Folder created locally: ${folderId}`);
 	return newFolder;
 }
 
 /**
- * Update a folder (local-first)
+ * Update a folder (local-first with optimistic update)
  */
 export async function updateFolder(folderId: string, updates: Partial<Folder>): Promise<void> {
 	// 1. Get current folder
 	const folder = await localDB.getFolder(folderId);
-	if (!folder) throw new Error('Folder not found');
+	if (!folder) throw new Error(`Folder not found: ${folderId}`);
 
 	// 2. Apply updates
 	const updatedFolder: Folder = {
@@ -233,34 +289,43 @@ export async function updateFolder(folderId: string, updates: Partial<Folder>): 
 	// 3. Save to IndexedDB
 	await localDB.saveFolder(updatedFolder);
 
-	// 4. Update store
+	// 4. Update store (triggers UI reactivity)
 	folders.update((current) => ({
 		...current,
 		[folderId]: updatedFolder
 	}));
 
-	// 5. Queue for server sync
-	await syncService.queueOperation('UPDATE', 'FOLDER', folderId, updates);
+	// 5. Queue for server sync (async, non-blocking)
+	syncService.queueOperation('UPDATE', 'FOLDER', folderId, updates).catch((error) => {
+		console.error('❌ Failed to queue folder update for sync:', error);
+	});
 
 	console.log(`✅ Folder updated locally: ${folderId}`);
 }
 
 /**
- * Delete a folder (local-first)
+ * Delete a folder (local-first with optimistic update)
  */
 export async function deleteFolder(folderId: string): Promise<void> {
 	// 1. Delete from IndexedDB
 	await localDB.deleteFolder(folderId);
 
-	// 2. Update store
+	// 2. Update store (triggers UI reactivity)
 	folders.update((current) => {
 		const updated = { ...current };
 		delete updated[folderId];
 		return updated;
 	});
 
-	// 3. Queue for server sync
-	await syncService.queueOperation('DELETE', 'FOLDER', folderId, null);
+	// 3. Update any chats that were in this folder
+	chats.update((current) =>
+		current.map((c) => (c.folderId === folderId ? { ...c, folderId: undefined } : c))
+	);
+
+	// 4. Queue for server sync (async, non-blocking)
+	syncService.queueOperation('DELETE', 'FOLDER', folderId, null).catch((error) => {
+		console.error('❌ Failed to queue folder deletion for sync:', error);
+	});
 
 	console.log(`✅ Folder deleted locally: ${folderId}`);
 }
@@ -272,10 +337,10 @@ export async function refreshFromServer(): Promise<void> {
 	console.log('🔄 Refreshing from server...');
 	await syncService.forceSync();
 	await loadFromLocal();
-	console.log('✅ Data refreshed');
+	console.log('✅ Data refreshed from server');
 }
 
 /**
- * Get sync status
+ * Get sync status (for UI display)
  */
 export const syncStatus = syncService.status;
