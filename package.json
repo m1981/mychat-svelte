@@ -51,6 +51,7 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.68.0",
+		"@skeletonlabs/skeleton": "^4.3.2",
 		"@types/pg": "^8.15.6",
 		"nanoid": "^5.1.6",
 		"openai": "^6.7.0",

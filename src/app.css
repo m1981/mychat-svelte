@@ -1,6 +1,8 @@
 /* src/app.css */
 
 @import 'tailwindcss';
+@import '@skeletonlabs/skeleton/dist/index.css';
+@import '@skeletonlabs/skeleton/dist/themes/modern.css';
 
 @layer base {
 	html {
