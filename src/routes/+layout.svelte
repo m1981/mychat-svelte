@@ -5,6 +5,7 @@
 	import '../app.css';
 
 	// Import layout components (adjust paths as needed)
+	import SyncStatus from '$lib/components/SyncStatus.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import Header from '$lib/components/layout/Header.svelte';
 	import Main from '$lib/components/layout/Main.svelte';
@@ -39,6 +40,7 @@
 	</div>
 </div>
 		<ToastContainer />
+		<SyncStatus />
     {:else}
 		<!-- Loading state while stores initialize from IndexedDB -->
 		<div class="loading-container">
