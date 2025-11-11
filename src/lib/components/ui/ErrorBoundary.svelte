@@ -90,7 +90,7 @@
 	{:else}
 		<!-- Default fallback UI -->
 		<div class="flex items-center justify-center min-h-[400px] p-8">
-			<div class="card bg-base-200 shadow-xl max-w-lg">
+			<div class="card bg-surface-100-900 shadow-xl max-w-lg">
 				<div class="card-body">
 					<h2 class="card-title text-error">
 						<svg
@@ -109,18 +109,18 @@
 						</svg>
 						Something went wrong
 					</h2>
-					<p class="text-base-content/70">
+					<p class="text-surface-950-50/70">
 						{error.message || 'An unexpected error occurred. Please try again.'}
 					</p>
 
 					{#if import.meta.env.DEV}
 						<div class="mt-4">
-							<details class="border border-base-300 rounded bg-base-300/50">
-								<summary class="cursor-pointer p-3 text-sm font-medium hover:bg-base-300/70 transition-colors">
+							<details class="border border-surface-200-800 rounded bg-surface-200-800/50">
+								<summary class="cursor-pointer p-3 text-sm font-medium hover:bg-surface-200-800/70 transition-colors">
 									Error Details (Dev Mode)
 								</summary>
-								<div class="border-t border-base-300 p-3">
-									<pre class="text-xs overflow-auto max-h-[200px] bg-base-100 p-2 rounded">{error.stack}</pre>
+								<div class="border-t border-surface-200-800 p-3">
+									<pre class="text-xs overflow-auto max-h-[200px] bg-surface-50-950 p-2 rounded">{error.stack}</pre>
 								</div>
 							</details>
 						</div>

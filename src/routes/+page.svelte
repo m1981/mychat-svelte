@@ -1,3 +1,4 @@
+<!-- src/routes/+page.svelte - Migrated to Pure Skeleton -->
 <script lang="ts">
 	import { chats, generating } from '$lib/stores/chat.store';
 	import { goto } from '$app/navigation';
@@ -73,42 +74,42 @@
 	<div class="max-w-2xl space-y-6">
 		<!-- Hero Section -->
 		<div class="space-y-4">
-			<h1 class="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+			<h1 class="text-5xl font-bold gradient-heading">
 				Welcome to BetterChatGPT
 			</h1>
-			<p class="text-xl text-base-content/70">
+			<p class="text-xl text-surface-600-400">
 				Start a conversation with AI and experience intelligent, context-aware responses
 			</p>
 		</div>
 
 		<!-- Features -->
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-			<div class="card bg-base-200 p-4">
+			<div class="card p-4">
 				<div class="text-3xl mb-2">💬</div>
 				<h3 class="font-semibold mb-1">Smart Conversations</h3>
-				<p class="text-sm text-base-content/60">Real-time streaming responses</p>
+				<p class="text-sm text-surface-600-400">Real-time streaming responses</p>
 			</div>
-			<div class="card bg-base-200 p-4">
+			<div class="card p-4">
 				<div class="text-3xl mb-2">📁</div>
 				<h3 class="font-semibold mb-1">Organized Chats</h3>
-				<p class="text-sm text-base-content/60">Folders and tags for structure</p>
+				<p class="text-sm text-surface-600-400">Folders and tags for structure</p>
 			</div>
-			<div class="card bg-base-200 p-4">
+			<div class="card p-4">
 				<div class="text-3xl mb-2">✨</div>
 				<h3 class="font-semibold mb-1">Highlights & Notes</h3>
-				<p class="text-sm text-base-content/60">Save important moments</p>
+				<p class="text-sm text-surface-600-400">Save important moments</p>
 			</div>
 		</div>
 
 		<!-- CTA Button -->
 		<div class="mt-8">
 			<button
-				class="btn btn-primary btn-lg gap-2"
+				class="btn variant-filled-primary btn-lg gap-2"
 				onclick={createFirstChat}
 				disabled={isCreating}
 			>
 				{#if isCreating}
-					<span class="loading loading-spinner"></span>
+					<span class="loading loading-spinner loading-sm"></span>
 					Creating...
 				{:else}
 					<PlusIcon />
@@ -118,7 +119,7 @@
 		</div>
 
 		<!-- Secondary Info -->
-		<p class="text-sm text-base-content/50 mt-4">
+		<p class="text-sm text-surface-500 mt-4">
 			Or use the sidebar to explore existing conversations
 		</p>
 	</div>

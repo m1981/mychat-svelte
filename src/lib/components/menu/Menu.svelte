@@ -12,12 +12,12 @@
 
 <div
 	id="menu"
-	class="group/menu bg-base-100 h-full w-full flex flex-col transition-all duration-300 ease-in-out"
+	class="group/menu bg-surface-50-950 h-full w-full flex flex-col transition-all duration-300 ease-in-out"
 >
 	<div class="flex h-full min-h-0 flex-col">
 		<!-- Header with hamburger menu -->
-		<div class="flex items-center justify-between p-3 border-b border-base-content/10">
-			<h2 class="text-sm font-medium text-base-content/70">Chat History</h2>
+		<div class="flex items-center justify-between p-3 border-b border-surface-950-50/10">
+			<h2 class="text-sm font-medium text-surface-950-50/70">Chat History</h2>
 			<button
 				class="sidebar-toggle-btn"
 				onclick={() => hideSideMenu.set(true)}
@@ -28,7 +28,7 @@
 		</div>
 
 		<!-- Action buttons -->
-		<div class="px-3 pt-2 pb-2 border-base-content/10">
+		<div class="px-3 pt-2 pb-2 border-surface-950-50/10">
 			<div class="flex gap-2">
 				<NewChat />
 				<NewFolder />
@@ -46,9 +46,9 @@
 		</div>
 
 		<!-- Fixed bottom menu -->
-		<div class="border-t border-base-content/10">
+		<div class="border-t border-surface-950-50/10">
 			<!-- <MenuOptions /> -->
-			<div class="p-4 text-base-content/50">Menu Options (WIP)</div>
+			<div class="p-4 text-surface-950-50/50">Menu Options (WIP)</div>
 		</div>
 	</div>
 </div>

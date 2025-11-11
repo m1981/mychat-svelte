@@ -4,7 +4,7 @@
 </script>
 
 <header
-	class="[grid-area:header] h-[60px] bg-base-100 border-b border-base-300 flex items-center justify-between px-4 relative"
+	class="[grid-area:header] h-[60px] bg-surface-50-950 border-b border-surface-200-800 flex items-center justify-between px-4 relative"
 >
 	{@render children()}
 </header>
