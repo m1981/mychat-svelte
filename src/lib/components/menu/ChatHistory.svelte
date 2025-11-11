@@ -5,9 +5,9 @@
 	import { goto } from '$app/navigation';
 	import EditIcon from '$lib/components/icons/EditIcon.svelte';
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
-	import { chats } from '$lib/stores/chat.store';
+	import { chats, updateChat, deleteChat } from '$lib/stores/chat.store';
 	import { toast } from '$lib/stores/toast.store';
-	import { withErrorHandling, handleError } from '$lib/utils/error-handler';
+	import { handleError } from '$lib/utils/error-handler';
 	import { tick } from 'svelte';
 
 	let { chat, index }: { chat: Chat; index: number } = $props();
@@ -53,31 +53,20 @@
 			return;
 		}
 
-		await withErrorHandling(
-			async () => {
-			chats.update((allChats) => {
-				const updatedChats = [...allChats];
-				const chatIndex = updatedChats.findIndex((c) => c.id === chat.id);
-				if (chatIndex !== -1) {
-					updatedChats[chatIndex] = {
-						...updatedChats[chatIndex],
-						title: editedTitle.trim()
-					};
-				}
-				return updatedChats;
+		try {
+			// Use enhanced store function (local-first)
+			await updateChat(chat.id, { title: editedTitle.trim() });
+
+			toast.success('Chat renamed successfully', {
+				duration: 2000
 			});
 
-				toast.success('Chat renamed successfully', {
-					duration: 2000
-				});
-
 			console.log(`✅ Renamed chat ${chat.id} to: ${editedTitle}`);
-			},
-			{
-				errorMessage: 'Failed to rename chat',
-				showToast: true
+		} catch (error) {
+			console.error('Failed to rename chat:', error);
+			toast.error('Failed to rename chat');
+			editedTitle = chat.title;
 		}
-		);
 
 		isRenaming = false;
 	}
@@ -97,39 +86,38 @@
 
 		isDeleting = true;
 
-		await withErrorHandling(
-			async () => {
-		chats.update((allChats) => {
-			const updatedChats = allChats.filter((c) => c.id !== chat.id);
+		try {
+			// If we're deleting the currently active chat, navigate away first
+			if (isActive) {
+				const allChats = $chats;
+				const updatedChats = allChats.filter((c) => c.id !== chat.id);
 
-			// If we're deleting the currently active chat, navigate away
-			if (isActive && updatedChats.length > 0) {
-				// Navigate to the previous chat, or the first one if we deleted the first
-				const newIndex = Math.max(0, index - 1);
-						goto(`/chat/${updatedChats[newIndex].id}`).catch((error) => {
-							handleError(error, 'Failed to navigate after deletion');
-						});
-			} else if (updatedChats.length === 0) {
-				// No chats left, go to home
-						goto('/').catch((error) => {
-							handleError(error, 'Failed to navigate to home');
-						});
+				if (updatedChats.length > 0) {
+					// Navigate to the previous chat, or the first one if we deleted the first
+					const newIndex = Math.max(0, index - 1);
+					await goto(`/chat/${updatedChats[newIndex].id}`).catch((error) => {
+						handleError(error, 'Failed to navigate after deletion');
+					});
+				} else {
+					// No chats left, go to home
+					await goto('/').catch((error) => {
+						handleError(error, 'Failed to navigate to home');
+					});
+				}
 			}
 
-			return updatedChats;
-		});
+			// Use enhanced store function (local-first)
+			await deleteChat(chat.id);
 
-				toast.success('Chat deleted successfully', {
-					duration: 2000
-				});
+			toast.success('Chat deleted successfully', {
+				duration: 2000
+			});
 
-		console.log(`✅ Deleted chat: ${chat.id}`);
-			},
-			{
-				errorMessage: 'Failed to delete chat',
-				showToast: true
-			}
-		);
+			console.log(`✅ Deleted chat: ${chat.id}`);
+		} catch (error) {
+			console.error('Failed to delete chat:', error);
+			toast.error('Failed to delete chat');
+		}
 
 		isDeleting = false;
 	}

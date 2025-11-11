@@ -17,7 +17,7 @@
     import { eventBus } from '$lib/events/eventBus'; // New: For top-level event handling
 
     // Import local-first functionality
-  import { initializeStores, isLoaded } from '$lib/stores/chat.store.enhanced';
+  import { initializeStores, isLoaded } from '$lib/stores/chat.store';
 
 	let { children, data } = $props(); // Get data from the server load function
 
