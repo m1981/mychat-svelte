@@ -88,7 +88,7 @@
 			bind:value={prompt}
 			disabled={$streamingService.isActive}
 			rows="1"
-			class="textarea w-full pr-16 resize-none border border-base-300 rounded p-2"
+			class="textarea w-full pr-16 resize-none border border-surface-200-800 rounded p-2"
 			placeholder="Type a message..."
 			onkeydown={(e) => {
 				if (e.key === 'Enter' && !e.shiftKey) {

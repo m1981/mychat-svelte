@@ -132,7 +132,7 @@
     {#if !browser || localFirstInitialized}
         <!-- Show app once local-first is initialized or in SSR mode -->
 <div
-	class="w-full h-screen flex justify-center bg-base-300"
+	class="w-full h-screen flex justify-center bg-surface-200-800"
 	style="padding: var(--layout-container-padding)"
 >
 	<div
@@ -157,7 +157,7 @@
 		</Sidebar>
 
 		<Header>
-			<div class="text-base-content/50">Header Content</div>
+			<div class="text-surface-950-50/50">Header Content</div>
 		</Header>
 
 		<Main>
@@ -170,10 +170,10 @@
 </div>
     {:else}
         <!-- Loading state while initializing local-first -->
-        <div class="w-full h-screen flex items-center justify-center bg-base-300">
+        <div class="w-full h-screen flex items-center justify-center bg-surface-200-800">
             <div class="text-center">
                 <div class="loading loading-spinner loading-lg mb-4"></div>
-                <p class="text-base-content/70">Initializing local storage...</p>
+                <p class="text-surface-950-50/70">Initializing local storage...</p>
             </div>
         </div>
     {/if}

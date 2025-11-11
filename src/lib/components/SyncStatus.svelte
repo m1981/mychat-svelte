@@ -28,10 +28,14 @@
 <div class="fixed bottom-4 right-4 z-50">
 	{#if expanded}
 		<!-- Extended view -->
-		<div class="bg-base-200 rounded-lg shadow-lg p-4 min-w-[280px] border border-base-300">
+		<div class="card shadow-xl p-4 min-w-[280px]">
 			<div class="flex items-center justify-between mb-3">
 				<h3 class="font-semibold text-sm">Sync Status</h3>
-				<button onclick={toggleExpanded} class="btn btn-ghost btn-xs btn-circle" aria-label="Close sync status">
+				<button
+					onclick={toggleExpanded}
+					class="btn-icon btn-icon-sm variant-ghost-surface"
+					aria-label="Close sync status"
+				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 					</svg>
@@ -41,7 +45,11 @@
 			<div class="space-y-2 text-sm">
 				<!-- Connection Status -->
 				<div class="flex items-center gap-2">
-					<div class="w-2 h-2 rounded-full" class:bg-success={$syncStatus.isOnline} class:bg-error={!$syncStatus.isOnline}></div>
+					<div
+						class="w-2 h-2 rounded-full"
+						class:bg-success-500={$syncStatus.isOnline}
+						class:bg-error-500={!$syncStatus.isOnline}
+					></div>
 					<span>{$syncStatus.isOnline ? 'Online' : 'Offline'}</span>
 				</div>
 
@@ -55,7 +63,7 @@
 
 				<!-- Pending Operations -->
 				{#if $syncStatus.pendingOperations > 0}
-					<div class="flex items-center gap-2 text-warning">
+					<div class="flex items-center gap-2 text-warning-500">
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 						</svg>
@@ -65,7 +73,7 @@
 
 				<!-- Failed Operations -->
 				{#if $syncStatus.failedOperations > 0}
-					<div class="flex items-center gap-2 text-error">
+					<div class="flex items-center gap-2 text-error-500">
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 						</svg>
@@ -75,17 +83,17 @@
 
 				<!-- Last Sync Time -->
 				{#if $syncStatus.lastSyncTime}
-					<div class="text-xs text-base-content/60">
+					<div class="text-xs text-surface-500">
 						Last sync: {new Date($syncStatus.lastSyncTime).toLocaleTimeString()}
 					</div>
 				{/if}
 			</div>
 
 			<!-- Actions -->
-			<div class="mt-3 pt-3 border-t border-base-300">
+			<div class="mt-3 pt-3 border-t border-surface-300-700">
 				<button
 					onclick={handleRefresh}
-					class="btn btn-sm btn-block"
+					class="btn btn-sm w-full variant-filled-surface"
 					disabled={$syncStatus.isSyncing || !$syncStatus.isOnline}
 				>
 					{#if $syncStatus.isSyncing}
@@ -103,10 +111,10 @@
 		<!-- Compact indicator -->
 		<button
 			onclick={toggleExpanded}
-			class="btn btn-circle btn-sm shadow-lg"
-			class:btn-filled-success={$syncStatus.isOnline && $syncStatus.pendingOperations === 0}
-			class:btn-filled-warning={$syncStatus.pendingOperations > 0}
-			class:btn-filled-error={!$syncStatus.isOnline || $syncStatus.failedOperations > 0}
+			class="btn-icon shadow-xl"
+			class:variant-filled-success={$syncStatus.isOnline && $syncStatus.pendingOperations === 0}
+			class:variant-filled-warning={$syncStatus.pendingOperations > 0}
+			class:variant-filled-error={!$syncStatus.isOnline || $syncStatus.failedOperations > 0}
 			title="Sync Status"
 			aria-label="Sync status indicator"
 		>
