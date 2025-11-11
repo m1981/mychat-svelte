@@ -347,6 +347,26 @@ export class LocalDB {
 		});
 	}
 
+    // =================================================================
+	// ATTACHMENT OPERATIONS (NEW SECTION)
+	// =================================================================
+
+	async getAttachment(id: string): Promise<Attachment | null> {
+		return this.get<Attachment>('attachments', id);
+	}
+
+	async getAttachmentsByChatId(chatId: string): Promise<Attachment[]> {
+		return this.getAll<Attachment>('attachments', 'chatId', chatId);
+	}
+
+	async saveAttachment(attachment: Attachment): Promise<void> {
+		return this.put('attachments', attachment);
+	}
+
+	async deleteAttachment(id: string): Promise<void> {
+		return this.delete('attachments', id);
+	}
+
 	/**
 	 * Close database connection
 	 */

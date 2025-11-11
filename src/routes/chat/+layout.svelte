@@ -3,9 +3,9 @@
   // Reduces global store imports in child components; provides scoped chat data
   import { setContext } from 'svelte';
   import { derived } from 'svelte/store';
-  import { notes } from '$lib/stores/note.store.enhanced';
-  import { highlights } from '$lib/stores/highlight.store.enhanced';
-  import { attachments } from '$lib/stores/attachment.store.enhanced';
+  import { notes } from '$lib/stores/note.store';
+  import { highlights } from '$lib/stores/highlight.store';
+  import { attachments } from '$lib/stores/attachment.store';
   import type { Note, Highlight, Attachment } from '$lib/types/entities';
 
   // Derived store grouping chat-related state (notes, highlights, attachments)

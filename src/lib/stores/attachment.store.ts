@@ -1,7 +1,11 @@
+// src/lib/stores/attachment.store.ts
 import { writable } from 'svelte/store';
 import type { Attachment, CreateAttachmentDTO } from '$lib/types/attachment';
-import { withErrorHandling } from '$lib/utils/error-handler';
+import { localDB } from '$lib/services/local-db';
+import { syncService } from '$lib/services/sync.service';
 import { toast } from './toast.store';
+import { browser } from '$app/environment';
+import { handleError } from '$lib/utils/error-handler';
 
 function createAttachmentStore() {
 	const { subscribe, set, update } = writable<Attachment[]>([]);
@@ -10,79 +14,66 @@ function createAttachmentStore() {
 		subscribe,
 
 		/**
-		 * Load attachments for a chat
+		 * Load attachments for a chat from the local database.
 		 */
 		async loadByChatId(chatId: string): Promise<void> {
-			await withErrorHandling(
-				async () => {
-					const response = await fetch(`/api/attachments?chatId=${chatId}`);
-					if (!response.ok) throw new Error('Failed to load attachments');
-
-					const data = await response.json();
-					set(data.data);
-				},
-				{
-					errorMessage: 'Failed to load attachments',
-					showToast: false // Silent load
-				}
-			);
+			if (!browser) return;
+			try {
+				// This requires a new method in localDB, let's add it.
+				const localAttachments = await localDB.getAttachmentsByChatId(chatId);
+				set(localAttachments);
+			} catch (error) {
+				handleError(error, 'Failed to load attachments from local DB');
+				set([]);
+			}
 		},
 
 		/**
-		 * Create a new attachment
+		 * Create a new attachment with a local-first approach.
 		 */
 		async create(data: CreateAttachmentDTO): Promise<Attachment | null> {
-			return withErrorHandling(
-				async () => {
-					const response = await fetch('/api/attachments', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(data)
-					});
+			if (!browser) return null;
 
-					if (!response.ok) {
-						const error = await response.json();
-						throw new Error(error.message || 'Failed to create attachment');
-					}
+			const attachmentId = `attachment-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+			const newAttachment: Attachment = {
+				id: attachmentId,
+				chatId: data.chatId,
+				type: data.type,
+				content: data.content,
+				metadata: data.metadata || {},
+				createdAt: new Date()
+			};
 
-					const attachment = await response.json();
-
-					update((attachments) => [...attachments, attachment]);
-					toast.success('Attachment added');
-
-					return attachment;
-				},
-				{
-					errorMessage: 'Failed to create attachment',
-					showToast: true
-				}
-			);
+			try {
+				await localDB.saveAttachment(newAttachment);
+				update((current) => [...current, newAttachment]);
+				syncService.queueOperation('CREATE', 'ATTACHMENT', attachmentId, newAttachment);
+				toast.success('Attachment added');
+				return newAttachment;
+			} catch (error) {
+				handleError(error, 'Failed to add attachment');
+				return null;
+			}
 		},
 
 		/**
-		 * Delete an attachment
+		 * Delete an attachment with a local-first approach.
 		 */
 		async delete(attachmentId: string): Promise<void> {
-			await withErrorHandling(
-				async () => {
-					const response = await fetch(`/api/attachments/${attachmentId}`, {
-						method: 'DELETE'
-					});
+			if (!browser) return;
 
-					if (!response.ok) throw new Error('Failed to delete attachment');
-
-					update((attachments) => attachments.filter((a) => a.id !== attachmentId));
-					toast.success('Attachment deleted');
-				},
-				{
-					errorMessage: 'Failed to delete attachment',
-					showToast: true
-				}
-			);
+			try {
+				await localDB.deleteAttachment(attachmentId);
+				update((current) => current.filter((a) => a.id !== attachmentId));
+				syncService.queueOperation('DELETE', 'ATTACHMENT', attachmentId, null);
+				toast.success('Attachment deleted');
+			} catch (error) {
+				handleError(error, 'Failed to delete attachment');
+			}
 		},
 
 		/**
-		 * Clear all attachments
+		 * Clear all attachments from the store.
 		 */
 		clear(): void {
 			set([]);
