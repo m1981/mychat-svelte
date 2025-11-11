@@ -17,11 +17,13 @@
 </script>
 
 <div
-	class="toast toast-end {positionClasses[position] || positionClasses['top-right']} z-[9999]"
+	class="fixed flex flex-col gap-2 pointer-events-none {positionClasses[position] || positionClasses['top-right']} z-[9999]"
 	aria-live="polite"
 	aria-atomic="true"
 >
 	{#each $toast as toastItem (toastItem.id)}
-		<Toast {toastItem} />
+		<div class="pointer-events-auto">
+			<Toast {toastItem} />
+		</div>
 	{/each}
 </div>

@@ -88,7 +88,7 @@
 			bind:value={prompt}
 			disabled={$streamingService.isActive}
 			rows="1"
-			class="textarea textarea-bordered w-full pr-16 resize-none"
+			class="textarea w-full pr-16 resize-none border border-base-300 rounded p-2"
 			placeholder="Type a message..."
 			onkeydown={(e) => {
 				if (e.key === 'Enter' && !e.shiftKey) {
@@ -99,12 +99,12 @@
 		></textarea>
 		<button
 			type="submit"
-			class="btn btn-primary btn-square absolute bottom-2 right-2"
+			class="btn btn-filled-primary btn-icon absolute bottom-2 right-2"
 			disabled={!prompt.trim() || $streamingService.isActive}
 			aria-label="Send"
 		>
 			{#if $streamingService.isActive}
-				<span class="loading loading-spinner"></span>
+				<span class="loading loading-spinner loading-sm"></span>
 			{:else}
 				<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
 			{/if}

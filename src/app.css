@@ -1,8 +1,8 @@
 /* src/app.css */
 
 @import 'tailwindcss';
-@import '@skeletonlabs/skeleton/dist/index.css';
-@import '@skeletonlabs/skeleton/dist/themes/modern.css';
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton/themes/modern';
 
 @layer base {
 	html {
@@ -14,39 +14,6 @@
 	}
 }
 
-@plugin "daisyui" {
-  themes:
-    light, dark, cupcake, bumblebee --default, emerald, corporate, synthwave --prefersdark, retro,
-    cyberpunk, valentine, halloween, garden, forest, aqua, lofi, pastel, fantasy, wireframe,
-    black, luxury, dracula, autumn, business, night, coffee, winter, custom;
-}
-
-@plugin "daisyui/theme" {
-  name: 'custom';
-  default: false;
-  prefersdark: false;
-  color-scheme: 'light';
-  --color-primary: oklch(59.7% 0.162 252.8);
-  --color-secondary: oklch(62.2% 0.238 27.3);
-  --color-accent: oklch(86.6% 0.294 142.5);
-  --color-base-100: oklch(92.951% 0.002 17.197);
-  --color-base-200: oklch(86.445% 0.002 17.197);
-  --color-base-300: oklch(79.938% 0.001 17.197);
-  --color-base-content: oklch(16.961% 0.001 17.32);
-  --color-primary-content: oklch(100% 0 0);
-  --color-secondary-content: oklch(89.699% 0.022 355.095);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(24.155% 0.049 89.07);
-  --color-neutral-content: oklch(92.951% 0.002 17.197);
-  --color-info: oklch(72.06% 0.191 231.6);
-  --color-info-content: oklch(0% 0 0);
-  --color-success: oklch(64.8% 0.15 160);
-  --color-success-content: oklch(0% 0 0);
-  --color-warning: oklch(84.71% 0.199 83.87);
-  --color-warning-content: oklch(0% 0 0);
-  --color-error: oklch(71.76% 0.221 22.18);
-  --color-error-content: oklch(0% 0 0);
-}
 
 /* === Global Variables === */
 :root {

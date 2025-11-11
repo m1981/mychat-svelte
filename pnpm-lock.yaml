@@ -11,6 +11,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.68.0
         version: 0.68.0
+      '@skeletonlabs/skeleton':
+        specifier: ^4.3.2
+        version: 4.3.2(tailwindcss@4.1.13)
       '@types/pg':
         specifier: ^8.15.6
         version: 8.15.6
@@ -60,9 +63,6 @@ importers:
       '@vitest/browser':
         specifier: ^3.2.3
         version: 3.2.4(playwright@1.55.1)(vite@7.1.7(@types/node@22.18.6)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.6))(vitest@3.2.4)
-      daisyui:
-        specifier: ^5.0.50
-        version: 5.1.21
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
@@ -814,6 +814,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@skeletonlabs/skeleton@4.3.2':
+    resolution: {integrity: sha512-4/Zo5SAQTzdYFXDL5s5blfZ4PrucIc93VdyLpfryGxW9yHPEsOEoH9RhRLvBuFeK/UfVNyhvXb1OlGRLRXPisw==}
+    peerDependencies:
+      tailwindcss: ^4.0.0
+
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
@@ -1236,9 +1241,6 @@ packages:
     resolution: {integrity: sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==}
     engines: {node: '>=4'}
     hasBin: true
-
-  daisyui@5.1.21:
-    resolution: {integrity: sha512-OYFDnB85YPMQf76BJtqrFwFj41AQS9PvwX3/orBwUbbw3bfWI84pVralEOvWuH4A8+HgaZw2JSOzJ3YWdOxKEQ==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -2804,6 +2806,10 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.52.2':
     optional: true
 
+  '@skeletonlabs/skeleton@4.3.2(tailwindcss@4.1.13)':
+    dependencies:
+      tailwindcss: 4.1.13
+
   '@standard-schema/spec@1.0.0': {}
 
   '@sveltejs/acorn-typescript@1.0.5(acorn@8.15.0)':
@@ -3262,8 +3268,6 @@ snapshots:
       which: 2.0.2
 
   cssesc@3.0.0: {}
-
-  daisyui@5.1.21: {}
 
   debug@4.4.3:
     dependencies:

@@ -86,7 +86,7 @@
 						bind:value={editedTitle}
 						onkeydown={handleTitleKeydown}
 						onblur={saveTitle}
-						class="input input-bordered w-full max-w-md"
+						class="input w-full max-w-md border border-base-300 rounded px-3 py-2"
 						autofocus
 					/>
 				{:else}
@@ -107,11 +107,10 @@
 		<!-- Side panel with tabs -->
 		<div class="w-96 border-l flex flex-col">
 			<!-- Tabs -->
-			<div role="tablist" class="tabs tabs-bordered">
+			<div role="tablist" class="flex border-b border-base-300">
 				<button
 					role="tab"
-					class="tab"
-					class:tab-active={activeTab === 'notes'}
+					class="flex-1 px-4 py-2 text-sm font-medium transition-colors {activeTab === 'notes' ? 'border-b-2 border-primary text-base-content' : 'text-base-content/60 hover:text-base-content'}"
 					aria-selected={activeTab === 'notes'}
 					onclick={() => (activeTab = 'notes')}
 				>
@@ -119,8 +118,7 @@
 				</button>
 				<button
 					role="tab"
-					class="tab"
-					class:tab-active={activeTab === 'highlights'}
+					class="flex-1 px-4 py-2 text-sm font-medium transition-colors {activeTab === 'highlights' ? 'border-b-2 border-primary text-base-content' : 'text-base-content/60 hover:text-base-content'}"
 					aria-selected={activeTab === 'highlights'}
 					onclick={() => (activeTab = 'highlights')}
 				>
