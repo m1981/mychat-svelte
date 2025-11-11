@@ -5,9 +5,15 @@
 @import '@skeletonlabs/skeleton/themes/cerberus';
 
 @layer base {
-	html, body {
-		font-family: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
-	}
+    html, body {
+        font-family: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
+        @apply bg-surface-50 text-surface-900;
+    }
+    
+    :is(.dark) html,
+    :is(.dark) body {
+        @apply bg-surface-950 text-surface-50;
+    }
 }
 
 /* === Layout Variables === */
