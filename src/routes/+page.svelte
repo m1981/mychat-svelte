@@ -40,7 +40,7 @@
 	<div class="max-w-2xl space-y-6">
 		<!-- Hero Section -->
 		<div class="space-y-4">
-			<h1 class="text-5xl font-bold gradient-heading">
+			<h1 class="text-5xl font-bold gradient-heading" data-testid="welcome-title">
 				Welcome to BetterChatGPT
 			</h1>
 			<p class="text-xl text-surface-600-400">
@@ -73,6 +73,7 @@
 				class="btn variant-filled-primary btn-lg gap-2"
 				onclick={createFirstChat}
 				disabled={isCreating}
+				data-testid="start-first-chat-button"
 			>
 				{#if isCreating}
 					<span class="loading loading-spinner loading-sm"></span>

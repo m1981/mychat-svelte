@@ -32,29 +32,31 @@ async function seedTestData(request: any): Promise<TestData> {
 	const user = { id: 1, email: 'test@example.com' };
 
 	// Create folders
-	const workFolder = await request.post('/api/folders', {
+	const workFolderResponse = await request.post('/api/folders', {
 		data: {
 			name: 'Work',
 			type: 'STANDARD',
 			color: '#3b82f6'
 		}
 	});
+	expect(workFolderResponse.ok()).toBeTruthy();
 
-	const personalFolder = await request.post('/api/folders', {
+	const personalFolderResponse = await request.post('/api/folders', {
 		data: {
 			name: 'Personal',
 			type: 'STANDARD',
 			color: '#10b981'
 		}
 	});
+	expect(personalFolderResponse.ok()).toBeTruthy();
 
 	const folders = [
-		await workFolder.json(),
-		await personalFolder.json()
+		await workFolderResponse.json(),
+		await personalFolderResponse.json()
 	];
 
 	// Create chats
-	const chat1 = await request.post('/api/chats', {
+	const chat1Response = await request.post('/api/chats', {
 		data: {
 			title: 'Test Chat 1',
 			folderId: folders[0].id,
@@ -71,8 +73,9 @@ async function seedTestData(request: any): Promise<TestData> {
 			}
 		}
 	});
+	expect(chat1Response.ok()).toBeTruthy();
 
-	const chats = [await chat1.json()];
+	const chats = [await chat1Response.json()];
 
 	return { user, folders, chats };
 }
@@ -83,19 +86,19 @@ async function seedTestData(request: any): Promise<TestData> {
 async function cleanupTestData(request: any, testData: TestData) {
 	// Delete chats
 	for (const chat of testData.chats) {
-		try {
-			await request.delete(`/api/chats/${chat.id}`);
-		} catch (error) {
-			console.warn(`Failed to delete chat ${chat.id}:`, error);
+		const response = await request.delete(`/api/chats/${chat.id}`);
+		// REFACTOR: Check if the response was not ok AND not a 404 (already deleted).
+		// This provides better feedback during cleanup without failing the whole suite.
+		if (!response.ok() && response.status() !== 404) {
+			console.warn(`Failed to delete chat ${chat.id}: Status ${response.status()}`);
 		}
 	}
 
 	// Delete folders
 	for (const folder of testData.folders) {
-		try {
-			await request.delete(`/api/folders/${folder.id}?cascade=true`);
-		} catch (error) {
-			console.warn(`Failed to delete folder ${folder.id}:`, error);
+		const response = await request.delete(`/api/folders/${folder.id}?cascade=true`);
+		if (!response.ok() && response.status() !== 404) {
+			console.warn(`Failed to delete folder ${folder.id}: Status ${response.status()}`);
 		}
 	}
 }
@@ -126,16 +129,21 @@ export const test = base.extend<TestFixtures>({
 	},
 
 	// Test data fixture with setup/teardown
-	testData: async ({ request }, use) => {
+	testData: [
+		async ({ request }, use) => {
 		// Setup: Seed test data
-		const testData = await seedTestData(request);
+			const data = await seedTestData(request);
 
 		// Use test data in test
-		await use(testData);
+			await use(data);
 
 		// Teardown: Cleanup test data
-		await cleanupTestData(request, testData);
-	}
+			await cleanupTestData(request, data);
+		},
+		{ auto: true } // REFACTOR: Set auto: true to automatically apply this fixture to every test.
+		// This is useful for fixtures that set up a baseline state.
+		// You can remove it if you only want to seed data for specific test files.
+	]
 });
 
 export { expect };
