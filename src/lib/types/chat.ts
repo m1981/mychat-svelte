@@ -73,6 +73,7 @@ export interface Folder {
 	expanded: boolean;
 	order: number;
 	color?: string;
+	deletedAt?: Date | null;
 	createdAt: Date;
 	updatedAt: Date;
 }
