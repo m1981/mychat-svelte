@@ -390,14 +390,154 @@ sequenceDiagram
 
 ### User Stories
 
-*   **As a user, I want to start a new chat** so that I can get answers from the AI.
-    *   *Acceptance Criteria:* Clicking "New Chat" creates a chat locally, displays it in the sidebar, and navigates to the new chat page. The operation is queued for server sync.
-*   **As a user, I want my conversations to work offline** so that I can continue working without an internet connection.
-    *   *Acceptance Criteria:* Creating/editing chats, notes, and folders works seamlessly offline. Changes are automatically synced when the connection is restored.
-*   **As a user, I want to organize my chats into folders** so I can easily find past conversations.
-    *   *Acceptance Criteria:* Users can create, rename, and delete folders. Chats can be moved into folders.
-*   **As a user, I want to highlight important text in a message** so I can quickly review key information.
-    *   *Acceptance Criteria:* Selecting text and choosing "Highlight" saves the selection. Highlights are visible in the message and in a dedicated side panel.
+#### Epic 1: Core Chat Management
+
+**US-001: Create New Chat**
+- **As a user, I want to create a new chat** so that I can start a fresh conversation with the AI.
+- **Acceptance Criteria:**
+  - Clicking "New Chat" creates a chat locally with title "New Chat"
+  - Chat appears immediately in the sidebar (optimistic UI)
+  - Chat is assigned a temporary local ID (`chat-{timestamp}-{random}`)
+  - Operation is queued for server sync in background
+  - User is navigated to the new chat page (`/chat/{id}`)
+  - **Given** I'm on any page, **When** I click "New Chat", **Then** I see an empty chat ready for input
+
+**US-002: Send Message and Receive AI Response**
+- **As a user, I want to send a message and get an AI response** so that I can have a conversation.
+- **Acceptance Criteria:**
+  - Typing in composer and pressing Enter/Send adds message to chat
+  - My message appears immediately in the chat history
+  - AI response streams in real-time (token by token)
+  - Composer is disabled during AI response generation
+  - Both messages are persisted locally and synced to server
+  - **Given** I'm in a chat, **When** I send "Hello", **Then** I see my message and get an AI response
+
+**US-003: View Chat History**
+- **As a user, I want to see my previous chats** so that I can continue past conversations.
+- **Acceptance Criteria:**
+  - Sidebar shows list of all my chats with titles
+  - Chats are ordered by most recent activity
+  - Clicking a chat loads its full message history
+  - Current chat is visually highlighted in sidebar
+  - Chat titles are truncated if too long
+  - **Given** I have multiple chats, **When** I click on a chat in sidebar, **Then** I see its full conversation
+
+#### Epic 2: Chat Organization
+
+**US-004: Rename Chat**
+- **As a user, I want to rename a chat** so that I can give it a meaningful title.
+- **Acceptance Criteria:**
+  - Right-click or hover reveals "Rename" option
+  - Clicking "Rename" makes title editable inline
+  - Pressing Enter or clicking away saves the new title
+  - Title updates immediately in UI (optimistic)
+  - Change is queued for server sync
+  - **Given** I have a chat titled "New Chat", **When** I rename it to "Project Planning", **Then** I see the new title everywhere
+
+**US-005: Delete Chat**
+- **As a user, I want to delete a chat I no longer need** so that I can keep my history clean.
+- **Acceptance Criteria:**
+  - Right-click or hover reveals "Delete" option
+  - Clicking "Delete" shows confirmation dialog
+  - Confirming removes chat from sidebar immediately
+  - If viewing deleted chat, redirect to another chat or home
+  - Deletion is queued for server sync
+  - **Given** I have a chat I don't need, **When** I delete it and confirm, **Then** it disappears from my chat list
+
+**US-006: Create Folder**
+- **As a user, I want to create folders** so that I can organize related chats together.
+- **Acceptance Criteria:**
+  - "New Folder" button/option creates empty folder
+  - Folder appears in sidebar with default name "New Folder"
+  - Folder name is immediately editable after creation
+  - Empty folders are allowed and visible
+  - Folder creation is queued for server sync
+  - **Given** I want to organize chats, **When** I create a new folder, **Then** I see an empty folder ready to be named
+
+**US-007: Move Chat to Folder**
+- **As a user, I want to move chats into folders** so that I can group related conversations.
+- **Acceptance Criteria:**
+  - Drag and drop chat onto folder moves it there
+  - Alternative: Right-click → "Move to Folder" → select folder
+  - Chat appears nested under the folder in sidebar
+  - Folder shows count of chats it contains
+  - Move operation is queued for server sync
+  - **Given** I have chats and folders, **When** I drag a chat to a folder, **Then** the chat appears inside that folder
+
+#### Epic 3: Offline-First Experience
+
+**US-008: Work Offline**
+- **As a user, I want the app to work when I'm offline** so that I can continue working without internet.
+- **Acceptance Criteria:**
+  - All chat creation, editing, and organization works offline
+  - Changes are saved locally in IndexedDB
+  - UI shows no difference between online/offline for local operations
+  - Operations are queued for sync when connection returns
+  - **Given** I lose internet connection, **When** I create chats and folders, **Then** everything works normally
+
+**US-009: Automatic Sync When Online**
+- **As a user, I want my changes to sync automatically** so that I don't lose data or have to manually sync.
+- **Acceptance Criteria:**
+  - When connection is restored, queued operations sync to server
+  - Sync happens in background without blocking UI
+  - Conflicts are resolved (server wins for now)
+  - Sync errors are logged but don't break the app
+  - **Given** I made changes offline, **When** I come back online, **Then** my changes appear on other devices
+
+#### Epic 4: Notes and Highlights
+
+**US-010: Add Note to Chat**
+- **As a user, I want to add notes to a chat** so that I can capture key insights or todos.
+- **Acceptance Criteria:**
+  - Notes panel shows "Add Note" button
+  - Clicking opens note editor with title and content fields
+  - Notes can be typed: SCRATCH, SUMMARY, or TODO
+  - Saving adds note to chat's notes list
+  - Notes are timestamped and persist locally
+  - **Given** I'm in a chat, **When** I add a note "Key API endpoints discussed", **Then** I see it in the Notes panel
+
+**US-011: Highlight Text in Messages**
+- **As a user, I want to highlight important text** so that I can quickly find key information later.
+- **Acceptance Criteria:**
+  - Selecting text in a message shows "Highlight" option
+  - Clicking "Highlight" marks the text with colored background
+  - Highlighted text appears in Highlights panel
+  - Clicking highlight in panel scrolls to and flashes the text
+  - Highlights persist across sessions
+  - **Given** I see important text in a message, **When** I select and highlight it, **Then** I can find it later in the Highlights panel
+
+#### Epic 5: Search and Discovery
+
+**US-012: Search Across All Chats**
+- **As a user, I want to search my chat history** so that I can find past conversations quickly.
+- **Acceptance Criteria:**
+  - Search box in sidebar searches across all chat content
+  - Results show matching chats with highlighted snippets
+  - Clicking result opens that chat and scrolls to match
+  - Search works on chat titles, message content, and notes
+  - Search is fast and works offline (local IndexedDB)
+  - **Given** I have many chats, **When** I search for "API authentication", **Then** I see all relevant conversations
+
+#### Epic 6: Application Reliability
+
+**US-013: Handle Errors Gracefully**
+- **As a user, I want clear feedback when something goes wrong** so that I know what happened and what to do.
+- **Acceptance Criteria:**
+  - Network errors show toast: "Connection lost, working offline"
+  - Server errors show toast: "Sync failed, will retry automatically"
+  - Component crashes show error boundary instead of blank page
+  - All errors are logged for debugging
+  - App continues working despite individual failures
+  - **Given** something goes wrong, **When** an error occurs, **Then** I see a helpful message and can continue using the app
+
+**US-014: Fast App Loading**
+- **As a user, I want the app to load quickly** so that I can start working immediately.
+- **Acceptance Criteria:**
+  - App shows chat list within 500ms of page load
+  - Data loads from local IndexedDB first (instant)
+  - Server sync happens in background after initial load
+  - Loading states are minimal and non-blocking
+  - **Given** I open the app, **When** the page loads, **Then** I see my chats immediately without waiting
 
 ## 4. Technical Specifications
 
