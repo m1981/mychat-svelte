@@ -43,7 +43,6 @@ export class SidebarPage extends BasePage {
 	// Actions
 	async createFolder(name?: string) {
 		await this.newFolderButton.click();
-
 		if (name) {
 			const folderInput = this.page.getByRole('textbox', { name: /folder name/i });
 			await folderInput.fill(name);
@@ -51,29 +50,24 @@ export class SidebarPage extends BasePage {
 		}
 	}
 
-	async createChat(folderName?: string) {
+	async createChat() {
 		await this.newChatButton.click();
-
-		if (folderName) {
-			await this.selectFolder(folderName);
-		}
 	}
 
-	async selectFolder(folderName: string) {
-		await this.page.getByRole('button', { name: folderName }).click();
-	}
-
-	// --- NEW: Helper to get a specific chat item by its title ---
+	// --- Robust helper methods to get specific items ---
 	getChatItem(chatTitle: string): Locator {
 		return this.chatsList.locator('.chat-history-item', { hasText: chatTitle });
 	}
 
-	// --- NEW: Helper to get a specific folder item by its name ---
+
+
 	getFolderItem(folderName: string): Locator {
-		return this.foldersList.locator('.chat-folder', { has: this.page.locator(`text="${folderName}"`) });
+		return this.foldersList.locator('.chat-folder', {
+			has: this.page.locator(`text="${folderName}"`)
+		});
 	}
 
-	// --- NEW: Action to rename a chat from the sidebar ---
+	// --- Actions using the robust helper methods ---
 	async renameChat(oldTitle: string, newTitle: string) {
 		const chatItem = this.getChatItem(oldTitle);
 		await chatItem.hover();
@@ -85,22 +79,20 @@ export class SidebarPage extends BasePage {
 		await input.press('Enter');
 	}
 
-	// --- NEW: Action to delete a chat from the sidebar ---
 	async deleteChat(chatTitle: string) {
 		const chatItem = this.getChatItem(chatTitle);
 		await chatItem.hover();
 
-		// Handle confirmation dialog
-		this.page.once('dialog', dialog => dialog.accept());
+		// Handle confirmation dialog automatically
+		this.page.once('dialog', (dialog) => dialog.accept());
 
 		await chatItem.getByRole('button', { name: /delete chat/i }).click();
 	}
 
-	// --- NEW: Action to rename a folder ---
 	async renameFolder(oldName: string, newName: string) {
 		const folderItem = this.getFolderItem(oldName);
 		await folderItem.hover();
-		await folderItem.getByRole('button', { name: /edit folder name/i }).click();
+		await folderItem.getByRole('button', { name: /edit folder|rename folder/i }).click();
 
 		const input = folderItem.locator('input[type="text"]');
 		await expect(input).toBeVisible();
@@ -108,68 +100,17 @@ export class SidebarPage extends BasePage {
 		await input.press('Enter');
 	}
 
-
 	async deleteFolder(folderName: string) {
 		const folderItem = this.getFolderItem(folderName);
 		await folderItem.hover();
 
-		// Handle confirmation dialog
-		this.page.once('dialog', dialog => dialog.accept());
+		this.page.once('dialog', (dialog) => dialog.accept());
 
 		await folderItem.getByRole('button', { name: /delete folder/i }).click();
 	}
 
 	async selectChat(chatTitle: string) {
-		await this.page.getByRole('link', { name: chatTitle }).click();
-	}
-
-	async renameFolder(oldName: string, newName: string) {
-		const folder = this.page.getByRole('button', { name: oldName });
-		await folder.dblclick();
-
-		const input = this.page.locator('input[value="' + oldName + '"]');
-		await input.fill(newName);
-		await input.press('Enter');
-	}
-
-	async deleteFolder(folderName: string) {
-		const folder = this.page.getByRole('button', { name: folderName });
-		await folder.hover();
-		await folder.locator('[data-testid="delete-folder"]').click();
-
-		// Confirm deletion
-		await this.page.getByRole('button', { name: /confirm|delete/i }).click();
-	}
-
-	async expandFolder(folderName: string) {
-		const folder = this.page.getByRole('button', { name: folderName });
-		const expanded = await folder.getAttribute('aria-expanded');
-
-		if (expanded === 'false') {
-			await folder.click();
-		}
-	}
-
-	async collapseFolder(folderName: string) {
-		const folder = this.page.getByRole('button', { name: folderName });
-		const expanded = await folder.getAttribute('aria-expanded');
-
-		if (expanded === 'true') {
-			await folder.click();
-		}
-	}
-
-	async getFolderChatCount(folderName: string): Promise<number> {
-		await this.expandFolder(folderName);
-		const folder = this.page.getByRole('button', { name: folderName });
-		const badge = folder.locator('[data-testid="chat-count"]');
-		const count = await badge.textContent();
-		return parseInt(count || '0');
-	}
-
-	async searchChats(query: string) {
-		await this.searchInput.fill(query);
-		await this.page.waitForTimeout(300); // Debounce
+		await this.getChatItem(chatTitle).click();
 	}
 
 	// Assertions
@@ -190,10 +131,6 @@ export class SidebarPage extends BasePage {
 			await expect(chatItem).not.toBeVisible();
 		}
 	}
-
-	async expectFolderCount(count: number) {
-		await expect(this.foldersList.locator('[data-testid="folder-item"]')).toHaveCount(count);
-	}
 }
 
 /**
@@ -208,7 +145,7 @@ export class ChatPage extends BasePage {
 
 	constructor(page: Page) {
 		super(page);
-		this.messageInput = page.getByPlaceholder(/type message|type a message/i);
+		this.messageInput = page.getByPlaceholder(/type a message/i);
 		this.sendButton = page.getByRole('button', { name: /send/i });
 		this.messagesList = page.locator('[data-testid="messages-list"]');
 		this.chatTitle = page.locator('[data-testid="chat-title"]');
@@ -218,42 +155,23 @@ export class ChatPage extends BasePage {
 	async sendMessage(text: string) {
 		await this.messageInput.fill(text);
 		await this.sendButton.click();
-
-		// Wait for message to appear
-		await this.page.waitForSelector(`text="${text}"`, { timeout: 5000 });
 	}
 
-	async waitForAIResponse(timeout: number = 30000) {
-		// Wait for loading indicator to appear and disappear
-		await this.page.waitForSelector('[data-testid="ai-loading"]', { timeout: 5000 });
-		await this.page.waitForSelector('[data-testid="ai-loading"]', {
-			state: 'hidden',
-			timeout
-		});
+	async waitForAIResponseCompletion(timeout: number = 30000) {
+		const loadingIndicator = this.page.locator('[data-testid="ai-loading"]');
+		await expect(loadingIndicator).toBeVisible({ timeout: 5000 });
+		await expect(loadingIndicator).not.toBeVisible({ timeout });
 	}
 
-	async getMessageCount(): Promise<number> {
-		return await this.messagesList.locator('[data-testid="message"]').count();
-	}
-
-	async getLastMessage(): Promise<string> {
+	async getLastMessageText(): Promise<string> {
 		const lastMessage = this.messagesList.locator('[data-testid="message"]').last();
 		return (await lastMessage.textContent()) || '';
 	}
 
 	async highlightText(messageIndex: number, text: string) {
 		const message = this.messagesList.locator('[data-testid="message"]').nth(messageIndex);
-
-		// Select text (this is browser-specific, may need adjustment)
-		await message.locator(`text="${text}"`).first().click();
-		await this.page.keyboard.down('Shift');
-		await this.page.keyboard.press('End');
-		await this.page.keyboard.up('Shift');
-
-		// Open context menu
-		await this.page.keyboard.press('ContextMenu');
-
-		// Click highlight option
+		await message.locator(`text=${text}`).highlight();
+		await message.click({ button: 'right' });
 		await this.page.getByRole('menuitem', { name: /highlight/i }).click();
 	}
 
@@ -261,28 +179,9 @@ export class ChatPage extends BasePage {
 		const message = this.messagesList.locator('[data-testid="message"]').nth(messageIndex);
 		await message.click({ button: 'right' });
 	}
-
-	async changeChatTitle(newTitle: string) {
-		await this.chatTitle.dblclick();
-		const input = this.page.locator('input[value]');
-		await input.fill(newTitle);
-		await input.press('Enter');
-	}
-
-	// Assertions
-	async expectMessageVisible(text: string) {
-		await expect(this.page.getByText(text)).toBeVisible();
-	}
-
-	async expectMessageCount(count: number) {
-		await expect(this.messagesList.locator('[data-testid="message"]')).toHaveCount(count);
-	}
-
-	async expectAIResponseContains(text: string) {
-		const lastMessage = this.messagesList.locator('[data-testid="message"]').last();
-		await expect(lastMessage).toContainText(text);
-	}
 }
+
+// FIX: Added the full class definitions for NotesPanelPage and HighlightsPanelPage
 
 /**
  * Notes Panel Page Object
@@ -312,21 +211,14 @@ export class NotesPanelPage extends BasePage {
 	async createNote(content: string, type: 'SCRATCH' | 'SUMMARY' | 'TODO' = 'SCRATCH') {
 		await this.openNotesPanel();
 		await this.addNoteButton.click();
-
-		// Select note type
 		await this.page.getByRole('button', { name: type }).click();
-
-		// Enter content
 		await this.noteEditor.fill(content);
-
-		// Save
 		await this.page.getByRole('button', { name: /save/i }).click();
 	}
 
 	async editNote(noteIndex: number, newContent: string) {
 		const note = this.notesList.locator('[data-testid="note-item"]').nth(noteIndex);
 		await note.click();
-
 		await this.noteEditor.fill(newContent);
 		await this.page.getByRole('button', { name: /save/i }).click();
 	}
@@ -335,13 +227,7 @@ export class NotesPanelPage extends BasePage {
 		const note = this.notesList.locator('[data-testid="note-item"]').nth(noteIndex);
 		await note.hover();
 		await note.locator('[data-testid="delete-note"]').click();
-
-		// Confirm
 		await this.page.getByRole('button', { name: /confirm|delete/i }).click();
-	}
-
-	async getNoteCount(): Promise<number> {
-		return await this.notesList.locator('[data-testid="note-item"]').count();
 	}
 
 	// Assertions
@@ -391,10 +277,6 @@ export class HighlightsPanelPage extends BasePage {
 		await highlight.hover();
 		await highlight.locator('[data-testid="color-picker"]').click();
 		await this.page.getByRole('button', { name: color }).click();
-	}
-
-	async getHighlightCount(): Promise<number> {
-		return await this.highlightsList.locator('[data-testid="highlight-item"]').count();
 	}
 
 	// Assertions

@@ -1,3 +1,5 @@
+// src/lib/server/db/schema.ts
+
 import { pgTable, serial, text, timestamp, varchar, jsonb, integer, pgEnum, real, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { customType } from 'drizzle-orm/pg-core';
