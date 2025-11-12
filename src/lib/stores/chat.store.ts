@@ -37,6 +37,10 @@ export const folderCount = derived(
 	($folders) => Object.keys($folders).length
 );
 
+// This should NOT be derived - it needs async data fetch
+// Use a regular writable store instead
+export const deletedFolders = writable<Folder[]>([]);
+
 // ============================================
 // INITIALIZATION
 // ============================================
@@ -94,17 +98,33 @@ async function loadFromLocal(): Promise<void> {
 
 	chats.set(chatsWithDates.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()));
 
-	// Load folders
+	// Load folders (only active ones)
 	const localFolders = await localDB.getAllFolders(userId);
 	const folderCollection: FolderCollection = {};
+	const deletedFoldersList: Folder[] = [];
+
 	localFolders.forEach((folder) => {
-		folderCollection[folder.id] = {
+		// ✅ FIX: Properly convert dates
+		const folderWithDates: Folder = {
 			...folder,
 			createdAt: folder.createdAt instanceof Date ? folder.createdAt : new Date(folder.createdAt),
-			updatedAt: folder.updatedAt instanceof Date ? folder.updatedAt : new Date(folder.updatedAt)
+			updatedAt: folder.updatedAt instanceof Date ? folder.updatedAt : new Date(folder.updatedAt),
+			deletedAt: folder.deletedAt
+				? (folder.deletedAt instanceof Date ? folder.deletedAt : new Date(folder.deletedAt))
+				: null
 		};
+
+		if (!folderWithDates.deletedAt) {
+			// Active folder
+			folderCollection[folder.id] = folderWithDates;
+		} else {
+			// Deleted folder
+			deletedFoldersList.push(folderWithDates);
+		}
 	});
+
 	folders.set(folderCollection);
+	deletedFolders.set(deletedFoldersList);
 }
 
 /**
@@ -124,10 +144,10 @@ export async function createChat(chatData: Partial<Chat>): Promise<Chat> {
 		config: chatData.config || {
 			provider: 'anthropic',
 			modelConfig: {
-            // Use the centralized default model ID
-            model: DEFAULT_ANTHROPIC_MODEL_ID,
+				// Use the centralized default model ID
+				model: DEFAULT_ANTHROPIC_MODEL_ID,
 				max_tokens: 4096,
-            temperature: 0.7,
+				temperature: 0.7,
 				top_p: 1,
 				presence_penalty: 0,
 				frequency_penalty: 0
@@ -181,11 +201,11 @@ export async function updateChat(chatId: string, updates: Partial<Chat>): Promis
 	const chat = await localDB.getChat(chatId);
 	if (!chat) throw new Error(`Chat not found: ${chatId}`);
 
-	// 2. Apply updates
+	// ✅ Ensure updatedAt is always newer than current timestamp
 	const updatedChat: Chat = {
 		...chat,
 		...updates,
-		updatedAt: new Date()
+		updatedAt: new Date(Math.max(Date.now(), chat.updatedAt.getTime() + 1))
 	};
 
 	// 3. Save to IndexedDB
@@ -278,6 +298,7 @@ export async function createFolder(folderData: Partial<Folder>): Promise<Folder>
 		expanded: true,
 		order: maxOrder + 1,
 		color: folderData.color || '#3b82f6',
+		deletedAt: null, // ✅ FIX: Initialize as null
 		createdAt: now,
 		updatedAt: now
 	};
@@ -292,7 +313,9 @@ export async function createFolder(folderData: Partial<Folder>): Promise<Folder>
 	}));
 
 	// 3. Queue for server sync (async, non-blocking)
-	syncService.queueOperation('CREATE', 'FOLDER', folderId, newFolder).catch((error) => {
+	// ✅ FIX: Remove userId from server payload
+	const { userId: _, ...folderDataForServer } = newFolder;
+	syncService.queueOperation('CREATE', 'FOLDER', folderId, folderDataForServer).catch((error) => {
 		console.error('❌ Failed to queue folder creation for sync:', error);
 	});
 
@@ -335,28 +358,86 @@ export async function updateFolder(folderId: string, updates: Partial<Folder>): 
 /**
  * Delete a folder (local-first with optimistic update)
  */
-export async function deleteFolder(folderId: string): Promise<void> {
-	// 1. Delete from IndexedDB
-	await localDB.deleteFolder(folderId);
+export async function deleteFolder(folderId: string, permanent = false): Promise<void> {
+	if (permanent) {
+		// Hard delete (admin only, or after 30 days in trash)
+		await localDB.deleteFolder(folderId);
 
-	// 2. Update store (triggers UI reactivity)
-	folders.update((current) => {
-		const updated = { ...current };
-		delete updated[folderId];
-		return updated;
-	});
+		folders.update((current) => {
+			const updated = { ...current };
+			delete updated[folderId];
+			return updated;
+		});
 
-	// 3. Update any chats that were in this folder
-	chats.update((current) =>
-		current.map((c) => (c.folderId === folderId ? { ...c, folderId: undefined } : c))
-	);
+		// ✅ FIX: Also remove from deleted folders list
+		deletedFolders.update((current) => current.filter(f => f.id !== folderId));
+	} else {
+		// Soft delete (archive)
+		const folder = await localDB.getFolder(folderId);
+		if (!folder) throw new Error(`Folder not found: ${folderId}`);
 
-	// 4. Queue for server sync (async, non-blocking)
-	syncService.queueOperation('DELETE', 'FOLDER', folderId, null).catch((error) => {
+		const archivedFolder: Folder = {
+			...folder,
+			deletedAt: new Date(),
+			updatedAt: new Date()
+		};
+
+		await localDB.saveFolder(archivedFolder);
+
+		// Remove from active folders UI
+		folders.update((current) => {
+			const updated = { ...current };
+			delete updated[folderId];
+			return updated;
+		});
+
+		// ✅ FIX: Add to deleted folders list
+		deletedFolders.update((current) => [...current, archivedFolder]);
+
+		// Archive chats in this folder
+		const affectedChats = get(chats).filter(c => c.folderId === folderId);
+		for (const chat of affectedChats) {
+			await updateChat(chat.id, { folderId: undefined }); // Move to root
+		}
+	}
+
+	syncService.queueOperation('DELETE', 'FOLDER', folderId, { permanent }).catch((error) => {
 		console.error('❌ Failed to queue folder deletion for sync:', error);
 	});
 
-	console.log(`✅ Folder deleted locally: ${folderId}`);
+	console.log(`✅ Folder ${permanent ? 'deleted' : 'archived'}: ${folderId}`);
+}
+
+/**
+ * Restore a deleted folder
+ */
+export async function restoreFolder(folderId: string): Promise<void> {
+	const folder = await localDB.getFolder(folderId);
+	if (!folder) throw new Error(`Folder not found: ${folderId}`);
+	if (!folder.deletedAt) throw new Error('Folder is not deleted');
+
+	const restoredFolder: Folder = {
+		...folder,
+		deletedAt: null,
+		updatedAt: new Date()
+	};
+
+	await localDB.saveFolder(restoredFolder);
+
+	// ✅ FIX: Add back to active folders
+	folders.update((current) => ({
+		...current,
+		[folderId]: restoredFolder
+	}));
+
+	// ✅ FIX: Remove from deleted folders list
+	deletedFolders.update((current) => current.filter(f => f.id !== folderId));
+
+	syncService.queueOperation('UPDATE', 'FOLDER', folderId, { deletedAt: null }).catch((error) => {
+		console.error('❌ Failed to queue folder restore for sync:', error);
+	});
+
+	console.log(`✅ Folder restored: ${folderId}`);
 }
 
 /**

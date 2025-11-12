@@ -18,6 +18,7 @@ export default defineConfig({
                 test: {
                     name: 'client-ut',
 					environment: 'jsdom',
+                    setupFiles: ['./vitest.setup.client.ts'],
                     include: ['src/**/*.{test,spec}.{js,ts}'],
                     exclude: [
                         'src/lib/server/**',

@@ -1,3 +1,4 @@
+// src/lib/services/local-db.ts
 import Dexie, { type Table } from 'dexie';
 import type { Chat, Folder, Tag } from '$lib/types/chat';
 import type { Note, Highlight, Attachment } from '$lib/types/entities';
