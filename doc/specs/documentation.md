@@ -9,7 +9,7 @@ flowchart TD
 
     subgraph "📦 lib/services (Core Logic)"
         direction LR
-        LocalDB["LocalDB (IndexedDB)"]
+        LocalDB["LocalDB (Dexie.js Wrapper)"]
         SyncService["SyncService (Offline Queue)"]
         StreamingService["StreamingService (AI Chunks)"]
     end
@@ -131,23 +131,23 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph "📱 User Action (UI)"
-        CreateChat["User creates a new chat"]
+        DeleteFolder["User clicks 'Move to Trash'"]
     end
 
     subgraph "🗃️ State Update (lib/stores)"
-        UpdateStore["1. chat.store.ts updates its state"]
-        QueueOp["2. Queues operation with SyncService"]
+        UpdateStores["1. chat.store.ts moves folder from 'folders' to 'deletedFolders' store"]
+        UpdateChats["2. Updates chats in folder to have folderId: undefined"]
+        QueueOp["3. Queues DELETE operation with SyncService"]
     end
 
     subgraph "💾 Local Persistence (lib/services)"
-        SaveToIDB["3. Data is saved to IndexedDB via local-db.ts"]
-        AddToQueue["4. Operation added to 'syncQueue' table in IDB"]
+        UpdateIDB["4. local-db.ts updates folder in IDB, setting 'deletedAt' timestamp"]
+        AddToQueue["5. Operation added to 'syncQueue' table in IDB"]
     end
 
     subgraph "🔄 Background Sync (lib/services)"
-        CheckOnline{"5. Is Online?"}
         ProcessQueue["6. sync.service.ts processes queue"]
-        MakeRequest["7. Makes API request to server"]
+        MakeRequest["7. Makes DELETE /api/folders/[id] request"]
     end
 
     subgraph "☁️ Server API (routes/api)"
@@ -270,8 +270,9 @@ flowchart TD
 ### Business Rules and Constraints
 
 *   A user must exist to create any domain entity (Chat, Folder, etc.). The default `userId` is `1` for development.
-*   Folders can be nested, but the business logic enforces a maximum depth of 5 levels to prevent infinite recursion. See `folder.service.ts`.
-*   A non-empty folder cannot be deleted without a `cascade=true` flag, which moves its chats to the root. See `api/folders/[id]/+server.ts`.
+*   **A non-empty folder cannot be permanently deleted.** It can be soft-deleted (moved to trash), which will move its contained chats to the root level. See `api/folders/[id]/+server.ts`. **(Modified)**
+*   **Soft-deleted folders are not visible in the main folder list** but can be viewed in a separate "Trash" area. **(New)**
+*   **Folders in the trash can be restored** to their original state or **permanently deleted**. **(New)**
 *   Highlights must correspond to a valid text range within their associated message. This is validated on the server. See `highlight.repository.ts`.
 
 ### Domain Model
@@ -463,6 +464,35 @@ sequenceDiagram
   - Folder shows count of chats it contains
   - Move operation is queued for server sync
   - **Given** I have chats and folders, **When** I drag a chat to a folder, **Then** the chat appears inside that folder
+
+**US-007a: Move Folder to Trash (Soft Delete)** **(New/Modified)**
+- **As a user, I want to move a folder to the trash** so that I can clean my sidebar without losing the data immediately.
+- **Acceptance Criteria:**
+  - Clicking "Delete" on a folder shows a confirmation dialog.
+  - Confirming moves the folder from the main sidebar list to a "Trash" area.
+  - The folder disappears immediately from the main list (optimistic UI).
+  - Any chats inside the folder are moved to the root level.
+  - The operation is queued for server sync.
+  - **Given** I have a folder I don't need, **When** I move it to trash, **Then** it disappears from my main list and appears in the trash.
+
+**US-007b: Restore Folder from Trash** **(New)**
+- **As a user, I want to restore a folder from the trash** in case I deleted it by mistake.
+- **Acceptance Criteria:**
+  - The "Trash" area lists all soft-deleted folders.
+  - Each deleted folder has a "Restore" option.
+  - Clicking "Restore" moves the folder back to the main sidebar list.
+  - The folder reappears immediately (optimistic UI).
+  - The restore operation is queued for server sync.
+  - **Given** a folder is in the trash, **When** I click "Restore", **Then** it is moved back to my main folder list.
+
+**US-007c: Permanently Delete Folder** **(New)**
+- **As a user, I want to permanently delete a folder from the trash** to free up space or for privacy.
+- **Acceptance Criteria:**
+  - Each deleted folder in the trash has a "Delete Permanently" option.
+  - Clicking it shows a high-severity confirmation dialog ("This cannot be undone").
+  - Confirming permanently removes the folder from the local database and the UI.
+  - The permanent deletion is queued for server sync.
+  - **Given** a folder is in the trash, **When** I permanently delete it, **Then** it is gone forever and cannot be restored.
 
 #### Epic 3: Offline-First Experience
 

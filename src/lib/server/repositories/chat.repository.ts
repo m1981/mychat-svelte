@@ -1,7 +1,7 @@
 // src/lib/server/repositories/chat.repository.ts
 import { db } from '$lib/server/db';
 import { chats, messages, chatTags, tags, folders } from '$lib/server/db/schema';
-import { eq, and, desc, asc, inArray, like } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, like, isNull } from 'drizzle-orm'; // MODIFIED: Added isNull
 import type { Chat, Message, ChatConfig, ChatMetadata } from '$lib/types/chat';
 import { generateId } from './base.repository';
 
@@ -22,7 +22,7 @@ export interface UpdateChatDTO {
 export interface FindChatsOptions {
 	page?: number;
 	limit?: number;
-	folderId?: string;
+	folderId?: string | null; // MODIFIED: Allow null for root chats
 	sortBy?: 'createdAt' | 'updatedAt' | 'title';
 	sortOrder?: 'asc' | 'desc';
 }
@@ -102,6 +102,9 @@ export class ChatRepository {
 
 		if (folderId) {
 			whereConditions.push(eq(chats.folderId, folderId));
+		} else if (folderId === null) {
+			// MODIFIED: Explicitly handle fetching root-level chats
+			whereConditions.push(isNull(chats.folderId));
 		}
 
 		const orderBy = sortOrder === 'desc' ? desc(chats[sortBy]) : asc(chats[sortBy]);
@@ -190,6 +193,19 @@ export class ChatRepository {
 			highlights: [],
 			createdAt: message.createdAt
 		};
+	}
+
+	// =================================================================
+	// ADDED: New method for handling folder deletion cascade
+	// =================================================================
+	/**
+	 * Un-assigns all chats from a given folder. Used when a folder is deleted.
+	 */
+	async unassignFromFolder(folderId: string, userId: number): Promise<void> {
+		await db
+			.update(chats)
+			.set({ folderId: null, updatedAt: new Date() })
+			.where(and(eq(chats.folderId, folderId), eq(chats.userId, userId)));
 	}
 
 	/**

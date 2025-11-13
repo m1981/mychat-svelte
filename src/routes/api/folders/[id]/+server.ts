@@ -60,12 +60,13 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 			return json({ message: 'Folder ID is required' }, { status: 400 });
 		}
 
-		// TODO: Get userId from session
-		const userId = 1;
+		const userId = 1; // TODO: Get userId from session
 
+		// MODIFIED: Read new query params for soft delete logic
+		const permanent = url.searchParams.get('permanent') === 'true';
 		const cascade = url.searchParams.get('cascade') === 'true';
 
-		await folderService.deleteFolder(folderId, userId, cascade);
+		await folderService.deleteFolder(folderId, userId, permanent, cascade);
 		return new Response(null, { status: 204 });
 	} catch (error) {
 		console.error('API Error:', error);

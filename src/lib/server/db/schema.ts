@@ -37,9 +37,10 @@ export const folders = pgTable('folders', {
 	name: varchar('name', { length: 100 }).notNull(),
 	parentId: varchar('parent_id', { length: 64 }).references((): any => folders.id, { onDelete: 'cascade' }),
 	type: folderTypeEnum('type').default('STANDARD').notNull(),
-	expanded: integer('expanded').default(1).notNull(), // Using integer as boolean (1=true, 0=false)
+	expanded: integer('expanded').default(1).notNull(),
 	order: integer('order').default(0).notNull(),
 	color: varchar('color', { length: 20 }),
+	deletedAt: timestamp('deleted_at'),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	updatedAt: timestamp('updated_at').defaultNow().notNull()
 });
