@@ -1,7 +1,9 @@
 // src/lib/services/local-db.ts
 import Dexie, { type Table } from 'dexie';
 import type { Chat, Folder, Tag } from '$lib/types/chat';
-import type { Note, Highlight, Attachment } from '$lib/types/entities';
+import type { Note } from '$lib/types/note';
+import type { Highlight } from '$lib/types/highlight';
+import type { Attachment } from '$lib/types/attachment';
 
 // This is the same interface as before
 export interface SyncOperation {
@@ -108,8 +110,88 @@ export class LocalDB {
 		await dexieDB.folders.delete(id);
 	}
 
-    // ... Implement the rest of your methods (Notes, Highlights, etc.) in the same way.
-    // They will all be simple one-line calls to the dexieDB instance.
+	// =================================================================
+	// NOTE OPERATIONS
+	// =================================================================
+
+	async getNote(id: string): Promise<Note | null> {
+		return (await dexieDB.notes.get(id)) || null;
+	}
+
+	async getNotesByChatId(chatId: string): Promise<Note[]> {
+		return dexieDB.notes.where('chatId').equals(chatId).toArray();
+	}
+
+	async saveNote(note: Note): Promise<void> {
+		await dexieDB.notes.put(note);
+	}
+
+	async deleteNote(id: string): Promise<void> {
+		await dexieDB.notes.delete(id);
+	}
+
+	// =================================================================
+	// HIGHLIGHT OPERATIONS
+	// =================================================================
+
+	async getHighlight(id: string): Promise<Highlight | null> {
+		return (await dexieDB.highlights.get(id)) || null;
+	}
+
+	async getHighlightsByMessageId(messageId: string): Promise<Highlight[]> {
+		return dexieDB.highlights.where('messageId').equals(messageId).toArray();
+	}
+
+	async saveHighlight(highlight: Highlight): Promise<void> {
+		await dexieDB.highlights.put(highlight);
+	}
+
+	async deleteHighlight(id: string): Promise<void> {
+		await dexieDB.highlights.delete(id);
+	}
+
+	// =================================================================
+	// ATTACHMENT OPERATIONS
+	// =================================================================
+
+	async getAttachment(id: string): Promise<Attachment | null> {
+		return (await dexieDB.attachments.get(id)) || null;
+	}
+
+	async getAttachmentsByChatId(chatId: string): Promise<Attachment[]> {
+		return dexieDB.attachments.where('chatId').equals(chatId).toArray();
+	}
+
+	async saveAttachment(attachment: Attachment): Promise<void> {
+		await dexieDB.attachments.put(attachment);
+	}
+
+	async deleteAttachment(id: string): Promise<void> {
+		await dexieDB.attachments.delete(id);
+	}
+
+	// =================================================================
+	// TAG OPERATIONS
+	// =================================================================
+
+	async getTag(id: string): Promise<Tag | null> {
+		return (await dexieDB.tags.get(id)) || null;
+	}
+
+	async getAllTags(userId?: number): Promise<Tag[]> {
+		if (userId) {
+			return dexieDB.tags.where('userId').equals(userId).toArray();
+		}
+		return dexieDB.tags.toArray();
+	}
+
+	async saveTag(tag: Tag): Promise<void> {
+		await dexieDB.tags.put(tag);
+	}
+
+	async deleteTag(id: string): Promise<void> {
+		await dexieDB.tags.delete(id);
+	}
 
 	// =================================================================
 	// SYNC QUEUE OPERATIONS
