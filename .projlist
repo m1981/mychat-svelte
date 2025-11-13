@@ -1,6 +1,4 @@
 *.ts
-*.server*
 *.svelte
-*.js
+src/**/*.js
 *.css
-package.json

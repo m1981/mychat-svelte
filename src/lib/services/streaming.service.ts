@@ -1,13 +1,12 @@
 import { handleError } from '$lib/utils/error-handler';
 import { chats } from '$lib/stores/chat.store';
-import type { Chat } from '$lib/types/chat';
+import type { Chat, Message } from '$lib/types/chat';
 import { writable, get } from 'svelte/store';
 
 function createStreamingStore() {
 	const { subscribe, update } = writable({
 		isActive: false,
 		activeChatId: null as string | null
-		// --- REMOVE `content` ---
 	});
 
 	const generateResponse = async (currentChat: Chat, assistantMessagePlaceholder: Message) => {
@@ -42,21 +41,22 @@ function createStreamingStore() {
 					try {
 						const chunk = JSON.parse(line);
 						if (chunk.type === 'chunk') {
-							// --- THE CORE FIX ---
-							// Directly mutate the placeholder and trigger a store update
 							assistantMessagePlaceholder.content += chunk.content;
-							chats.set(get(chats)); // Force update by setting the store to its current value
+							// Trigger reactivity by creating a new array reference
+							const currentChats = get(chats);
+							chats.set([...currentChats]);
 						}
 					} catch (error) {
 						console.error('Failed to parse stream chunk:', line, error);
 					}
 				}
 			}
-			// No need to update the chats store here, it's already been updated live.
 		} catch (error) {
 			handleError(error, 'Failed to generate response.');
 			assistantMessagePlaceholder.content = 'Sorry, an error occurred.';
-			chats.set(get(chats)); // Update with error message
+			// Trigger reactivity by creating a new array reference
+			const currentChats = get(chats);
+			chats.set([...currentChats]);
 		} finally {
 			update(() => ({
 				isActive: false,

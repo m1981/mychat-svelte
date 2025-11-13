@@ -1,51 +1,22 @@
-/* src/app.css */
+/* src/app.css - MINIMAL Skeleton v4 Implementation */
+
 @import 'tailwindcss';
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton/themes/cerberus';
 
 @layer base {
-	html {
-		font-family: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
-	}
-
-	body {
-		font-family: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
-	}
+    html, body {
+        font-family: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
+        @apply bg-surface-50 text-surface-900;
+    }
+    
+    :is(.dark) html,
+    :is(.dark) body {
+        @apply bg-surface-950 text-surface-50;
+    }
 }
 
-@plugin "daisyui" {
-  themes:
-    light, dark, cupcake, bumblebee --default, emerald, corporate, synthwave --prefersdark, retro,
-    cyberpunk, valentine, halloween, garden, forest, aqua, lofi, pastel, fantasy, wireframe,
-    black, luxury, dracula, autumn, business, night, coffee, winter, custom;
-}
-
-@plugin "daisyui/theme" {
-  name: 'custom';
-  default: false;
-  prefersdark: false;
-  color-scheme: 'light';
-  --color-primary: oklch(59.7% 0.162 252.8);
-  --color-secondary: oklch(62.2% 0.238 27.3);
-  --color-accent: oklch(86.6% 0.294 142.5);
-  --color-base-100: oklch(92.951% 0.002 17.197);
-  --color-base-200: oklch(86.445% 0.002 17.197);
-  --color-base-300: oklch(79.938% 0.001 17.197);
-  --color-base-content: oklch(16.961% 0.001 17.32);
-  --color-primary-content: oklch(100% 0 0);
-  --color-secondary-content: oklch(89.699% 0.022 355.095);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(24.155% 0.049 89.07);
-  --color-neutral-content: oklch(92.951% 0.002 17.197);
-  --color-info: oklch(72.06% 0.191 231.6);
-  --color-info-content: oklch(0% 0 0);
-  --color-success: oklch(64.8% 0.15 160);
-  --color-success-content: oklch(0% 0 0);
-  --color-warning: oklch(84.71% 0.199 83.87);
-  --color-warning-content: oklch(0% 0 0);
-  --color-error: oklch(71.76% 0.221 22.18);
-  --color-error-content: oklch(0% 0 0);
-}
-
-/* === Global Variables === */
+/* === Layout Variables === */
 :root {
   --layout-app-max-width: 72rem;
   --layout-sidebar-width: 280px;
@@ -64,96 +35,382 @@
   --animation-easing-natural: ease-out;
 }
 
-/* === Custom Base Utilities (Defined with @utility) === */
-@utility item-base { @apply flex items-center w-full px-2 rounded-md cursor-pointer gap-3 transition-colors duration-200; }
-@utility item-sm { min-height: 30px; max-height: 30px; }
-@utility item-md { min-height: 40px; }
-@utility item-normal { @apply hover:bg-base-content/5; }
-@utility item-active { @apply bg-base-200 border-l-4 border-primary/30; }
-@utility item-disabled { @apply opacity-50 cursor-not-allowed; }
-@utility item-content { @apply flex-1 min-w-0 relative overflow-hidden; }
-@utility item-actions { @apply flex text-base-content/70; }
-
-@utility btn-base { @apply cursor-pointer border border-transparent rounded-sm; transition: all var(--animation-duration-fast) var(--animation-easing-natural); }
-@utility btn-sm { @apply px-2 py-1.5 text-sm; }
-@utility btn-xs { @apply px-1.5 py-1 text-xs; }
-@utility btn-ghost { @apply bg-transparent text-base-content/70; }
-@utility btn-ghost { &:hover { @apply bg-base-200 border-base-300 text-base-content; } }
-@utility btn-base { & svg { @apply h-4 text-current; } }
-
-/* ✅ MOVED HERE FROM @layer utilities */
-@utility btn-hidden { @apply opacity-0 scale-75; transform: translateX(8px); transition-delay: calc(var(--button-index, 0) * 50ms); }
-@utility btn-visible { @apply opacity-100 scale-100; transform: translateX(0); }
-
-@utility input-inline { @apply bg-transparent border-none outline-none text-sm text-base-content p-0 m-0 select-text w-full; }
-@utility input-inline { &:focus { @apply outline-primary; } }
-
-/* === Component Layer (Composing utilities with @apply) === */
+/* === Component Layer === */
 @layer components {
-  .sidebar-toggle-btn { @apply p-2 rounded-md text-base-content/70 hover:text-base-content hover:bg-base-content/10 transition-colors; }
 
-  /* ChatHistory.css */
-  .chat-history-item { @apply item-base item-sm item-normal; margin-bottom: 4px; }
-  .chat-history-active { @apply item-active; }
-  .chat-history-disabled { @apply item-disabled; }
-  .chat-title-text { @apply text-sm text-base-content truncate block whitespace-nowrap; }
-  .chat-title-gradient { @apply absolute inset-y-0 right-0 w-8 z-10 bg-gradient-to-l transition-colors duration-200 pointer-events-none from-base-100; }
-  .chat-history-item:hover .chat-title-gradient { @apply from-base-content/5; }
-  .chat-history-active .chat-title-gradient { @apply opacity-0; }
-  .chat-name-input { @apply input-inline; }
-  .chat-history-item--hovered:not(.chat-history-active) { @apply bg-base-300; }
+  /* Base Item Styles */
+  .item-base {
+    @apply flex items-center w-full px-2 rounded-md cursor-pointer gap-3 transition-colors duration-200;
+  }
+  .item-sm {
+    min-height: 30px;
+    max-height: 30px;
+  }
+  .item-md {
+    min-height: 40px;
+  }
+  .item-normal:hover {
+    @apply bg-surface-200-800/50;
+  }
+  .item-active {
+    @apply bg-surface-200-800 border-l-4 border-primary-500;
+  }
+  .item-disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  .item-content {
+    @apply flex-1 min-w-0 relative overflow-hidden;
+  }
+  .item-actions {
+    @apply flex text-surface-600-400;
+  }
 
-  /* ChatActions.css */
-  .chat-actions { @apply flex z-10 text-base-content/70 bg-base-100 pl-1; }
-  .chat-actions--active { @apply bg-base-200; }
-  .chat-action-btn { @apply btn-base btn-sm btn-ghost btn-hidden; }
-  .chat-history-item:hover .chat-action-btn { @apply btn-visible; }
-  .chat-content-area { @apply item-content; }
+  /* Button Base */
+  .btn-xs {
+    @apply px-2 py-1 text-xs;
+  }
 
-  /* Folder.css */
-  .chat-folder { @apply w-full mb-1 transition-shadow duration-200; }
-  .chat-folder--dragging { @apply z-50 shadow-lg; }
-  .folder-header-draggable { @apply w-full cursor-grab; }
-  .folder-header-draggable:active { @apply cursor-grabbing; }
+  /* Input Styles */
+  .input-inline {
+    @apply bg-transparent border-none outline-none text-sm text-surface-900-100 p-0 m-0 w-full;
+  }
+  .input-inline:focus {
+    @apply ring-2 ring-primary-500;
+  }
 
-  /* FolderHeader.css */
-  .folder-header { @apply item-base item-md; transition: all var(--animation-duration-normal) var(--animation-easing-natural); }
-  .folder-header--normal { @apply item-normal; }
-  .folder-header--colored * { color: inherit !important; }
-  .folder-name-container { @apply flex-1 text-ellipsis max-h-5 overflow-hidden break-all relative select-none; min-width: 0; }
-  .folder-name-input { @apply input-inline; }
-  .folder-name-text { @apply text-sm text-base-content; display: block; }
-  .folder-gradient { @apply absolute inset-y-0 right-0 w-4 z-10 transition-all; }
-  .folder-header:hover .folder-gradient { opacity: 0; }
-  .folder-icon-container { @apply flex items-center justify-center; }
-  .folder-header svg { @apply h-4 text-base-content/70; transition: color var(--animation-duration-fast) var(--animation-easing-natural); }
-  .folder-header:hover svg { @apply text-base-content; }
-  .folder-actions { @apply item-actions; flex-shrink: 0; }
-  .folder-action-btn { @apply btn-base btn-sm btn-ghost btn-hidden; }
-  .folder-header:hover .folder-action-btn { @apply btn-visible; }
+  /* Sidebar Toggle */
+  .sidebar-toggle-btn {
+    @apply p-2 rounded-md text-surface-600-400 transition-colors;
+  }
+  .sidebar-toggle-btn:hover {
+    @apply text-surface-900-100 bg-surface-200-800/50;
+  }
 
-  /* FolderContent.css */
-  .new-chat-btn { @apply flex items-center rounded-md transition-colors duration-200 text-sm text-base-content whitespace-nowrap; }
-  .new-chat-btn--normal { @apply hover:bg-base-content/10 cursor-pointer; }
-  .new-chat-btn--disabled { @apply cursor-not-allowed opacity-40; }
-  .new-chat-btn--standalone { @apply p-2 gap-3 mb-2 border border-base-300 select-none; }
-  .new-chat-btn--folder { @apply justify-start select-none min-w-0; }
-  .folder-content { @apply ml-3 pl-1 border-l-2 border-base-300 flex flex-col gap-1; transition: all var(--animation-duration-normal) var(--animation-easing-natural); }
-  .folder-droppable-area { @apply w-full transition-all duration-200; min-height: 8px; }
-  .folder-droppable-area--over { @apply bg-primary/10 rounded; }
-  .new-chat-folder-content { @apply overflow-hidden flex gap-3 items-center select-none whitespace-nowrap min-w-0 px-2; min-height: 30px; max-height: 30px; opacity: 0; transform: translateY(-4px); transition: all var(--animation-duration-normal) var(--animation-easing-natural); }
-  .new-chat-folder-content--hidden { max-height: 0; min-height: 0; opacity: 0; transform: translateY(-4px); pointer-events: none; }
-  .new-chat-folder-content--visible { min-height: 30px; max-height: 30px; opacity: 1; transform: translateY(0); pointer-events: auto; }
-  .new-chat-btn--folder:hover .new-chat-folder-content { @apply bg-base-content/5; transition: all var(--animation-duration-fast) var(--animation-easing-natural); }
+  /* Chat History Styles */
+  .chat-history-item {
+    @apply flex items-center w-full px-2 rounded-md cursor-pointer gap-3 transition-colors duration-200;
+    min-height: 30px;
+    max-height: 30px;
+    margin-bottom: 4px;
+  }
+  .chat-history-item:hover {
+    @apply bg-surface-200-800/50;
+  }
+  .chat-history-active {
+    @apply bg-surface-200-800 border-l-4 border-primary-500;
+  }
+  .chat-history-disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  .chat-title-text {
+    @apply text-sm text-surface-900-100 truncate block whitespace-nowrap;
+  }
+  .chat-title-gradient {
+    @apply absolute inset-y-0 right-0 w-8 z-10 transition-colors duration-200 pointer-events-none;
+    background: linear-gradient(to left, rgb(var(--color-surface-50) / 1) 0%, transparent 100%);
+  }
+  :is(.dark) .chat-title-gradient {
+    background: linear-gradient(to left, rgb(var(--color-surface-950) / 1) 0%, transparent 100%);
+  }
+  .chat-history-item:hover .chat-title-gradient {
+    @apply opacity-50;
+  }
+  .chat-history-active .chat-title-gradient {
+    @apply opacity-0;
+  }
+  .chat-name-input {
+    @apply bg-transparent border-none outline-none text-sm text-surface-900-100 p-0 m-0 w-full;
+  }
+  .chat-name-input:focus {
+    @apply ring-2 ring-primary-500;
+  }
+  .chat-history-item--hovered:not(.chat-history-active) {
+    @apply bg-surface-200-800;
+  }
+
+  /* Chat Actions */
+  .chat-actions {
+    @apply flex z-10 text-surface-600-400 pl-1;
+    background: rgb(var(--color-surface-50) / 1);
+  }
+  :is(.dark) .chat-actions {
+    background: rgb(var(--color-surface-950) / 1);
+  }
+  .chat-actions--active {
+    @apply bg-surface-200-800;
+  }
+  .chat-action-btn {
+    @apply cursor-pointer border border-transparent rounded-md px-2 py-1.5 text-sm bg-transparent text-surface-600-400 opacity-0 scale-75;
+    transform: translateX(8px);
+    transition: all var(--animation-duration-fast) var(--animation-easing-natural);
+    transition-delay: calc(var(--button-index, 0) * 50ms);
+  }
+  .chat-action-btn svg {
+    @apply h-4;
+  }
+  .chat-action-btn:hover {
+    @apply bg-surface-200-800 border-surface-300-700 text-surface-900-100;
+  }
+  .chat-history-item:hover .chat-action-btn {
+    @apply opacity-100 scale-100;
+    transform: translateX(0);
+  }
+  .chat-content-area {
+    @apply flex-1 min-w-0 relative overflow-hidden;
+  }
+
+  /* Folder Styles */
+  .chat-folder {
+    @apply w-full mb-1 transition-shadow duration-200;
+  }
+  .chat-folder--dragging {
+    @apply z-50 shadow-xl;
+  }
+  .folder-header-draggable {
+    @apply w-full cursor-grab;
+  }
+  .folder-header-draggable:active {
+    @apply cursor-grabbing;
+  }
+
+  /* Folder Header */
+  .folder-header {
+    @apply flex items-center w-full px-2 rounded-md cursor-pointer gap-3 transition-colors duration-200;
+    min-height: 40px;
+  }
+  .folder-header--normal:hover {
+    @apply bg-surface-200-800/50;
+  }
+  .folder-header--colored * {
+    color: inherit !important;
+  }
+  .folder-name-container {
+    @apply flex-1 text-ellipsis max-h-5 overflow-hidden break-all relative select-none;
+    min-width: 0;
+  }
+  .folder-name-input {
+    @apply bg-transparent border-none outline-none text-sm text-surface-900-100 p-0 m-0 w-full;
+  }
+  .folder-name-input:focus {
+    @apply ring-2 ring-primary-500;
+  }
+  .folder-name-text {
+    @apply text-sm text-surface-900-100 block;
+  }
+  .folder-gradient {
+    @apply absolute inset-y-0 right-0 w-4 z-10 transition-all;
+  }
+  .folder-header:hover .folder-gradient {
+    opacity: 0;
+  }
+  .folder-icon-container {
+    @apply flex items-center justify-center;
+  }
+  .folder-header svg {
+    @apply h-4 text-surface-600-400 transition-colors;
+  }
+  .folder-header:hover svg {
+    @apply text-surface-900-100;
+  }
+  .folder-actions {
+    @apply flex text-surface-600-400;
+    flex-shrink: 0;
+  }
+  .folder-action-btn {
+    @apply px-2 py-1.5 text-sm cursor-pointer border border-transparent rounded-md bg-transparent text-surface-600-400 opacity-0 scale-75;
+    transform: translateX(8px);
+    transition: all var(--animation-duration-fast) var(--animation-easing-natural);
+    transition-delay: calc(var(--button-index, 0) * 50ms);
+  }
+  .folder-action-btn svg {
+    @apply h-4;
+  }
+  .folder-action-btn:hover {
+    @apply bg-surface-200-800 border-surface-300-700 text-surface-900-100;
+  }
+  .folder-header:hover .folder-action-btn {
+    @apply opacity-100 scale-100;
+    transform: translateX(0);
+  }
+
+  /* Folder Content */
+  .new-chat-btn {
+    @apply flex items-center rounded-md transition-colors duration-200 text-sm text-surface-900-100 whitespace-nowrap;
+  }
+  .new-chat-btn--normal {
+    @apply cursor-pointer;
+  }
+  .new-chat-btn--normal:hover {
+    @apply bg-surface-200-800/50;
+  }
+  .new-chat-btn--disabled {
+    @apply cursor-not-allowed opacity-40;
+  }
+  .new-chat-btn--standalone {
+    @apply p-2 gap-3 mb-2 border border-surface-300-700 select-none;
+  }
+  .new-chat-btn--folder {
+    @apply justify-start select-none min-w-0;
+  }
+  .folder-content {
+    @apply ml-3 pl-1 border-l-2 border-surface-300-700 flex flex-col gap-1;
+    transition: all var(--animation-duration-normal) var(--animation-easing-natural);
+  }
+  .folder-droppable-area {
+    @apply w-full transition-all duration-200;
+    min-height: 8px;
+  }
+  .folder-droppable-area--over {
+    @apply rounded-md bg-primary-500/10;
+  }
+  .new-chat-folder-content {
+    @apply overflow-hidden flex gap-3 items-center select-none whitespace-nowrap min-w-0 px-2;
+    min-height: 30px;
+    max-height: 30px;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: all var(--animation-duration-normal) var(--animation-easing-natural);
+  }
+  .new-chat-folder-content--hidden {
+    max-height: 0;
+    min-height: 0;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+  }
+  .new-chat-folder-content--visible {
+    min-height: 30px;
+    max-height: 30px;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .new-chat-btn--folder:hover .new-chat-folder-content {
+    @apply bg-surface-200-800/50;
+  }
+
+  /* Card Component */
+  .card {
+    @apply bg-surface-100-900 rounded-lg shadow-xl;
+  }
+  .card-body {
+    @apply p-4;
+  }
+  .card-title {
+    @apply text-xl font-bold mb-2;
+  }
+  .card-actions {
+    @apply flex gap-2 mt-4;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-sm {
+    @apply px-2 py-0.5 text-xs;
+  }
+  .badge-primary {
+    @apply bg-primary-500 text-white;
+  }
+
+  /* Alert */
+  .alert {
+    @apply flex gap-3 p-4 rounded-lg items-start;
+  }
+  .alert-success {
+    @apply bg-success-500/20 text-success-700 border border-success-500/30;
+  }
+  :is(.dark) .alert-success {
+    @apply text-success-400;
+  }
+  .alert-error {
+    @apply bg-error-500/20 text-error-700 border border-error-500/30;
+  }
+  :is(.dark) .alert-error {
+    @apply text-error-400;
+  }
+  .alert-warning {
+    @apply bg-warning-500/20 text-warning-700 border border-warning-500/30;
+  }
+  :is(.dark) .alert-warning {
+    @apply text-warning-400;
+  }
+  .alert-info {
+    @apply bg-tertiary-500/20 text-tertiary-700 border border-tertiary-500/30;
+  }
+  :is(.dark) .alert-info {
+    @apply text-tertiary-400;
+  }
+
+  /* Loading Spinner - Fixed for Skeleton v4 compatibility */
+  .spinner {
+    @apply inline-block animate-spin rounded-full border-2 border-solid border-current border-r-transparent;
+  }
+  .spinner-sm {
+    @apply w-4 h-4;
+  }
+  .spinner-xs {
+    @apply w-3 h-3;
+  }
+  .spinner-lg {
+    @apply w-8 h-8;
+  }
+
+  /* Chat Bubbles */
+  .chat {
+    @apply flex gap-2 mb-4;
+  }
+  .chat-start {
+    @apply justify-start;
+  }
+  .chat-end {
+    @apply justify-end;
+  }
+  .chat-bubble {
+    @apply px-4 py-2 rounded-lg max-w-[80%] break-words;
+  }
+  .chat-start .chat-bubble {
+    @apply bg-surface-200-800 text-surface-900-100;
+  }
+  .chat-end .chat-bubble {
+    @apply bg-primary-500 text-white;
+  }
+
+  /* Textarea */
+  .textarea {
+    @apply w-full px-3 py-2 bg-surface-100-900 border border-surface-300-700 rounded-md text-surface-900-100;
+    @apply focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .textarea::placeholder {
+    @apply text-surface-500;
+  }
 }
 
 /* === Utilities === */
 @layer utilities {
-  .invisible-scrollbar { scrollbar-width: none; }
-  .invisible-scrollbar::-webkit-scrollbar { display: none; }
+  .invisible-scrollbar {
+    scrollbar-width: none;
+  }
+  .invisible-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* === Drag Previews === */
-.compact-folder-preview { @apply flex items-center gap-2 px-3 py-2 bg-primary text-primary-content rounded-lg shadow-lg; min-width: 120px; max-width: 200px; transform: translateX(var(--layout-preview-offset)) translateY(0); pointer-events: none; font-size: 14px; font-weight: 500; }
-.compact-folder-preview .folder-name { @apply truncate; }
-.chat-drag-preview { @apply px-3 py-2 bg-base-300 text-base-content rounded-lg shadow-lg text-sm; }
+.compact-folder-preview {
+  @apply flex items-center gap-2 px-3 py-2 bg-primary-500 text-white rounded-lg shadow-xl;
+  min-width: 120px;
+  max-width: 200px;
+  transform: translateX(var(--layout-preview-offset)) translateY(0);
+  pointer-events: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+.compact-folder-preview .folder-name {
+  @apply truncate;
+}
+.chat-drag-preview {
+  @apply px-3 py-2 bg-surface-200-800 text-surface-900-100 rounded-lg shadow-xl text-sm;
+}

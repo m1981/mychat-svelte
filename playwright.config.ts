@@ -2,8 +2,13 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
 	webServer: {
-		command: 'npm run build && npm run preview',
-		port: 4173
+		command: 'pnpm dev',
+		port: 5174
 	},
-	testDir: 'e2e'
+	testDir: 'tests',
+	use: {
+		baseURL: 'http://localhost:5174'
+	},
+	globalSetup: './tests/global-setup.ts',
+	globalTeardown: './tests/global-teardown.ts'
 });

@@ -1,141 +1,173 @@
 <!-- src/lib/components/ui/ErrorBoundary.svelte -->
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { toast } from '$lib/stores/toast.store';
+	import { onDestroy } from 'svelte';
+
+	interface Props {
+		children?: any;
+		showToast?: boolean;
+		logErrors?: boolean;
+	}
 
 	let {
 		children,
-		fallback,
-		onError,
 		showToast = true,
 		logErrors = true
-	}: {
-		children: import('svelte').Snippet;
-		fallback?: import('svelte').Snippet<[Error]>;
-		onError?: (error: Error, errorInfo: { componentStack?: string }) => void;
-		showToast?: boolean;
-		logErrors?: boolean;
-	} = $props();
+	}: Props = $props();
 
 	let hasError = $state(false);
-	let error = $state<Error | null>(null);
+	let errorMessage = $state('');
+	let errorDetails = $state<any>(null);
 
-	// Error logging service (can be extended to send to Sentry, LogRocket, etc.)
-	function logError(err: Error, errorInfo?: { componentStack?: string }) {
-		if (logErrors) {
-			console.error('🚨 Error Boundary caught an error:', {
-				error: err,
-				message: err.message,
-				stack: err.stack,
-				componentStack: errorInfo?.componentStack,
-				timestamp: new Date().toISOString()
-			});
+	function logError(error: Error | any) {
+		console.group('🚨 Error Boundary Caught Error');
+		console.error('Error object:', error);
+		console.error('Error name:', error?.name);
+		console.error('Error message:', error?.message);
+		console.error('Error stack:', error?.stack);
+
+		// Try to extract more details
+		if (error?.cause) {
+			console.error('Error cause:', error.cause);
 		}
 
-		// Call custom error handler if provided
-		if (onError) {
-			onError(err, errorInfo || {});
+		if (error?.componentStack) {
+			console.error('Component stack:', error.componentStack);
 		}
 
-		// Show toast notification
-		if (showToast) {
-			toast.error(err.message || 'An unexpected error occurred', {
-				title: 'Error',
-				duration: 5000
-			});
+		// Log all enumerable properties
+		console.error('All error properties:', Object.keys(error));
+		for (let key in error) {
+			console.error(`  ${key}:`, error[key]);
 		}
+
+		console.groupEnd();
 	}
 
-	// Handle errors in child components
-	function handleError(err: Error) {
-		error = err;
+	function handleError(event: ErrorEvent | PromiseRejectionEvent) {
+		const error = 'error' in event ? event.error : event.reason;
+
 		hasError = true;
-		logError(err);
+		errorMessage = error?.message || 'An unexpected error occurred';
+		errorDetails = error;
+
+		if (logErrors) {
+			logError(error);
+		}
+
+		// Prevent default error handling
+		event.preventDefault();
+		return false;
 	}
 
-	// Reset error boundary
+	// Set up global error handler (fallback)
+	if (typeof window !== 'undefined') {
+		window.addEventListener('error', handleError);
+		window.addEventListener('unhandledrejection', handleError);
+	}
+
+	onDestroy(() => {
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('error', handleError);
+			window.removeEventListener('unhandledrejection', handleError);
+		}
+	});
+
 	function resetError() {
 		hasError = false;
-		error = null;
+		errorMessage = '';
+		errorDetails = null;
 	}
-
-	// Set up global error handler for this boundary's scope
-	onMount(() => {
-		const errorHandler = (event: ErrorEvent) => {
-			event.preventDefault();
-			handleError(event.error);
-		};
-
-		const unhandledRejectionHandler = (event: PromiseRejectionEvent) => {
-			event.preventDefault();
-			const error = event.reason instanceof Error
-				? event.reason
-				: new Error(String(event.reason));
-			handleError(error);
-		};
-
-		window.addEventListener('error', errorHandler);
-		window.addEventListener('unhandledrejection', unhandledRejectionHandler);
-
-		return () => {
-			window.removeEventListener('error', errorHandler);
-			window.removeEventListener('unhandledrejection', unhandledRejectionHandler);
-		};
-	});
 </script>
 
-{#if hasError && error}
-	{#if fallback}
-		{@render fallback(error)}
-	{:else}
-		<!-- Default fallback UI -->
-		<div class="flex items-center justify-center min-h-[400px] p-8">
-			<div class="card bg-base-200 shadow-xl max-w-lg">
-				<div class="card-body">
-					<h2 class="card-title text-error">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-6 w-6"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-							/>
-						</svg>
-						Something went wrong
-					</h2>
-					<p class="text-base-content/70">
-						{error.message || 'An unexpected error occurred. Please try again.'}
-					</p>
+{#if hasError}
+	<div class="error-boundary-container">
+		<div class="error-boundary-content">
+			<div class="error-icon">⚠️</div>
+			<h2 class="error-title">Something went wrong</h2>
+			<p class="error-message">{errorMessage}</p>
 
-					{#if import.meta.env.DEV}
-						<div class="mt-4">
-							<details class="collapse collapse-arrow bg-base-300">
-								<summary class="collapse-title text-sm font-medium">Error Details (Dev Mode)</summary>
-								<div class="collapse-content">
-									<pre class="text-xs overflow-auto max-h-[200px] mt-2">{error.stack}</pre>
-								</div>
-							</details>
-						</div>
-					{/if}
+			{#if errorDetails}
+				<details class="error-details">
+					<summary>Technical Details</summary>
+					<pre>{JSON.stringify(errorDetails, null, 2)}</pre>
+				</details>
+			{/if}
 
-					<div class="card-actions justify-end mt-4">
-						<button class="btn btn-ghost" onclick={() => window.location.reload()}>
-							Reload Page
-						</button>
-						<button class="btn btn-primary" onclick={resetError}>
-							Try Again
-						</button>
-					</div>
-				</div>
-			</div>
+			<button
+				onclick={resetError}
+				class="btn variant-filled-primary"
+			>
+				Try Again
+			</button>
 		</div>
-	{/if}
+	</div>
 {:else}
-	{@render children()}
+	{@render children?.()}
 {/if}
+
+<style>
+	.error-boundary-container {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 100vh;
+		padding: 2rem;
+		background-color: var(--color-surface-50);
+	}
+
+	:global(.dark) .error-boundary-container {
+		background-color: var(--color-surface-950);
+	}
+
+	.error-boundary-content {
+		max-width: 600px;
+		padding: 2rem;
+		text-align: center;
+		background: var(--color-surface-100);
+		border-radius: 0.5rem;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	}
+
+	:global(.dark) .error-boundary-content {
+		background: var(--color-surface-900);
+	}
+
+	.error-icon {
+		font-size: 3rem;
+		margin-bottom: 1rem;
+	}
+
+	.error-title {
+		font-size: 1.5rem;
+		font-weight: bold;
+		margin-bottom: 0.5rem;
+		color: var(--color-error-500);
+	}
+
+	.error-message {
+		color: var(--color-surface-700);
+		margin-bottom: 1.5rem;
+	}
+
+	:global(.dark) .error-message {
+		color: var(--color-surface-300);
+	}
+
+	.error-details {
+		text-align: left;
+		margin-bottom: 1.5rem;
+		padding: 1rem;
+		background: var(--color-surface-200);
+		border-radius: 0.25rem;
+	}
+
+	:global(.dark) .error-details {
+		background: var(--color-surface-800);
+	}
+
+	.error-details pre {
+		overflow-x: auto;
+		font-size: 0.875rem;
+		margin: 0.5rem 0 0 0;
+	}
+</style>
