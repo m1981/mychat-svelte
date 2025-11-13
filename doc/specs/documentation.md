@@ -1,3 +1,118 @@
+```mermaid
+flowchart TD
+    subgraph "👨‍💻 User"
+        direction LR
+        Interaction["User interacts with UI (e.g., clicks 'Save Note')"]
+    end
+
+    subgraph "🖥️ Svelte Components (UI Layer)"
+        direction LR
+        Page["+page.svelte"]
+        Panel["NotesPanel.svelte"]
+    end
+
+    subgraph "⚙️ State & Logic (Business Layer)"
+        direction LR
+        ChatStore["chat.store.ts (Global State)"]
+        NoteManager["note.store.ts (Scoped State Manager)"]
+    end
+
+    subgraph "🔄 Sync & Persistence (Service Layer)"
+        direction LR
+        SyncService["sync.service.ts"]
+        LocalDB["local-db.ts (IndexedDB)"]
+    end
+
+    %% Flow
+    Interaction --> Panel
+    Panel -- Calls method on --> NoteManager
+    Page -- Reads global state from --> ChatStore
+
+    NoteManager -- Updates its own state & calls --> LocalDB
+    LocalDB -- Persists data --> IDB[("IndexedDB")]
+    NoteManager -- Queues operation with --> SyncService
+
+    SyncService -- Pushes queue to --> API[("☁️ Server API")]
+    SyncService -- Stores queue in --> LocalDB
+
+    %% Styling
+    classDef ui fill:#f3e5f5,stroke:#6a1b9a
+    classDef state fill:#e3f2fd,stroke:#1565c0
+    classDef services fill:#e8f5e9,stroke:#2e7d32
+
+    class Page,Panel ui
+    class ChatStore,NoteManager state
+    class SyncService,LocalDB services
+```
+
+```mermaid
+
+flowchart TD
+    subgraph "SvelteKit Router"
+        Route["/chat/[id]"]
+    end
+
+    subgraph "Page Component (+page.svelte)"
+        A[Derives `currentChat` from `chatStore.state.chats`]
+        B[Instantiates `NotesPanel` and `HighlightsPanel`]
+        C[Passes `chatId` as a prop]
+    end
+
+    subgraph "Panel Component (NotesPanel.svelte)"
+        D["`let { chatId } = $props()`"]
+        E["Creates its own `noteManager = createNoteManager(chatId)`"]
+        F["Derives `notes` from `noteManager.notes`"]
+        G["UI renders the derived `notes`"]
+        H["User action calls `noteManager.create(...)`"]
+    end
+
+    subgraph "Scoped State Manager (note.store.ts)"
+        I["createNoteManager(chatId) is called"]
+        J["let notes = $state([])` is created (scoped to this instance)"]
+        K["load() is called internally, fetching from IndexedDB"]
+        L["notes state is populated, triggering reactivity in the Panel"]
+        M["create() method mutates the `notes` state directly"]
+    end
+    
+    subgraph "Global State Store (chat.store.ts)"
+        N["Singleton `chatStore` is imported"]
+        O["let state = $state({ chats: [] }) holds all chats"]
+    end
+
+    %% Connections
+    Route --> Page
+    
+    Page -- Imports & Reads --> N[chatStore]
+    N --> O
+    O --> A
+
+    Page --> B
+    B --> C
+    C --> D
+    
+    D --> E
+    E --> I
+    I --> J
+    J --> K
+    K --> L
+    L --> F
+    F --> G
+    
+    H --> M
+    M --> L
+
+    %% Styling
+    classDef page fill:#e3f2fd,stroke:#1565c0
+    classDef panel fill:#e0f7fa,stroke:#006064
+    classDef manager fill:#fff3e0,stroke:#ef6c00
+    classDef global fill:#fbe9e7,stroke:#d84315
+    
+    class A,B,C page
+    class D,E,F,G,H panel
+    class I,J,K,L,M manager
+    class N,O global
+```
+
 ## Client-Side Architecture Flow
 ```mermaid
 flowchart TD
