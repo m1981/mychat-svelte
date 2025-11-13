@@ -9,7 +9,7 @@
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
 	import ArchiveIcon from '$lib/components/icons/ArchiveIcon.svelte';
 	import ColorPicker from '$lib/components/ui/ColorPicker.svelte';
-	import { folders, updateFolder, deleteFolder } from '$lib/stores/chat.store';
+	import { folders, updateFolder, deleteFolder, restoreFolder } from '$lib/stores/chat.store';
 	import { toast } from '$lib/stores/toast.store';
 	import { tick } from 'svelte';
 
@@ -30,7 +30,6 @@
 	let isDeleting = $state(false);
 	let isColorPickerOpen = $state(false);
 	let selectedColor = $state(folder.color || '');
-	let isArchiving = $state(false);
 
 	function toggleExpanded() {
 		folders.update((allFolders) => {
@@ -151,40 +150,25 @@
 		}
 	}
 
-	async function handleArchive(e: Event) {
+	async function handleDelete(e: Event) {
 		e.stopPropagation();
-
-		const isCurrentlyArchived = folder.type === 'ARCHIVE';
-		const newType = isCurrentlyArchived ? 'STANDARD' : 'ARCHIVE';
-		const action = isCurrentlyArchived ? 'Unarchive' : 'Archive';
-
-		// Show confirmation dialog
 		const chatCount = folderChats.length;
-		const message = chatCount > 0
-			? `${action} "${folder.name}" and ${chatCount} chat${chatCount !== 1 ? 's' : ''}?`
-			: `${action} "${folder.name}"?`;
+		// MODIFIED: Updated confirmation message for soft delete
+		const message = `Move "${folder.name}" to the trash?` +
+			(chatCount > 0 ? ` ${chatCount} chat${chatCount !== 1 ? 's' : ''} inside will be moved to the root.` : '');
 
-		if (!confirm(message)) {
-			return;
-		}
+		if (!confirm(message)) return;
 
-		isArchiving = true;
-
+		isDeleting = true;
 		try {
-			// Use enhanced store function (local-first)
-			await updateFolder(folder.id, { type: newType });
-
-			toast.success(`Folder ${action.toLowerCase()}d successfully`, {
-				duration: 2000
-			});
-
-			console.log(`✅ ${action}d folder: ${folder.id}`);
+			// MODIFIED: Call soft delete (default)
+			await deleteFolder(folder.id);
+			toast.success('Folder moved to trash', { duration: 2000 });
 		} catch (error) {
-			console.error(`Failed to ${action.toLowerCase()} folder:`, error);
-			toast.error(`Failed to ${action.toLowerCase()} folder`);
+			console.error('Failed to delete folder:', error);
+			toast.error('Failed to delete folder');
 		}
-
-		isArchiving = false;
+		isDeleting = false;
 	}
 </script>
 
@@ -238,20 +222,6 @@
 			<button
 				class="folder-action-btn"
 				class:btn-visible={hovered}
-				style="--button-index: 3;"
-				title={folder.type === 'ARCHIVE' ? 'Unarchive folder' : 'Archive folder'}
-				onclick={handleArchive}
-				disabled={isArchiving}
-			>
-				{#if isArchiving}
-					<span class="loading loading-spinner loading-xs"></span>
-				{:else}
-					<ArchiveIcon />
-				{/if}
-			</button>
-			<button
-				class="folder-action-btn"
-				class:btn-visible={hovered}
 				style="--button-index: 2;"
 				title="Change folder color"
 				onclick={openColorPicker}
@@ -271,7 +241,7 @@
 				class="folder-action-btn"
 				class:btn-visible={hovered}
 				style="--button-index: 0;"
-				title="Delete folder"
+				title="Move to trash"
 				onclick={handleDelete}
 				disabled={isDeleting}
 			>

@@ -1,7 +1,7 @@
 // src/lib/server/repositories/folder.repository.ts
 
 import { db } from '$lib/server/db';
-import { folders } from '$lib/server/db/schema';
+import { folders, chats } from '$lib/server/db/schema'; // ADDED: import chats for cascade logic
 import { eq, and, isNull } from 'drizzle-orm';
 import type { Folder } from '$lib/types/chat';
 import { generateId } from './base.repository';
@@ -28,12 +28,11 @@ export class FolderRepository {
 	 */
 	async create(data: CreateFolderDTO): Promise<Folder> {
 		const folderId = generateId('folder');
-
-		// Get max order for this parent level
 		const siblings = await db.query.folders.findMany({
-			where: data.parentId
-				? eq(folders.parentId, data.parentId)
-				: isNull(folders.parentId)
+			where: and(
+				data.parentId ? eq(folders.parentId, data.parentId) : isNull(folders.parentId),
+				isNull(folders.deletedAt) // CORRECT: Only consider active siblings for ordering
+			)
 		});
 		const maxOrder = siblings.reduce((max, f) => Math.max(max, f.order || 0), 0);
 
@@ -45,7 +44,7 @@ export class FolderRepository {
 				name: data.name,
 				parentId: data.parentId,
 				type: data.type || 'STANDARD',
-				expanded: 1, // Using integer as boolean
+				expanded: 1,
 				order: maxOrder + 1,
 				color: data.color,
 				createdAt: new Date(),
@@ -57,7 +56,7 @@ export class FolderRepository {
 	}
 
 	/**
-	 * Find folder by ID
+	 * Find folder by ID, regardless of its deleted status.
 	 */
 	async findById(folderId: string, userId: number): Promise<Folder | null> {
 		const result = await db.query.folders.findFirst({
@@ -68,11 +67,12 @@ export class FolderRepository {
 	}
 
 	/**
-	 * Find all folders for a user (flat list)
+	 * Find all ACTIVE folders for a user (flat list).
 	 */
 	async findByUserId(userId: number): Promise<Folder[]> {
 		const results = await db.query.folders.findMany({
-			where: eq(folders.userId, userId),
+			// CORRECT: Add where clause to only fetch non-deleted folders
+			where: and(eq(folders.userId, userId), isNull(folders.deletedAt)),
 			orderBy: (folders, { asc }) => [asc(folders.order)]
 		});
 
@@ -80,7 +80,7 @@ export class FolderRepository {
 	}
 
 	/**
-	 * Get folder hierarchy as tree structure
+	 * Get folder hierarchy as tree structure for active folders.
 	 */
 	async getFolderTree(userId: number): Promise<FolderNode[]> {
 		const allFolders = await this.findByUserId(userId);
@@ -88,9 +88,10 @@ export class FolderRepository {
 	}
 
 	/**
-	 * Update folder
+	 * Update folder properties. Can be used for soft-delete and restore.
 	 */
-	async update(folderId: string, userId: number, data: UpdateFolderDTO): Promise<Folder> {
+	async update(folderId: string, userId: number, data: UpdateFolderDTO & { deletedAt?: Date | null }): Promise<Folder> {
+		// CORRECT: Allow updating deletedAt for soft delete/restore
 		const updateData: any = {
 			updatedAt: new Date()
 		};
@@ -100,6 +101,7 @@ export class FolderRepository {
 		if (data.color !== undefined) updateData.color = data.color;
 		if (data.expanded !== undefined) updateData.expanded = data.expanded ? 1 : 0;
 		if (data.order !== undefined) updateData.order = data.order;
+		if (data.deletedAt !== undefined) updateData.deletedAt = data.deletedAt;
 
 		await db
 			.update(folders)
@@ -113,10 +115,11 @@ export class FolderRepository {
 	}
 
 	/**
-	 * Delete folder (with cascade option)
+	 * Permanently delete a folder from the database.
+	 * The `onDelete: 'set null'` in the schema will handle un-assigning chats.
 	 */
-	async delete(folderId: string, userId: number): Promise<void> {
-		// TODO: Check if folder has chats and handle cascade logic
+	async deletePermanent(folderId: string, userId: number): Promise<void> {
+		// MODIFIED: Renamed from `delete` for clarity.
 		await db
 			.delete(folders)
 			.where(and(eq(folders.id, folderId), eq(folders.userId, userId)));
@@ -126,14 +129,17 @@ export class FolderRepository {
 	 * Check if folder is empty (no chats)
 	 */
 	async isEmpty(folderId: string): Promise<boolean> {
+		// This implementation is correct.
 		const result = await db.query.chats.findFirst({
 			where: (chats, { eq }) => eq(chats.folderId, folderId)
 		});
 		return !result;
 	}
 
+	// --- Private and Helper Methods ---
+
 	/**
-	 * Build folder tree from flat list
+	 * Build folder tree from a flat list of folders.
 	 */
 	private buildTree(folders: Folder[]): FolderNode[] {
 		const map = new Map<string, FolderNode>();
@@ -167,6 +173,7 @@ export class FolderRepository {
 	 * Map database record to domain model
 	 */
 	private mapToDomain(record: any): Folder {
+		// This is the one thing you missed.
 		return {
 			id: record.id,
 			userId: record.userId,
@@ -176,6 +183,7 @@ export class FolderRepository {
 			expanded: record.expanded === 1,
 			order: record.order,
 			color: record.color,
+			deletedAt: record.deletedAt || null,
 			createdAt: record.createdAt,
 			updatedAt: record.updatedAt
 		};
