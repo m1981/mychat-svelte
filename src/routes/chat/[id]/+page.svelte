@@ -7,7 +7,9 @@
 	import ChatMessages from '$lib/components/chat/ChatMessages.svelte';
 	import NotesPanel from '$lib/components/chat/NotesPanel.svelte';
 	import HighlightsPanel from '$lib/components/chat/HighlightsPanel.svelte';
-	import type { Note, Highlight, Attachment } from '$lib/types/entities';
+	import type { Note } from '$lib/types/note';
+	import type { Highlight } from '$lib/types/highlight';
+	import type { Attachment } from '$lib/types/attachment';
 
 	// Access grouped stores via context
 	const chatStores = getContext<{ notes: Note[]; highlights: Highlight[]; attachments: Attachment[]; totalItems: number }>('chatStores');
