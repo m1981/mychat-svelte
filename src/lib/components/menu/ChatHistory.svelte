@@ -108,11 +108,8 @@
 
 			// Use enhanced store function (local-first)
 			await deleteChat(chat.id);
-
-			toast.success('Chat deleted successfully', {
-				duration: 2000
-			});
-
+			// REFACTOR: Direct call to toast store
+			toast.success('Chat deleted successfully', { duration: 2000 });
 			console.log(`✅ Deleted chat: ${chat.id}`);
 		} catch (error) {
 			console.error('Failed to delete chat:', error);
