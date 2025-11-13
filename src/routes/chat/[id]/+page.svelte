@@ -1,38 +1,31 @@
 <!-- src/routes/chat/[id]/+page.svelte -->
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { chats, updateChat } from '$lib/stores/chat.store';
+	import { chatStore } from '$lib/stores/chat.store';
 	import { goto } from '$app/navigation';
-	import { getContext } from 'svelte';
 	import ChatMessages from '$lib/components/chat/ChatMessages.svelte';
 	import NotesPanel from '$lib/components/chat/NotesPanel.svelte';
 	import HighlightsPanel from '$lib/components/chat/HighlightsPanel.svelte';
-	import type { Note } from '$lib/types/note';
-	import type { Highlight } from '$lib/types/highlight';
-	import type { Attachment } from '$lib/types/attachment';
-
-	// Access grouped stores via context
-	const chatStores = getContext<{ notes: Note[]; highlights: Highlight[]; attachments: Attachment[]; totalItems: number }>('chatStores');
 
 	const chatId = $derived($page.params.id);
-	const currentChat = $derived($chats.find((c) => c.id === chatId));
+
+	// ✅ Access state directly from the rune-based store
+	const currentChat = $derived(chatStore.state.chats.find((c) => c.id === chatId));
+
 	let activeTab = $state<'notes' | 'highlights'>('notes');
 	let isEditingTitle = $state(false);
 	let editedTitle = $state('');
 
-	const messageIds = $derived(
-		currentChat?.messages
-			?.map((_, idx) => idx + 1)
-			.filter((id) => id > 0) || []
-	);
-
+	// ✅ More robust redirect effect
 	$effect(() => {
-		const timer = setTimeout(() => {
-			if ($chats.length > 0 && !currentChat) {
-				goto('/');
+		// This effect runs whenever isLoaded or chatId changes.
+		if (chatStore.state.isLoaded) {
+			const chatExists = chatStore.state.chats.some((c) => c.id === chatId);
+			if (!chatExists) {
+				// Use a microtask to avoid navigation during component initialization
+				queueMicrotask(() => goto('/'));
 			}
-		}, 100);
-		return () => clearTimeout(timer);
+		}
 	});
 
 	function startEditingTitle() {
@@ -49,8 +42,8 @@
 		}
 
 		try {
-			// ✅ CORRECT: Use store function
-			await updateChat(currentChat.id, {
+			// ✅ Use refactored store function
+			await chatStore.updateChat(currentChat.id, {
 				title: editedTitle.trim()
 			});
 		} catch (error) {
@@ -110,7 +103,7 @@
 					aria-selected={activeTab === 'notes'}
 					onclick={() => (activeTab = 'notes')}
 				>
-					Notes ({$chatStores?.notes?.length || 0})
+					Notes
 				</button>
 				<button
 					role="tab"
@@ -118,22 +111,29 @@
 					aria-selected={activeTab === 'highlights'}
 					onclick={() => (activeTab = 'highlights')}
 				>
-					Highlights ({$chatStores?.highlights?.length || 0})
+					Highlights
 				</button>
 			</div>
 
 			<!-- Tab content -->
 			<div class="flex-1 overflow-hidden">
 				{#if activeTab === 'notes'}
-					<NotesPanel chatId={currentChat.id} />
+					<!-- ✅ Pass chatId directly. The component handles its own data. -->
+					<NotesPanel {chatId} />
 				{:else}
-					<HighlightsPanel chatId={currentChat.id} messageIds={messageIds} />
+					<!-- ✅ Pass chatId directly. The component handles its own data. -->
+					<HighlightsPanel {chatId} />
 				{/if}
 			</div>
 		</div>
 	</div>
 {:else}
+	<!-- This content will show while loading or if chat is not found -->
 	<div class="flex items-center justify-center h-full">
+		{#if !chatStore.state.isLoaded}
+			<p class="text-base-content/50">Loading chat...</p>
+		{:else}
 		<p class="text-base-content/50">Chat not found</p>
+		{/if}
 	</div>
 {/if}

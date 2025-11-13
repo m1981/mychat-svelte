@@ -1,39 +1,33 @@
 // src/lib/stores/note.store.ts
-import { writable } from 'svelte/store';
-import type { Note, CreateNoteDTO, UpdateNoteDTO } from '$lib/types/note';
+import { browser } from '$app/environment';
 import { localDB } from '$lib/services/local-db';
 import { syncService } from '$lib/services/sync.service';
-import { toast } from './toast.store';
-import { browser } from '$app/environment';
+import type { Note, CreateNoteDTO, UpdateNoteDTO } from '$lib/types/note';
 import { handleError } from '$lib/utils/error-handler';
+import { toast } from './toast.store';
 
-function createNoteStore() {
-	const { subscribe, set, update } = writable<Note[]>([]);
+/**
+ * Creates a dedicated, reactive note manager for a specific chat.
+ * This is NOT a singleton store. Each component instance gets its own manager.
+ * @param chatId The ID of the chat to manage notes for.
+ */
+export function createNoteManager(chatId: string) {
+	let notes = $state<Note[]>([]);
+	let isLoaded = $state(false);
 
-	async function _loadNotes(loader: Promise<Note[]>, errorMessage: string) {
+	async function load() {
 		if (!browser) return;
 		try {
-			const localNotes = await loader;
-			set(localNotes);
+			const localNotes = await localDB.getNotesByChatId(chatId);
+			notes = localNotes.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+			isLoaded = true;
 		} catch (error) {
-			handleError(error, errorMessage);
-			set([]);
+			handleError(error, 'Failed to load notes');
+			notes = [];
 		}
 	}
 
-	return {
-		subscribe,
-
-		/**
-		 * Load notes for a chat from the local database.
-		 */
-		loadByChatId: (chatId: string) =>
-			_loadNotes(localDB.getNotesByChatId(chatId), 'Failed to load notes from local DB'),
-
-		/**
-		 * Create a new note with a local-first approach.
-		 */
-		async create(data: CreateNoteDTO): Promise<Note | null> {
+	async function create(data: Omit<CreateNoteDTO, 'chatId'>): Promise<Note | null> {
 			if (!browser) return null;
 
 			const noteId = `note-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -41,18 +35,18 @@ function createNoteStore() {
 
 			const newNote: Note = {
 				id: noteId,
-				chatId: data.chatId,
+			chatId, // ChatId is from the factory function's scope
 				messageId: data.messageId,
 				type: data.type,
 				content: data.content,
-				tags: [], // Tags are handled server-side for now
+			tags: [],
 				createdAt: now,
 				updatedAt: now
 			};
 
 			try {
 				await localDB.saveNote(newNote);
-				update((current) => [...current, newNote]);
+			notes.push(newNote); // ✅ Rune-based mutation
 				syncService.queueOperation('CREATE', 'NOTE', noteId, newNote);
 				toast.success('Note created');
 				return newNote;
@@ -60,52 +54,51 @@ function createNoteStore() {
 				handleError(error, 'Failed to create note');
 				return null;
 			}
-		},
+	}
 
-		/**
-		 * Update a note with a local-first approach.
-		 */
-		async update(noteId: string, data: UpdateNoteDTO): Promise<void> {
-			if (!browser) return;
+	async function update(noteId: string, data: UpdateNoteDTO): Promise<void> {
+		const noteIndex = notes.findIndex((n) => n.id === noteId);
+		if (noteIndex === -1) {
+			handleError(new Error('Note not found for updating'), 'Failed to update note');
+			return;
+		}
+
+		const updatedNote: Note = { ...notes[noteIndex], ...data, updatedAt: new Date() };
 
 			try {
-				const note = await localDB.getNote(noteId);
-				if (!note) throw new Error('Note not found locally');
-
-				const updatedNote: Note = { ...note, ...data, updatedAt: new Date() };
-
 				await localDB.saveNote(updatedNote);
-				update((current) => current.map((n) => (n.id === noteId ? updatedNote : n)));
+			notes[noteIndex] = updatedNote; // ✅ Rune-based mutation
 				syncService.queueOperation('UPDATE', 'NOTE', noteId, data);
 				toast.success('Note updated');
 			} catch (error) {
 				handleError(error, 'Failed to update note');
 			}
-		},
+	}
 
-		/**
-		 * Delete a note with a local-first approach.
-		 */
-		async delete(noteId: string): Promise<void> {
-			if (!browser) return;
-
+	async function deleteNote(noteId: string): Promise<void> {
 			try {
 				await localDB.deleteNote(noteId);
-				update((current) => current.filter((n) => n.id !== noteId));
+			notes = notes.filter((n) => n.id !== noteId); // ✅ Rune-based mutation
 				syncService.queueOperation('DELETE', 'NOTE', noteId, null);
 				toast.success('Note deleted');
 			} catch (error) {
 				handleError(error, 'Failed to delete note');
 			}
-		},
+	}
 
-		/**
-		 * Clear all notes from the store.
-		 */
-		clear(): void {
-			set([]);
-		}
+	// Initial load when the manager is created
+	load();
+
+	// Public API for the component to use
+	return {
+		get notes() {
+			return notes;
+		},
+		get isLoaded() {
+			return isLoaded;
+		},
+		create,
+		update,
+		delete: deleteNote
 	};
 }
-
-export const notes = createNoteStore();

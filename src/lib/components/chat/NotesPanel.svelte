@@ -1,24 +1,22 @@
 <!-- src/lib/components/chat/NotesPanel.svelte -->
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { notes as noteStore } from '$lib/stores/note.store'; // CORRECTED IMPORT
+	import { createNoteManager } from '$lib/stores/note.store';
 	import type { Note } from '$lib/types/note';
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
 	import EditIcon from '$lib/components/icons/EditIcon.svelte';
 
 	let { chatId }: { chatId: string } = $props();
 
-	const notes = $derived(noteStore);
+	// ✅ Create a scoped, reactive note manager for this specific chat.
+	// It will automatically load its own data.
+	const noteManager = createNoteManager(chatId);
+	const notes = $derived(noteManager.notes);
 
 	let isEditing = $state(false);
 	let editingContent = $state('');
 	let editingType = $state<'SCRATCH' | 'SUMMARY' | 'TODO'>('SCRATCH');
 	let editingNoteId = $state<string | null>(null);
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-
-	onMount(() => {
-		noteStore.loadByChatId(chatId);
-	});
 
 	function createNote() {
 		isEditing = true;
@@ -31,13 +29,13 @@
 		if (!editingContent.trim()) return;
 
 			if (editingNoteId) {
-			await noteStore.update(editingNoteId, {
+			await noteManager.update(editingNoteId, {
 						content: editingContent,
 						type: editingType
 				});
 			} else {
-			await noteStore.create({
-						chatId,
+			// ✅ chatId is handled by the manager
+			await noteManager.create({
 						content: editingContent,
 						type: editingType
 				});
@@ -56,7 +54,7 @@
 
 	async function deleteNote(noteId: string) {
 		if (confirm('Are you sure you want to delete this note?')) {
-			await noteStore.delete(noteId);
+			await noteManager.delete(noteId);
 		}
 	}
 
@@ -81,7 +79,9 @@
 	</div>
 
 	<div class="flex-1 overflow-y-auto p-4" data-testid="notes-list">
-		{#if notes.length === 0 && !isEditing}
+		{#if !noteManager.isLoaded}
+			<p class="text-center text-base-content/50">Loading notes...</p>
+		{:else if notes.length === 0 && !isEditing}
 			<p class="text-center text-base-content/50">No notes yet</p>
 		{:else}
 			{#each notes as note (note.id)}
