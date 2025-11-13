@@ -6,7 +6,9 @@
   import { notes } from '$lib/stores/note.store';
   import { highlights } from '$lib/stores/highlight.store';
   import { attachments } from '$lib/stores/attachment.store';
-  import type { Note, Highlight, Attachment } from '$lib/types/entities';
+  import type { Note } from '$lib/types/note';
+  import type { Highlight } from '$lib/types/highlight';
+  import type { Attachment } from '$lib/types/attachment';
 
   // Derived store grouping chat-related state (notes, highlights, attachments)
   // Components can subscribe to this single context instead of importing multiple stores
