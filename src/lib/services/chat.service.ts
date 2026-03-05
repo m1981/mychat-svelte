@@ -2,7 +2,7 @@
 import { api } from '$lib/api/client'; // We'll need to adapt this for streaming
 import { chats, generating, currentChatIndex } from '$lib/stores/chat.store';
 import { get } from 'svelte/store';
-import type { Message } from '$lib/types/chat';
+import type { Message } from '$lib/types/models';
 
 export async function generateResponse() {
     const allChats = get(chats);

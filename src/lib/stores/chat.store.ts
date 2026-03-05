@@ -1,12 +1,12 @@
 import { writable } from 'svelte/store';
-import type { Chat, FolderCollection } from '$lib/types/chat';
+import type { Chat, FolderCollection } from '$lib/types/models';
 
 // Sample data for demonstration purposes
 const sampleChats: Chat[] = [
-	{ id: 'chat-1', title: 'New Chat 1', folder: 'folder-1', messages: [], config: { provider: 'anthropic', modelConfig: { model: 'claude-3-7-sonnet-20250219', max_tokens: 4096, temperature: 0.7, top_p: 1, presence_penalty: 0, frequency_penalty: 0 } } },
-	{ id: 'chat-2', title: 'New Chat 2', folder: 'folder-2', messages: [], config: { provider: 'anthropic', modelConfig: { model: 'claude-3-7-sonnet-20250219', max_tokens: 4096, temperature: 0.7, top_p: 1, presence_penalty: 0, frequency_penalty: 0 } } },
-	{ id: 'chat-3', title: 'New Chat 3', folder: 'folder-2', messages: [], config: { provider: 'anthropic', modelConfig: { model: 'claude-3-7-sonnet-20250219', max_tokens: 4096, temperature: 0.7, top_p: 1, presence_penalty: 0, frequency_penalty: 0 } } },
-	{ id: 'chat-4', title: 'New Chat 4', folder: 'folder-3', messages: [], config: { provider: 'anthropic', modelConfig: { model: 'claude-3-7-sonnet-20250219', max_tokens: 4096, temperature: 0.7, top_p: 1, presence_penalty: 0, frequency_penalty: 0 } } },
+	{ id: 'chat-1', title: 'New Chat 1', folderId: 'folder-1', messages: [], config: { provider: 'anthropic', modelConfig: { model: 'claude-3-7-sonnet-20250219', max_tokens: 4096, temperature: 0.7, top_p: 1, presence_penalty: 0, frequency_penalty: 0 } } },
+	{ id: 'chat-2', title: 'New Chat 2', folderId: 'folder-2', messages: [], config: { provider: 'anthropic', modelConfig: { model: 'claude-3-7-sonnet-20250219', max_tokens: 4096, temperature: 0.7, top_p: 1, presence_penalty: 0, frequency_penalty: 0 } } },
+	{ id: 'chat-3', title: 'New Chat 3', folderId: 'folder-2', messages: [], config: { provider: 'anthropic', modelConfig: { model: 'claude-3-7-sonnet-20250219', max_tokens: 4096, temperature: 0.7, top_p: 1, presence_penalty: 0, frequency_penalty: 0 } } },
+	{ id: 'chat-4', title: 'New Chat 4', folderId: 'folder-3', messages: [], config: { provider: 'anthropic', modelConfig: { model: 'claude-3-7-sonnet-20250219', max_tokens: 4096, temperature: 0.7, top_p: 1, presence_penalty: 0, frequency_penalty: 0 } } },
 ];
 
 const sampleFolders: FolderCollection = {

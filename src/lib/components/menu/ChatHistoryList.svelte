@@ -1,7 +1,7 @@
 <!-- src/lib/components/menu/ChatHistoryList.svelte -->
 <script lang="ts">
 	import { chats, folders } from '$lib/stores/chat.store';
-	import type { Chat, Folder, FolderCollection } from '$lib/types/chat';
+	import type { Chat, Folder, FolderCollection } from '$lib/types/models';
 	import ChatFolder from './ChatFolder.svelte';
 	import ChatHistory from './ChatHistory.svelte';
 	import { dndzone } from 'svelte-dnd-action';
@@ -9,7 +9,8 @@
 
 	let { searchFilter }: { searchFilter: string } = $props();
 
-	type DraggableItem = (Chat & { type: 'chat' }) | (Folder & { type: 'folder' });
+	// Use 'dndType' as discriminant to avoid conflict with Folder.type ('STANDARD'|'ARCHIVE'|'FAVORITE')
+	type DraggableItem = (Chat & { dndType: 'chat' }) | (Folder & { dndType: 'folder' });
 
 	// ✅ CORRECT: Create derived state from store values at top level
 	const allChats = $derived($chats);
@@ -22,13 +23,13 @@
 		const sortedFolders: Folder[] = Object.values(allFolders).sort((a, b) => a.order - b.order);
 
 		sortedFolders.forEach((folder) => {
-			items.push({ ...folder, type: 'folder' });
-			const folderChats = allChats.filter((chat) => chat.folder === folder.id);
-			folderChats.forEach((chat) => items.push({ ...chat, type: 'chat' }));
+			items.push({ ...folder, dndType: 'folder' });
+			const folderChats = allChats.filter((chat) => chat.folderId === folder.id);
+			folderChats.forEach((chat) => items.push({ ...chat, dndType: 'chat' }));
 		});
 
-		const unorganizedChats = allChats.filter((chat) => !chat.folder);
-		unorganizedChats.forEach((chat) => items.push({ ...chat, type: 'chat' }));
+		const unorganizedChats = allChats.filter((chat) => !chat.folderId);
+		unorganizedChats.forEach((chat) => items.push({ ...chat, dndType: 'chat' }));
 		return items;
 	});
 
@@ -36,7 +37,7 @@
 	const filteredRenderList = $derived(
 		draggableItems.filter(
 			(item) =>
-				item.type === 'folder' ||
+				item.dndType === 'folder' ||
 				item.title.toLowerCase().includes(searchFilter.toLowerCase())
 		)
 	);
@@ -50,7 +51,7 @@
 		let folderOrder = 0;
 
 		newOrderedItems.forEach((item) => {
-			if (item.type === 'folder') {
+			if (item.dndType === 'folder') {
 				currentFolderId = item.id;
 				newFolders[item.id] = {
 					id: item.id,
@@ -59,13 +60,13 @@
 					order: folderOrder++,
 					color: item.color
 				};
-			} else if (item.type === 'chat') {
+			} else if (item.dndType === 'chat') {
 				newChats.push({
 					id: item.id,
 					title: item.title,
 					messages: item.messages,
 					config: item.config,
-					folder: currentFolderId
+					folderId: currentFolderId
 				});
 			}
 		});
@@ -84,11 +85,11 @@
 	{#each filteredRenderList as item (item.id)}
 		<!-- Remove flip animation - it conflicts with dndzone's internal animations -->
 		<div>
-			{#if item.type === 'folder'}
-				{@const folderChats = allChats.filter((c) => c.folder === item.id)}
+			{#if item.dndType === 'folder'}
+				{@const folderChats = allChats.filter((c) => c.folderId === item.id)}
 				<!-- ✅ CORRECT: Pass allChats as a prop -->
 				<ChatFolder folder={item} {folderChats} chats={allChats} />
-			{:else if !item.folder}
+			{:else if item.dndType === 'chat' && !item.folderId}
 				<!-- ✅ CORRECT: Calculate index from derived allChats -->
 				{@const chatIndex = allChats.findIndex((c) => c.id === item.id)}
 					<ChatHistory chat={item} index={chatIndex} />

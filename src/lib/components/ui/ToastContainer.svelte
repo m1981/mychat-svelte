@@ -3,8 +3,8 @@
 	import { toast } from '$lib/stores/toast.store';
 	import Toast from './Toast.svelte';
 
-	// Position options: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center'
-	let { position = 'top-right' }: { position?: string } = $props();
+	type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center';
+	let { position = 'top-right' }: { position?: ToastPosition } = $props();
 
 	const positionClasses = {
 		'top-right': 'top-4 right-4',

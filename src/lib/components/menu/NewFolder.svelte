@@ -5,7 +5,7 @@
 	import { toast } from '$lib/stores/toast.store';
 	import { withErrorHandling } from '$lib/utils/error-handler';
 	import { tick } from 'svelte';
-	import type { Folder, FolderCollection } from '$lib/types/chat';
+	import type { Folder, FolderCollection } from '$lib/types/models';
 
 	let isCreating = $state(false);
 
