@@ -7,7 +7,6 @@
 	import ColorPaletteIcon from '$lib/components/icons/ColorPaletteIcon.svelte';
 	import EditIcon from '$lib/components/icons/EditIcon.svelte';
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
-	import { folders } from '$lib/stores/chat.store';
 
 	let {
 		folder,
@@ -20,14 +19,10 @@
 	} = $props();
 
 	let hovered = $state(false);
+	let expanded = $state(true); // UI State
 
 	function toggleExpanded() {
-		folders.update((allFolders) => {
-			if (allFolders[folder.id]) {
-			allFolders[folder.id].expanded = !allFolders[folder.id].expanded;
-			}
-			return allFolders;
-		});
+		expanded = !expanded;
 	}
 </script>
 
@@ -86,7 +81,8 @@
 		</div>
 	</div>
 
-	{#if folder.expanded}
+	<!-- CHANGED: folder.expanded to just expanded -->
+	{#if expanded}
 		<div class="folder-content">
 			<NewChat folder={folder.id} showOnHover={hovered} />
 			<div class="folder-droppable-area">

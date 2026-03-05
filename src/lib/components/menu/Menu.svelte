@@ -1,6 +1,6 @@
 <!-- src/lib/components/menu/Menu.svelte -->
 <script lang="ts">
-	import { hideSideMenu } from '$lib/stores/ui.store';
+	import { app } from '$lib/state/app.svelte';
 	import SidebarIcon from '$lib/components/icons/SidebarIcon.svelte';
 	import NewChat from './NewChat.svelte';
 	import NewFolder from './NewFolder.svelte';
@@ -18,13 +18,9 @@
 		<!-- Header with hamburger menu -->
 		<div class="flex items-center justify-between p-3 border-b border-base-content/10">
 			<h2 class="text-sm font-medium text-base-content/70">Chat History</h2>
-			<button
-				class="sidebar-toggle-btn"
-				onclick={() => hideSideMenu.set(true)}
-				title="Close sidebar"
-			>
-				<SidebarIcon class="w-5 h-5" />
-			</button>
+                <button class="sidebar-toggle-btn" onclick={() => app.isSidebarOpen = false} title="Close sidebar">
+                    <SidebarIcon class="w-5 h-5" />
+                </button>
 		</div>
 
 		<!-- Action buttons -->

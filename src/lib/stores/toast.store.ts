@@ -1,5 +1,4 @@
-import { writable } from 'svelte/store';
-
+// File: src/lib/stores/toast.store.ts
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface Toast {
@@ -17,16 +16,15 @@ interface ToastOptions {
 	dismissible?: boolean;
 }
 
-// Store for active toasts
-function createToastStore() {
-	const { subscribe, update } = writable<Toast[]>([]);
+class ToastState {
+	toasts = $state<Toast[]>([]);
 
-	// Generate unique ID for each toast
-	const generateId = () => `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+	private generateId() {
+		return `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+	}
 
-	// Add a toast to the queue
-	function addToast(type: ToastType, message: string, options: ToastOptions = {}) {
-		const id = generateId();
+	addToast(type: ToastType, message: string, options: ToastOptions = {}) {
+		const id = this.generateId();
 		const toast: Toast = {
 			id,
 			type,
@@ -36,88 +34,40 @@ function createToastStore() {
 			dismissible: options.dismissible ?? true
 		};
 
-		update((toasts) => [...toasts, toast]);
+		this.toasts.push(toast);
 
-		// Auto-dismiss after duration
 		if (toast.duration && toast.duration > 0) {
 			setTimeout(() => {
-				dismissToast(id);
+				this.dismiss(id);
 			}, toast.duration);
 		}
 
 		return id;
 	}
 
-	// Remove a toast by ID
-	function dismissToast(id: string) {
-		update((toasts) => toasts.filter((t) => t.id !== id));
+	dismiss(id: string) {
+		this.toasts = this.toasts.filter((t) => t.id !== id);
 	}
 
-	// Clear all toasts
-	function clearAll() {
-		update(() => []);
+	clear() {
+		this.toasts = [];
 	}
 
-	// Convenience methods for each type
-	function success(message: string, options?: ToastOptions) {
-		return addToast('success', message, options);
+	success(message: string, options?: ToastOptions) {
+		return this.addToast('success', message, options);
 	}
 
-	function error(message: string, options?: ToastOptions) {
-		return addToast('error', message, { ...options, duration: options?.duration ?? 5000 });
+	error(message: string, options?: ToastOptions) {
+		return this.addToast('error', message, { ...options, duration: options?.duration ?? 5000 });
 	}
 
-	function warning(message: string, options?: ToastOptions) {
-		return addToast('warning', message, options);
+	warning(message: string, options?: ToastOptions) {
+		return this.addToast('warning', message, options);
 	}
 
-	function info(message: string, options?: ToastOptions) {
-		return addToast('info', message, options);
+	info(message: string, options?: ToastOptions) {
+		return this.addToast('info', message, options);
 	}
-
-	// Promise-based helper for async operations
-	async function promise<T>(
-		promise: Promise<T>,
-		messages: {
-			loading: string;
-			success: string | ((data: T) => string);
-			error: string | ((error: Error) => string);
-		}
-	): Promise<T> {
-		const loadingId = info(messages.loading, { duration: 0, dismissible: false });
-
-		try {
-			const data = await promise;
-			dismissToast(loadingId);
-
-			const successMsg =
-				typeof messages.success === 'function' ? messages.success(data) : messages.success;
-			success(successMsg);
-
-			return data;
-		} catch (err) {
-			dismissToast(loadingId);
-
-			const errorMsg =
-				typeof messages.error === 'function'
-					? messages.error(err as Error)
-					: messages.error;
-			error(errorMsg);
-
-			throw err;
-		}
-	}
-
-	return {
-		subscribe,
-		success,
-		error,
-		warning,
-		info,
-		dismiss: dismissToast,
-		clear: clearAll,
-		promise
-	};
 }
 
-export const toast = createToastStore();
+export const toast = new ToastState();

@@ -16,12 +16,9 @@
 	};
 </script>
 
-<div
-	class="toast toast-end {positionClasses[position] || positionClasses['top-right']} z-[9999]"
-	aria-live="polite"
-	aria-atomic="true"
->
-	{#each $toast as toastItem (toastItem.id)}
+<div class="toast toast-end {positionClasses[position] || positionClasses['top-right']} z-[9999]">
+	<!-- REMOVED the $ from toast -->
+	{#each toast.toasts as toastItem (toastItem.id)}
 		<Toast {toastItem} />
 	{/each}
 </div>
