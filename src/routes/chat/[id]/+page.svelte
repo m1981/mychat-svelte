@@ -1,52 +1,80 @@
 <!-- File: src/routes/chat/[id]/+page.svelte -->
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { chats } from '$lib/stores/chat.store';
+	import { app } from '$lib/state/app.svelte';
 	import { goto } from '$app/navigation';
-	import { streamingService } from '$lib/services/streaming.service';
+	import { Chat } from '@ai-sdk/svelte';
+	import { DefaultChatTransport } from 'ai';
+	import MessageComposer from '$lib/components/layout/MessageComposer.svelte';
 
-	let { data } = $props(); // Get the messages from +page.server.ts
-
+	let { data } = $props();
 	const chatId = $derived($page.params.id);
-	const currentChatMetadata = $derived($chats.find((c) => c.id === chatId));
+	const currentChatMetadata = $derived(app.chats.find((c) => c.id === chatId));
 
-	// Combine the metadata from the store with the messages from the server
-	const currentChat = $derived(currentChatMetadata ? {
-		...currentChatMetadata,
-		messages: data.messages // Inject the loaded messages
-	} : null);
+	let chatInstance = $state(new Chat({
+		transport: new DefaultChatTransport({ api: `/api/chat/${$page.params.id}` }),
+		messages: data.messages
+	}));
 
 	$effect(() => {
-		const timer = setTimeout(() => {
-			if ($chats.length > 0 && !currentChat) {
-				goto('/');
-			}
-		}, 100);
-		return () => clearTimeout(timer);
+		chatInstance = new Chat({
+			transport: new DefaultChatTransport({ api: `/api/chat/${chatId}` }),
+			messages: data.messages
+		});
+	});
+
+	$effect(() => {
+		app.activeChatId = chatId || null;
+		if (app.chats.length > 0 && !currentChatMetadata) {
+			goto('/');
+		}
 	});
 </script>
 
-{#if currentChat}
-	<div class="p-4">
-		<h1 class="text-2xl font-bold mb-4">{currentChat.title}</h1>
+{#if currentChatMetadata}
+	<div class="flex flex-col h-full">
+		<div class="p-4 border-b border-base-300">
+			<h1 class="text-xl font-bold">{currentChatMetadata.title}</h1>
+		</div>
 
-		{#if currentChat.messages.length === 0}
-			<div class="text-center text-base-content/50 mt-12">
-				<p>No messages yet. Start the conversation!</p>
-			</div>
-		{:else}
-			<div class="space-y-4">
-				{#each currentChat.messages as message}
-					<div class="chat" class:chat-start={message.role === 'user'} class:chat-end={message.role === 'assistant'}>
+		<div class="flex-1 overflow-y-auto p-4 space-y-4">
+			<!-- 🟢 FIX 2: Use chatInstance.messages everywhere -->
+			{#if chatInstance.messages.length === 0}
+				<div class="text-center text-base-content/50 mt-12">
+					<p>No messages yet. Start the conversation!</p>
+				</div>
+			{:else}
+				{#each chatInstance.messages as message}
+					<div class="chat {message.role === 'user' ? 'chat-end' : 'chat-start'}">
 						<div class="chat-bubble">
-							{message.content}
-							{#if message.role === 'assistant' && $streamingService.isActive && $streamingService.activeChatId === currentChat.id && currentChat.messages.at(-1) === message}
-								<span class="loading loading-dots loading-xs ml-1"></span>
-							{/if}
+							<!-- In v5, text is inside the parts array -->
+							{#each message.parts as part}
+								{#if part.type === 'text'}
+									{part.text}
+								{/if}
+							{/each}
 						</div>
 					</div>
 				{/each}
-			</div>
-		{/if}
+
+				<!-- 🟢 FIX 3: Use chatInstance.status and chatInstance.messages -->
+				{#if chatInstance.status === 'streaming' && chatInstance.messages[chatInstance.messages.length - 1]?.role === 'user'}
+					<div class="chat chat-start">
+						<div class="chat-bubble">
+							<span class="loading loading-dots loading-sm"></span>
+						</div>
+					</div>
+				{/if}
+			{/if}
+		</div>
+
+		<!-- Pass SDK stores to the composer -->
+		<div class="p-4 bg-base-200 border-t border-base-300">
+			<!-- 🟢 FIX 4: Pass chatInstance methods and properties explicitly -->
+			<MessageComposer
+				sendMessage={(msg) => chatInstance.sendMessage(msg)}
+				status={chatInstance.status}
+			/>
+		</div>
 	</div>
 {/if}

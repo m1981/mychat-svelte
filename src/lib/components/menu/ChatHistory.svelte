@@ -5,9 +5,8 @@
 	import { goto } from '$app/navigation';
 	import EditIcon from '$lib/components/icons/EditIcon.svelte';
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
-	import { chats } from '$lib/stores/chat.store';
+	import { app } from '$lib/state/app.svelte';
 	import { toast } from '$lib/stores/toast.store';
-	import { withErrorHandling, handleError } from '$lib/utils/error-handler';
 	import { tick } from 'svelte';
 
 	let { chat, index }: { chat: Chat; index: number } = $props();
@@ -18,127 +17,48 @@
 	let inputElement: HTMLInputElement | undefined = $state();
 	let isDeleting = $state(false);
 
-	// Check if this chat is active based on the current route
 	const isActive = $derived($page.url.pathname.endsWith(chat.id));
 
 	function navigateToChat() {
-		if (!isRenaming) {
-			goto(`/chat/${chat.id}`).catch((error) => {
-				handleError(error, 'Failed to navigate to chat');
-			});
-	}
+		if (!isRenaming && !isDeleting) goto(`/chat/${chat.id}`);
 	}
 
 	async function startRename(e: Event) {
 		e.stopPropagation();
 		isRenaming = true;
 		editedTitle = chat.title;
-
-		// Focus manually after DOM update (better than autofocus for a11y)
 		await tick();
 		inputElement?.focus();
 		inputElement?.select();
 	}
 
-	async function handleRename() {
-		if (!editedTitle.trim()) {
-			toast.warning('Chat title cannot be empty');
-			editedTitle = chat.title;
-			isRenaming = false;
-			return;
-		}
-
-		if (editedTitle.trim() === chat.title) {
-			isRenaming = false;
-			return;
-		}
-
-		await withErrorHandling(
-			async () => {
-			chats.update((allChats) => {
-				const updatedChats = [...allChats];
-				const chatIndex = updatedChats.findIndex((c) => c.id === chat.id);
-				if (chatIndex !== -1) {
-					updatedChats[chatIndex] = {
-						...updatedChats[chatIndex],
-						title: editedTitle.trim()
-					};
-				}
-				return updatedChats;
-			});
-
-				toast.success('Chat renamed successfully', {
-					duration: 2000
-				});
-
-			console.log(`✅ Renamed chat ${chat.id} to: ${editedTitle}`);
-			},
-			{
-				errorMessage: 'Failed to rename chat',
-				showToast: true
-		}
-		);
-
-		isRenaming = false;
-	}
-
-	function cancelRename() {
-		isRenaming = false;
-		editedTitle = chat.title;
-	}
-
-	async function handleDelete(e: Event) {
-		e.stopPropagation();
-
-		// Show confirmation dialog
-		if (!confirm(`Delete "${chat.title}"?`)) {
-			return;
-		}
-
-		isDeleting = true;
-
-		await withErrorHandling(
-			async () => {
-		chats.update((allChats) => {
-			const updatedChats = allChats.filter((c) => c.id !== chat.id);
-
-			// If we're deleting the currently active chat, navigate away
-			if (isActive && updatedChats.length > 0) {
-				// Navigate to the previous chat, or the first one if we deleted the first
-				const newIndex = Math.max(0, index - 1);
-						goto(`/chat/${updatedChats[newIndex].id}`).catch((error) => {
-							handleError(error, 'Failed to navigate after deletion');
-						});
-			} else if (updatedChats.length === 0) {
-				// No chats left, go to home
-						goto('/').catch((error) => {
-							handleError(error, 'Failed to navigate to home');
-						});
+	function handleRename() {
+		if (editedTitle.trim() && editedTitle !== chat.title) {
+			const chatIndex = app.chats.findIndex(c => c.id === chat.id);
+			if (chatIndex !== -1) {
+				app.chats[chatIndex].title = editedTitle.trim();
+				toast.success('Chat renamed');
 			}
-
-			return updatedChats;
-		});
-
-				toast.success('Chat deleted successfully', {
-					duration: 2000
-				});
-
-		console.log(`✅ Deleted chat: ${chat.id}`);
-			},
-			{
-				errorMessage: 'Failed to delete chat',
-				showToast: true
-			}
-		);
-
-		isDeleting = false;
+		}
+		isRenaming = false;
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
 			handleRename();
 		} else if (e.key === 'Escape') {
-			cancelRename();
+			isRenaming = false;
+			editedTitle = chat.title;
+		}
+	}
+
+	function handleDelete(e: Event) {
+		e.stopPropagation();
+		if (confirm(`Delete "${chat.title}"?`)) {
+			isDeleting = true;
+			app.chats = app.chats.filter(c => c.id !== chat.id);
+			toast.success('Chat deleted');
+			if (isActive) goto('/');
 		}
 	}
 </script>

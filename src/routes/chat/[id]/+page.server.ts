@@ -3,7 +3,6 @@ import { db } from '$lib/server/db';
 import { messages as messagesTable } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
-import type { Message } from '$lib/types/models';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const chatId = params.id;
@@ -14,9 +13,11 @@ export const load: PageServerLoad = async ({ params }) => {
 		orderBy: (messages, { asc }) => [asc(messages.createdAt)]
 	});
 
-	const messages: Message[] = dbMessages.map((m) => ({
-		...m,
-		id: String(m.id)
+	// Map to AI SDK v5 UIMessage format
+	const messages = dbMessages.map((m) => ({
+		id: String(m.id),
+		role: m.role as 'user' | 'assistant' | 'system',
+		parts: [{ type: 'text' as const, text: m.content }]
 	}));
 
 	return {
