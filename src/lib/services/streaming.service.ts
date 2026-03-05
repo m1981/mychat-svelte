@@ -1,6 +1,6 @@
 import { handleError } from '$lib/utils/error-handler';
 import { chats } from '$lib/stores/chat.store';
-import type { Chat } from '$lib/types/chat';
+import type { Chat, Message } from '$lib/types/models';
 import { writable, get } from 'svelte/store';
 
 function createStreamingStore() {

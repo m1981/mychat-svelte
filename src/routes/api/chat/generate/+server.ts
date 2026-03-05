@@ -1,54 +1,28 @@
+// File: src/routes/api/chat/generate/+server.ts
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { getAIProvider } from '$lib/server/ai/providers';
+import { chatServerService } from '$lib/server/services/chat.server.service';
 import { AppError } from '$lib/utils/error-handler';
-import type { Chat } from '$lib/types/chat';
-import { db } from '$lib/server/db';
-import { chats, messages as messagesTable } from '$lib/server/db/schema';
+import type { ChatWithRelations } from '$lib/types/models';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
-		// --- The request body is the full Chat object ---
-		const body = (await request.json()) as Chat;
+		const body = (await request.json()) as ChatWithRelations;
 
-		// 1. --- Validate Input ---
+		// Basic HTTP Validation
 		if (!body || !body.id || !body.messages || !body.config) {
 			throw new AppError('Invalid request body', 'VALIDATION_ERROR', 400);
 		}
-		const userPrompt = body.messages.at(-1);
-		if (!userPrompt || userPrompt.role !== 'user') {
-			throw new AppError('No user prompt found', 'VALIDATION_ERROR', 400);
-		}
 
-		// 2. --- Persist User's Prompt and Upsert Chat ---
-		await db.insert(chats)
-			.values({
-				id: body.id,
-				title: body.title,
-				config: body.config,
-				folder: body.folder
-			})
-			.onConflictDoUpdate({
-				target: chats.id,
-				set: { title: body.title, config: body.config, folder: body.folder }
-			});
+		// TODO: Get actual user ID from session/locals (e.g., locals.user.id)
+		const userId = 1;
 
-		await db.insert(messagesTable).values({
-			chatId: body.id,
-			role: userPrompt.role,
-			content: userPrompt.content
-		});
+		// Delegate all business logic to the Service Layer
+		const stream = await chatServerService.processChatGeneration(body, userId);
 
-		// 3. --- Delegate to the Correct AI Provider ---
-		const { provider } = body.config;
-		const aiProvider = getAIProvider(provider);
-
-		// --- FIX: Pass arguments in the correct order: (chatId, messages, modelConfig) ---
-		const stream = await aiProvider.generate(body.id, body.messages, body.config.modelConfig);
-
-		// 4. --- Return Stream to Client ---
+		// Return the HTTP Response
 		return new Response(stream, {
 			headers: {
-				'Content-Type': 'application/x-ndjson', // Use x-ndjson for newline delimited JSON
+				'Content-Type': 'application/x-ndjson',
 				'Cache-Control': 'no-cache',
 				Connection: 'keep-alive'
 			}
@@ -58,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		console.error('API Error in /api/chat/generate:', error);
 		const statusCode = error instanceof AppError ? error.statusCode : 500;
 		const message = error instanceof Error ? error.message : 'Internal Server Error';
-		// --- Ensure the error response is valid JSON ---
-		return json({ message: message }, { status: statusCode || 500 });
+
+		return json({ message }, { status: statusCode || 500 });
 	}
 };

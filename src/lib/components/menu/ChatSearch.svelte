@@ -3,7 +3,7 @@
 	import { generating } from '$lib/stores/chat.store';
 	import CrossIcon from '$lib/components/icons/CrossIcon.svelte';
 
-	let { filter }: { filter: string } = $props();
+	let { filter = $bindable('') }: { filter: string } = $props();
 </script>
 
 <div class="relative h-8 mb-2">

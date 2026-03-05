@@ -1,6 +1,6 @@
 <!-- src/lib/components/menu/ChatFolder.svelte -->
 <script lang="ts">
-	import type { Chat, Folder } from '$lib/types/chat';
+	import type { Chat, Folder } from '$lib/types/models';
 	import ChatHistory from './ChatHistory.svelte';
 	import FolderIcon from '$lib/components/icons/FolderIcon.svelte';
 	import NewChat from './NewChat.svelte';

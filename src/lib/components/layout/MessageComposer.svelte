@@ -3,7 +3,7 @@
 	import { get } from 'svelte/store';
 	import { handleError } from '$lib/utils/error-handler';
 	import { streamingService } from '$lib/services/streaming.service';
-	import type { Message } from '$lib/types/chat';
+	import type { Message } from '$lib/types/models';
 
 	let prompt = $state('');
 

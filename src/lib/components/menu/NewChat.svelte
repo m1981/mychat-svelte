@@ -3,7 +3,7 @@
 	import PlusIcon from '$lib/components/icons/PlusIcon.svelte';
 	import { chats, generating } from '$lib/stores/chat.store';
 	import { goto } from '$app/navigation';
-	import type { Chat } from '$lib/types/chat';
+	import type { Chat } from '$lib/types/models';
 
 	let { folder, showOnHover = false }: { folder?: string; showOnHover?: boolean } = $props();
 	let hovered = $state(false);
@@ -33,14 +33,14 @@
 					frequency_penalty: 0
 				}
 			},
-			folder: folder // Will be undefined if creating at root level
+			folderId: folder // Will be undefined if creating at root level
 		};
 
 		// Add the new chat to the store
 		chats.update((currentChats) => {
 			// If folder is specified, add after other chats in that folder
 			if (folder) {
-				const folderChatIndex = currentChats.findLastIndex((c) => c.folder === folder);
+				const folderChatIndex = currentChats.findLastIndex((c) => c.folderId === folder);
 				if (folderChatIndex !== -1) {
 					const updatedChats = [...currentChats];
 					updatedChats.splice(folderChatIndex + 1, 0, newChat);

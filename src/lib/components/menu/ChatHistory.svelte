@@ -1,6 +1,6 @@
 <!-- src/lib/components/menu/ChatHistory.svelte -->
 <script lang="ts">
-	import type { Chat } from '$lib/types/chat';
+	import type { Chat } from '$lib/types/models';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import EditIcon from '$lib/components/icons/EditIcon.svelte';

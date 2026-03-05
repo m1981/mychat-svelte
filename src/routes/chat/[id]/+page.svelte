@@ -1,18 +1,26 @@
-<!-- src/routes/chat/[id]/+page.svelte -->
+<!-- File: src/routes/chat/[id]/+page.svelte -->
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { chats } from '$lib/stores/chat.store';
 	import { goto } from '$app/navigation';
 	import { streamingService } from '$lib/services/streaming.service';
 
+	let { data } = $props(); // Get the messages from +page.server.ts
+
 	const chatId = $derived($page.params.id);
-	const currentChat = $derived($chats.find((c) => c.id === chatId));
+	const currentChatMetadata = $derived($chats.find((c) => c.id === chatId));
+
+	// Combine the metadata from the store with the messages from the server
+	const currentChat = $derived(currentChatMetadata ? {
+		...currentChatMetadata,
+		messages: data.messages // Inject the loaded messages
+	} : null);
 
 	$effect(() => {
 		const timer = setTimeout(() => {
 			if ($chats.length > 0 && !currentChat) {
-			goto('/');
-		}
+				goto('/');
+			}
 		}, 100);
 		return () => clearTimeout(timer);
 	});
@@ -32,17 +40,13 @@
 					<div class="chat" class:chat-start={message.role === 'user'} class:chat-end={message.role === 'assistant'}>
 						<div class="chat-bubble">
 							{message.content}
-							<!-- Add a subtle typing indicator to the last assistant message while streaming -->
 							{#if message.role === 'assistant' && $streamingService.isActive && $streamingService.activeChatId === currentChat.id && currentChat.messages.at(-1) === message}
 								<span class="loading loading-dots loading-xs ml-1"></span>
 							{/if}
 						</div>
 					</div>
 				{/each}
-				<!-- --- REMOVE THE SEPARATE STREAMING BLOCK --- -->
-	</div>
+			</div>
 		{/if}
 	</div>
-{:else}
-	<!-- ... -->
 {/if}

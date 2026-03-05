@@ -1,11 +1,9 @@
-// src/lib/server/ai/providers/anthropic.ts
+// File: src/lib/server/ai/providers/anthropic.ts
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '$env/dynamic/private';
 import type { AIProvider } from './index';
-import type { ChatConfig, Message } from '$lib/types/chat';
+import type { ChatConfig, Message } from '$lib/types/models';
 import { AppError } from '$lib/utils/error-handler';
-import { db } from '$lib/server/db';
-import { messages as messagesTable } from '$lib/server/db/schema';
 
 export class AnthropicProvider implements AIProvider {
 	private anthropic: Anthropic;
@@ -20,11 +18,10 @@ export class AnthropicProvider implements AIProvider {
 	private formatMessages(messages: Message[]): Anthropic.Messages.MessageParam[] {
 		return messages
 			.filter((msg) => msg.role === 'user' || msg.role === 'assistant')
-			.map((msg) => ({ role: msg.role, content: msg.content }));
+			.map((msg) => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
 	}
 
-	async generate(
-		chatId: string,
+	async generateStream(
 		messages: Message[],
 		config: ChatConfig['modelConfig']
 	): Promise<ReadableStream> {
@@ -35,40 +32,22 @@ export class AnthropicProvider implements AIProvider {
 			temperature: config.temperature
 		});
 
-		let finalContent = '';
-		// --- FIX: Correctly adapt the Anthropic stream to a ReadableStream ---
-		const readableStream = new ReadableStream({
+		return new ReadableStream({
 			async start(controller) {
 				for await (const chunk of anthropicStream) {
 					if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
 						const content = chunk.delta.text;
 						if (content) {
-						finalContent += content;
 							const jsonChunk = JSON.stringify({ type: 'chunk', content });
-						controller.enqueue(new TextEncoder().encode(jsonChunk + '\n'));
-					}
+							controller.enqueue(new TextEncoder().encode(jsonChunk + '\n'));
 						}
-				}
-				// When the loop finishes, the stream is done. Persist the final message.
-				if (finalContent) {
-					try {
-						await db.insert(messagesTable).values({
-							chatId: chatId,
-							role: 'assistant',
-							content: finalContent
-						});
-						console.log(`✅ [AnthropicProvider] Persisted assistant response for chat ${chatId}`);
-					} catch (err) {
-						console.error(`🚨 [AnthropicProvider] Failed to persist AI response for chat ${chatId}:`, err);
 					}
 				}
 				controller.close();
 			},
 			cancel() {
-				console.log('Stream cancelled by client.');
+				console.log('Anthropic Stream cancelled by client.');
 			}
 		});
-
-		return readableStream;
 	}
 }
