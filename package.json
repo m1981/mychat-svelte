@@ -48,10 +48,13 @@
 		"vitest-browser-svelte": "^0.1.0"
 	},
 	"dependencies": {
-		"@anthropic-ai/sdk": "^0.68.0",
-		"openai": "^6.7.0",
+		"@ai-sdk/anthropic": "^3.0.58",
+		"@ai-sdk/openai": "^3.0.41",
+		"@ai-sdk/svelte": "^4.0.116",
+		"@paralleldrive/cuid2": "^3.3.0",
+		"ai": "^6.0.116",
 		"postgres": "^3.4.5",
-		"svelte-dnd-action": "^0.9.65"
+		"svelte-dnd-action": "^0.9.69"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
