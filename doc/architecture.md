@@ -682,7 +682,7 @@ typescript// src/lib/server/services/search.service.ts
 import { db } from '$lib/server/db';
 import { chats, messages, chatTags, messageTags, tags } from '$lib/server/db/schema';
 import { eq, and, or, like, sql, inArray } from 'drizzle-orm';
-import type { SearchQuery, SearchResult } from '$lib/types/chat';
+import type { SearchQuery, SearchResult } from '$lib/types/models';
 
 export class SearchService {
   /**
@@ -899,7 +899,7 @@ svelte<!-- src/lib/components/layout/MessageComposer.svelte -->
 	import { get } from 'svelte/store';
 	import { handleError } from '$lib/utils/error-handler';
 	import { streamingService } from '$lib/services/streaming.service';
-	import type { Message, Reference } from '$lib/types/chat';
+	import type { Message, Reference } from '$lib/types/models';
 	import ReferenceChip from '$lib/components/chat/ReferenceChip.svelte';
 	import CrossIcon from '$lib/components/icons/CrossIcon.svelte';
 

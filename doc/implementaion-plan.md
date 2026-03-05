@@ -446,7 +446,7 @@ export function generateId(prefix: string): string {
 import { db } from '$lib/server/db';
 import { chats, messages, chatTags, tags } from '$lib/server/db/schema';
 import { eq, and, desc, asc, inArray, like } from 'drizzle-orm';
-import type { Chat, Message, ChatConfig, ChatMetadata } from '$lib/types/chat';
+import type { Chat, Message, ChatConfig, ChatMetadata } from '$lib/types/models';
 import { generateId } from './base.repository';
 
 export interface CreateChatDTO {
@@ -1054,7 +1054,7 @@ export const highlightRepository = new HighlightRepository();
 
 import { chatRepository } from '$lib/server/repositories/chat.repository';
 import { getAIProvider } from '$lib/server/ai/providers';
-import type { Chat, ChatConfig, Reference } from '$lib/types/chat';
+import type { Chat, ChatConfig, Reference } from '$lib/types/models';
 import type { CreateChatDTO, UpdateChatDTO } from '$lib/server/repositories/chat.repository';
 
 export class ChatService {
@@ -2331,7 +2331,7 @@ export const showSecondaryPanel = writable(true);
 ```svelte
 <!-- src/lib/components/chat/MessageItem.svelte -->
 <script lang="ts">
-	import type { Message, Highlight } from '$lib/types/chat';
+	import type { Message, Highlight } from '$lib/types/models';
 	import { highlights as highlightStore } from '$lib/stores/highlight.store';
 	import { toast } from '$lib/stores/toast.store';
 
