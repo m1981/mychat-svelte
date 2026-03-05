@@ -4,6 +4,12 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+
+	// 🟢 ADD THIS BLOCK:
+	ssr: {
+		noExternal: ['@ai-sdk/svelte']
+	},
+
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
