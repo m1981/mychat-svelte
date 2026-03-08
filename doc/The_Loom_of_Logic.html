@@ -245,78 +245,179 @@
         <!-- SVG for dynamic lines -->
         <svg id="influence-svg"></svg>
 
-        <!-- Phase 1: Foundations -->
-        <div class="node-container" id="node-foundations" data-influences="node-structure">
+        <!-- 1. Ada Lovelace -->
+        <div class="node-container" id="node-lovelace" data-influences="node-turing">
             <div class="node-content">
-                <h3>Lovelace, Turing, Hopper</h3>
-                <span class="era">1840s - 1950s | The Foundations</span>
-                <p>The realization that a machine could manipulate symbols. The birth of computability and the first compilers.</p>
+                <h3>Ada Lovelace</h3>
+                <span class="era">1843 | The First Programmer</span>
+                <p>The concept of "Poetical Science" and universal computation.</p>
+                <div class="quote">"The Analytical Engine weaves algebraic patterns..."</div>
             </div>
-            <div class="node-star"></div>
+            <div class="node-star" style="border-color: var(--thread-gold);"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 2: Structure -->
-        <div class="node-container" id="node-structure" data-influences="node-craft,node-agile">
+        <!-- 2. Alan Turing -->
+        <div class="node-container" id="node-turing" data-influences="node-hopper">
             <div class="node-content">
-                <h3>Dijkstra & Brooks</h3>
-                <span class="era">1960s - 1970s | Crisis & Structure</span>
-                <p>Establishing the socio-technical limits of software. The death of GOTO and the realization of the "Mythical Man-Month."</p>
+                <h3>Alan Turing</h3>
+                <span class="era">1936 | Theoretical Foundations</span>
+                <p>The "Universal Turing Machine" — the theoretical basis for all software.</p>
+            </div>
+            <div class="node-star" style="border-color: var(--thread-gold);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- 3. Grace Hopper -->
+        <div class="node-container" id="node-hopper" data-influences="node-dijkstra">
+            <div class="node-content">
+                <h3>Grace Hopper</h3>
+                <span class="era">1952 | First Compilers</span>
+                <p>The birth of compilers; the radical idea that code should be readable by humans.</p>
+            </div>
+            <div class="node-star" style="border-color: var(--thread-gold);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- 4. Edsger Dijkstra -->
+        <div class="node-container" id="node-dijkstra" data-influences="node-brooks,node-yc">
+            <div class="node-content">
+                <h3>Edsger Dijkstra</h3>
+                <span class="era">1968 | Structured Programming</span>
+                <p>The death of the "GOTO" statement. Brought mathematical rigor to programming.</p>
             </div>
             <div class="node-star" style="border-color: var(--node-amber);"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 3: Craft -->
-        <div class="node-container" id="node-craft" data-influences="node-agile">
+        <!-- 5. Fred Brooks -->
+        <div class="node-container" id="node-brooks" data-influences="node-yc,node-poppendieck,node-hunt-thomas">
             <div class="node-content">
-                <h3>Gang of Four & Pragmatic Programmers</h3>
-                <span class="era">1990s | Object-Oriented & Craft</span>
-                <p>Standardizing architectural solutions (Design Patterns) and treating software development as a pragmatic craft.</p>
+                <h3>Fred Brooks</h3>
+                <span class="era">1975 | The Mythical Man-Month</span>
+                <p>Establishing the socio-technical limits of software and law of diminishing returns.</p>
             </div>
             <div class="node-star" style="border-color: var(--node-amber);"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 4: Agile & Lean -->
-        <div class="node-container" id="node-agile" data-influences="node-architecture,node-flow">
+        <!-- 6. Yourdon & Constantine -->
+        <div class="node-container" id="node-yc" data-influences="node-gof,node-hunt-thomas">
             <div class="node-content">
-                <h3>Beck, Fowler, Poppendieck</h3>
-                <span class="era">1999 - 2003 | The Agile & Lean Pivot</span>
-                <p>The shift to human-centric feedback loops (XP, TDD) and importing the Toyota Production System into software.</p>
+                <h3>Yourdon & Constantine</h3>
+                <span class="era">1979 | Structured Design</span>
+                <p>Invented Coupling and Cohesion (The ultimate metrics of modularity).</p>
+            </div>
+            <div class="node-star" style="border-color: var(--node-amber);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- 7. Gang of Four -->
+        <div class="node-container" id="node-gof" data-influences="node-beck,node-fowler,node-evans">
+            <div class="node-content">
+                <h3>Gang of Four</h3>
+                <span class="era">1994 | Design Patterns</span>
+                <p>Standardizing architectural solutions into a common design vocabulary.</p>
+                <div class="quote">"Program to an interface, not an implementation."</div>
             </div>
             <div class="node-star" style="border-color: var(--node-cyan);"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 5: Architecture -->
-        <div class="node-container" id="node-architecture" data-influences="node-modern">
+        <!-- 8. Hunt & Thomas -->
+        <div class="node-container" id="node-hunt-thomas" data-influences="node-beck,node-fowler">
             <div class="node-content">
-                <h3>Evans & Vernon</h3>
-                <span class="era">2004 - 2016 | Domain-Driven Design</span>
-                <p>Aligning code with business reality. The fundamental architectural pattern required to build scalable Microservices.</p>
+                <h3>Hunt & Thomas</h3>
+                <span class="era">1999 | The Pragmatic Programmer</span>
+                <p>The developer as a craftsman. Popularized the "Broken Window" theory in code.</p>
             </div>
             <div class="node-star" style="border-color: var(--node-cyan);"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 6: Flow -->
-        <div class="node-container" id="node-flow" data-influences="node-modern">
+        <!-- 9. Kent Beck -->
+        <div class="node-container" id="node-beck" data-influences="node-fowler,node-poppendieck,node-humble">
             <div class="node-content">
-                <h3>Humble, Farley, Forsgren</h3>
-                <span class="era">2010 - 2018 | Continuous Delivery & DORA</span>
-                <p>The science of high-performing teams. Shifting focus to system delivery, automated pipelines, and measurable outcomes.</p>
+                <h3>Kent Beck</h3>
+                <span class="era">1999 | Extreme Programming</span>
+                <p>Pioneered Test-Driven Development (TDD) and the human-centric agile pivot.</p>
+            </div>
+            <div class="node-star" style="border-color: var(--node-cyan);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- 10. Martin Fowler -->
+        <div class="node-container" id="node-fowler" data-influences="node-evans,node-richards">
+            <div class="node-content">
+                <h3>Martin Fowler</h3>
+                <span class="era">1999 | Refactoring</span>
+                <p>The necessity of evolving code structure without changing its external behavior.</p>
+            </div>
+            <div class="node-star" style="border-color: var(--node-cyan);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- 11. Poppendiecks -->
+        <div class="node-container" id="node-poppendieck" data-influences="node-humble,node-forsgren">
+            <div class="node-content">
+                <h3>Mary & Tom Poppendieck</h3>
+                <span class="era">2003 | Lean Software</span>
+                <p>Applying the Toyota Production System to software. "Decide as late as possible."</p>
+            </div>
+            <div class="node-star" style="border-color: var(--node-cyan);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- 12. Eric Evans -->
+        <div class="node-container" id="node-evans" data-influences="node-vernon,node-richards">
+            <div class="node-content">
+                <h3>Eric Evans</h3>
+                <span class="era">2004 | Domain-Driven Design</span>
+                <p>The Ubiquitous Language. Taught us that the code must map reality.</p>
             </div>
             <div class="node-star" style="border-color: var(--ai-violet);"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 7: Modern -->
-        <div class="node-container" id="node-modern" data-influences="">
+        <!-- 13. Humble & Farley -->
+        <div class="node-container" id="node-humble" data-influences="node-vernon,node-forsgren,node-richards">
             <div class="node-content">
-                <h3>Richards, Ford & The AI Era</h3>
-                <span class="era">2020 - 2026 | Evolutionary Architecture</span>
-                <p>Automated governance (Fitness Functions) and AI-augmented engineering. The thread becomes a dynamic, generative force.</p>
+                <h3>Jez Humble & David Farley</h3>
+                <span class="era">2010 | Continuous Delivery</span>
+                <p>The deployment pipeline as the central product of DevOps engineering.</p>
+            </div>
+            <div class="node-star" style="border-color: var(--ai-violet);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- 14. Vaughn Vernon -->
+        <div class="node-container" id="node-vernon" data-influences="node-richards">
+            <div class="node-content">
+                <h3>Vaughn Vernon</h3>
+                <span class="era">2016 | Distilling DDD</span>
+                <p>Codifying DDD Bounded Contexts as the strict boundary lines for Microservices.</p>
+            </div>
+            <div class="node-star" style="border-color: var(--ai-violet);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- 15. Nicole Forsgren -->
+        <div class="node-container" id="node-forsgren" data-influences="node-richards">
+            <div class="node-content">
+                <h3>Nicole Forsgren</h3>
+                <span class="era">2018 | Accelerate & DORA</span>
+                <p>Proved mathematically what behaviors create high-performing technical teams.</p>
+            </div>
+            <div class="node-star" style="border-color: var(--ai-violet);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- 16. Richards & Ford -->
+        <div class="node-container" id="node-richards" data-influences="">
+            <div class="node-content">
+                <h3>Richards & Ford</h3>
+                <span class="era">2020 | Evolutionary Architecture</span>
+                <p>Using "Fitness Functions" to build automated architectural governance.</p>
             </div>
             <div class="node-star" style="border-color: var(--ai-violet);"></div>
             <div style="width: 45%;"></div>
@@ -327,7 +428,7 @@
     <!-- Time Scrubber -->
     <div class="time-scrubber">
         <span>1840</span>
-        <input type="range" id="timeline-slider" min="0" max="6" value="0" step="1">
+        <input type="range" id="timeline-slider" min="0" max="15" value="0" step="1">
         <span>2026</span>
     </div>
 
