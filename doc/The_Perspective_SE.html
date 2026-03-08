@@ -46,8 +46,7 @@
     <div id="graph"></div>
 
     <script>
-        // --- 1. THE DATA DNA ---
-        // Groups: 0=Math(Orange), 1=Process(Gold), 2=Architecture(Cyan), 3=Flow(Purple)
+// --- 1. THE DATA DNA ---
         const gData = {
             nodes: [
                 { id: "Lovelace", year: 1843, group: 0 },
@@ -68,7 +67,6 @@
                 { id: "Richards", year: 2020, group: 2 }
             ],
             links: [
-                // Linear time influences
                 { source: "Lovelace", target: "Turing" }, { source: "Turing", target: "Hopper" },
                 { source: "Hopper", target: "Dijkstra" }, { source: "Dijkstra", target: "Brooks" },
                 { source: "Dijkstra", target: "Yourdon" }, { source: "Yourdon", target: "GoF" },
@@ -78,7 +76,7 @@
                 { source: "Beck", target: "Poppendieck" }, { source: "Beck", target: "Humble" },
                 { source: "Fowler", target: "Evans" }, { source: "Poppendieck", target: "Humble" },
                 { source: "Evans", target: "Vernon" }, { source: "Humble", target: "Forsgren" },
-                // U-Turns (Going back in time)
+                // U-Turns
                 { source: "Hunt/Thomas", target: "Hopper", isUturn: true },
                 { source: "Beck", target: "Brooks", isUturn: true },
                 { source: "Fowler", target: "Dijkstra", isUturn: true },
@@ -87,10 +85,9 @@
             ]
         };
 
-        // Algorithm to make heavily quoted people visibly larger
         gData.nodes.forEach(n => {
             n.incoming = gData.links.filter(l => l.target === n.id).length;
-            n.radius = 6 + (n.incoming * 3); // Base size 6 + 3 per citation
+            n.radius = 6 + (n.incoming * 3);
         });
 
         const colors = { 0: '#FF8C00', 1: '#FFD700', 2: '#64FFDA', 3: '#8A2BE2' };
@@ -102,68 +99,124 @@
             .nodeVal(n => n.radius)
             .nodeColor(n => colors[n.group])
             .nodeLabel(n => `${n.id} (${n.year})\nCitations: ${n.incoming}`)
-
-            // Link Visuals (Red dots flow BACKWARDS for U-Turns)
             .linkColor(l => l.isUturn ? 'rgba(255, 71, 87, 0.4)' : 'rgba(255, 255, 255, 0.1)')
             .linkWidth(l => l.isUturn ? 2 : 1)
             .linkDirectionalParticles(l => l.isUturn ? 3 : 2)
             .linkDirectionalParticleWidth(l => l.isUturn ? 4 : 2)
             .linkDirectionalParticleColor(l => l.isUturn ? '#FF4757' : '#FFD700')
-            // TRICK: A negative speed makes the particles flow from Target to Source!
             .linkDirectionalParticleSpeed(l => l.isUturn ? -0.015 : 0.005)
-
-            // Draw names attached to the nodes
             .nodeCanvasObject((node, ctx, globalScale) => {
                 const label = node.id;
                 ctx.font = `${14 / globalScale}px Courier`;
-
                 ctx.beginPath(); ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
                 ctx.fillStyle = colors[node.group]; ctx.fill();
-
                 ctx.textAlign = 'center'; ctx.textBaseline = 'top';
                 ctx.fillStyle = '#E6F1FF';
                 ctx.fillText(label, node.x, node.y + node.radius + (3 / globalScale));
             });
 
-        // --- 3. THE "PERSPECTIVE" BUTTON LOGIC ---
+        // KILL THE DEFAULT CENTER FORCE (This fixes the timeline bug!)
+        Graph.d3Force('center', null);
+
+        // --- 3. ENHANCED PERSPECTIVE LOGIC ---
+        let currentMode = 'network';
+
+        // Increased multiplier from 15 to 25 to spread the years out more
+        const timeYMultiplier = 25;
+        const timeYOffset = 1950;
+        const calcTimeY = (year) => (year - timeYOffset) * timeYMultiplier;
+
+        Graph.onRenderFramePre((ctx, globalScale) => {
+            if (currentMode === 'time') {
+                ctx.strokeStyle = 'rgba(100, 255, 218, 0.15)';
+                ctx.fillStyle = 'rgba(100, 255, 218, 0.5)';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.font = `${14 / globalScale}px Courier`;
+
+                for (let yr = 1840; yr <= 2030; yr += 10) {
+                    let yPos = calcTimeY(yr);
+                    ctx.beginPath();
+                    ctx.moveTo(-2000, yPos);
+                    ctx.lineTo(2000, yPos);
+                    ctx.stroke();
+                    ctx.fillText(`${yr}`, -100, yPos);
+                }
+            }
+            else if (currentMode === 'cluster') {
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = `bold ${35 / globalScale}px Courier`;
+
+                ctx.fillStyle = 'rgba(255, 140, 0, 0.1)';
+                ctx.fillText("MATH & LOGIC", -300, -250);
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.1)';
+                ctx.fillText("PROCESS & AGILE", 300, -250);
+                ctx.fillStyle = 'rgba(100, 255, 218, 0.1)';
+                ctx.fillText("ARCHITECTURE", -300, 250);
+                ctx.fillStyle = 'rgba(138, 43, 226, 0.1)';
+                ctx.fillText("DEVOPS & FLOW", 300, 250);
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                [[-300,-200], [300,-200], [-300,200], [300,200]].forEach(pos => {
+                    ctx.beginPath();
+                    ctx.arc(pos[0], pos[1], 180, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
+            }
+        });
 
         function updatePhysics() {
-            // Kickstarts the algorithm so nodes start moving again
-            Graph.d3ReheatSimulation();
+            Graph.alpha(1).restart();
         }
 
-        // 1. NEURAL NETWORK: Equal repel, tied by string.
+        // 1. NEURAL NETWORK
         document.getElementById('btn-network').onclick = (e) => {
+            currentMode = 'network';
             setActive(e.target);
-            Graph.d3Force('x', d3.forceX().strength(0.01));
-            Graph.d3Force('y', d3.forceY().strength(0.01));
+
+            Graph.d3Force('x', d3.forceX(0).strength(0.01));
+            Graph.d3Force('y', d3.forceY(0).strength(0.01));
             Graph.d3Force('charge', d3.forceManyBody().strength(-300));
+            Graph.d3Force('collide', d3.forceCollide().radius(n => n.radius + 10).iterations(2));
+
             updatePhysics();
+            Graph.zoomToFit(1000, 50);
         };
 
-        // 2. TIMELINE: Strict vertical force based on Date.
+        // 2. TIMELINE
         document.getElementById('btn-time').onclick = (e) => {
+            currentMode = 'time';
             setActive(e.target);
-            // Lock X-axis to the middle
-            Graph.d3Force('x', d3.forceX(0).strength(0.8));
-            // Lock Y-axis based on math: spread 1840 to 2026 across 800 pixels
-            Graph.d3Force('y', d3.forceY(n => (n.year - 1930) * 7).strength(0.8));
-            // Lower charge so they don't fight the vertical alignment
-            Graph.d3Force('charge', d3.forceManyBody().strength(-50));
+
+            // Spread nodes horizontally so 1999 authors don't overlap
+            Graph.d3Force('x', d3.forceX(n => (n.group * 60) - 90).strength(0.8));
+
+            // Lock exactly to the calculated Y coordinate
+            Graph.d3Force('y', d3.forceY(n => calcTimeY(n.year)).strength(1.5));
+
+            Graph.d3Force('charge', d3.forceManyBody().strength(-5));
+            Graph.d3Force('collide', d3.forceCollide().radius(n => n.radius + 5).iterations(2));
+
             updatePhysics();
+            Graph.zoomToFit(1500, 50);
         };
 
-        // 3. PARADIGMS: Nodes cluster in corners based on concept Group.
+        // 3. PARADIGMS
         document.getElementById('btn-cluster').onclick = (e) => {
+            currentMode = 'cluster';
             setActive(e.target);
-            // X/Y Coordinates for 4 black holes (Math, Process, Architecture, Flow)
+
             const getX = g => g === 0 ? -300 : g === 1 ? 300 : g === 2 ? -300 : 300;
             const getY = g => g === 0 ? -200 : g === 1 ? -200 : g === 2 ? 200 : 200;
 
-            Graph.d3Force('x', d3.forceX(n => getX(n.group)).strength(0.6));
-            Graph.d3Force('y', d3.forceY(n => getY(n.group)).strength(0.6));
-            Graph.d3Force('charge', d3.forceManyBody().strength(-150));
+            Graph.d3Force('x', d3.forceX(n => getX(n.group)).strength(0.4));
+            Graph.d3Force('y', d3.forceY(n => getY(n.group)).strength(0.4));
+            Graph.d3Force('charge', d3.forceManyBody().strength(-50));
+            Graph.d3Force('collide', d3.forceCollide().radius(n => n.radius + 25).iterations(2));
+
             updatePhysics();
+            Graph.zoomToFit(1500, 100);
         };
 
         function setActive(el) {
@@ -171,6 +224,7 @@
             el.classList.add('active');
         }
 
+        setTimeout(() => document.getElementById('btn-network').click(), 100);
     </script>
 </body>
 </html>
