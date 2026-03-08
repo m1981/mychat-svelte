@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Multi-Dimensional Graph</title>
-    <!-- Import ForceGraph engine from CDN -->
+    <!-- Import Physics Engine -->
     <script src="https://unpkg.com/force-graph"></script>
+    <!-- ADDED: Import D3 Math Library for Force Calculations -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body { margin: 0; background-color: #0A192F; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
-        
-        /* Game UI Overlay */
+
         #hud {
             position: absolute; top: 20px; left: 20px;
             background: rgba(10, 25, 47, 0.85); padding: 20px;
@@ -20,33 +21,33 @@
             display: block; width: 100%; margin-top: 10px; padding: 10px;
             background: transparent; color: #FFD700; border: 1px solid #FFD700;
             cursor: pointer; text-transform: uppercase; transition: all 0.3s ease;
+            border-radius: 4px; font-weight: bold;
         }
         .btn:hover, .btn.active { background: #FFD700; color: #0A192F; }
-        .instructions { font-size: 12px; color: #8892B0; margin-top: 15px; max-width: 200px;}
+        .instructions { font-size: 12px; color: #8892B0; margin-top: 15px; max-width: 200px; line-height: 1.5;}
     </style>
 </head>
 <body>
 
-    <!-- Heads Up Display -->
     <div id="hud">
         <h3>Perspective Engine</h3>
         <button class="btn active" id="btn-network">1. Neural Network</button>
-        <button class="btn" id="btn-time">2. Timeline (Time)</button>
+        <button class="btn" id="btn-time">2. Timeline (Time Axis)</button>
         <button class="btn" id="btn-cluster">3. Paradigms (Gravity)</button>
         <div class="instructions">
-            - Hover nodes for info.<br>
-            - Drag nodes to interact with physics.<br>
-            - Big nodes = high influence.<br>
-            - Red particles = U-Turns.
+            - Hover nodes for history.<br>
+            - Click & Drag to disrupt physics.<br>
+            - Big dots = Huge Influence.<br>
+            - Red Lines = Paradox/U-Turns.
         </div>
     </div>
 
-    <!-- The Physics Canvas -->
+    <!-- The Canvas -->
     <div id="graph"></div>
 
     <script>
-        // --- 1. THE DATA DNA (16 Anchors) ---
-        // Categories: 0=Math/Foundations, 1=Process, 2=Architecture, 3=Flow
+        // --- 1. THE DATA DNA ---
+        // Groups: 0=Math(Orange), 1=Process(Gold), 2=Architecture(Cyan), 3=Flow(Purple)
         const gData = {
             nodes: [
                 { id: "Lovelace", year: 1843, group: 0 },
@@ -61,117 +62,115 @@
                 { id: "Fowler", year: 1999, group: 2 },
                 { id: "Poppendieck", year: 2003, group: 3 },
                 { id: "Evans", year: 2004, group: 2 },
-                { id: "Humble/Farley", year: 2010, group: 3 },
+                { id: "Humble", year: 2010, group: 3 },
                 { id: "Vernon", year: 2016, group: 2 },
                 { id: "Forsgren", year: 2018, group: 3 },
-                { id: "Richards/Ford", year: 2020, group: 2 }
+                { id: "Richards", year: 2020, group: 2 }
             ],
             links: [
-                // Normal Influences
-                { source: "Lovelace", target: "Turing" },
-                { source: "Turing", target: "Hopper" },
-                { source: "Hopper", target: "Dijkstra" },
-                { source: "Dijkstra", target: "Brooks" },
-                { source: "Dijkstra", target: "Yourdon" },
-                { source: "Yourdon", target: "GoF" },
-                { source: "Yourdon", target: "Hunt/Thomas" },
-                { source: "GoF", target: "Beck" },
-                { source: "GoF", target: "Fowler" },
-                { source: "GoF", target: "Evans" },
-                { source: "Hunt/Thomas", target: "Beck" },
-                { source: "Hunt/Thomas", target: "Fowler" },
-                { source: "Beck", target: "Poppendieck" },
-                { source: "Beck", target: "Humble/Farley" },
-                { source: "Fowler", target: "Evans" },
-                { source: "Poppendieck", target: "Humble/Farley" },
-                { source: "Evans", target: "Vernon" },
-                { source: "Humble/Farley", target: "Forsgren" },
-                // U-TURNS (Special attribute: isUturn)
+                // Linear time influences
+                { source: "Lovelace", target: "Turing" }, { source: "Turing", target: "Hopper" },
+                { source: "Hopper", target: "Dijkstra" }, { source: "Dijkstra", target: "Brooks" },
+                { source: "Dijkstra", target: "Yourdon" }, { source: "Yourdon", target: "GoF" },
+                { source: "Yourdon", target: "Hunt/Thomas" }, { source: "GoF", target: "Beck" },
+                { source: "GoF", target: "Fowler" }, { source: "GoF", target: "Evans" },
+                { source: "Hunt/Thomas", target: "Beck" }, { source: "Hunt/Thomas", target: "Fowler" },
+                { source: "Beck", target: "Poppendieck" }, { source: "Beck", target: "Humble" },
+                { source: "Fowler", target: "Evans" }, { source: "Poppendieck", target: "Humble" },
+                { source: "Evans", target: "Vernon" }, { source: "Humble", target: "Forsgren" },
+                // U-Turns (Going back in time)
                 { source: "Hunt/Thomas", target: "Hopper", isUturn: true },
                 { source: "Beck", target: "Brooks", isUturn: true },
                 { source: "Fowler", target: "Dijkstra", isUturn: true },
                 { source: "Vernon", target: "Yourdon", isUturn: true },
-                { source: "Richards/Ford", target: "Dijkstra", isUturn: true }
+                { source: "Richards", target: "Dijkstra", isUturn: true }
             ]
         };
 
-        // Pre-calculate influence size (number of incoming links)
+        // Algorithm to make heavily quoted people visibly larger
         gData.nodes.forEach(n => {
-            n.incoming = gData.links.filter(l => l.target === n.id || l.target.id === n.id).length;
-            n.val = (n.incoming * 3) + 3; // Visual Size scaling
+            n.incoming = gData.links.filter(l => l.target === n.id).length;
+            n.radius = 6 + (n.incoming * 3); // Base size 6 + 3 per citation
         });
 
-        const colorMap = { 0: '#FF8C00', 1: '#FFD700', 2: '#64FFDA', 3: '#8A2BE2' };
+        const colors = { 0: '#FF8C00', 1: '#FFD700', 2: '#64FFDA', 3: '#8A2BE2' };
 
-        // --- 2. INITIALIZE ENGINE ---
+        // --- 2. MOUNT THE PHYSICS ENGINE ---
         const Graph = ForceGraph()(document.getElementById('graph'))
             .graphData(gData)
             .nodeId('id')
-            .nodeVal('val') // Set dynamic radius
-            .nodeColor(node => colorMap[node.group]) // Set Era/Paradigm color
-            .nodeLabel(node => `${node.id}\nYear: ${node.year}\nInfluence Rating: ${node.incoming}`) // Hover text
-            
-            // Link Graphics Logic
-            .linkColor(link => link.isUturn ? '#FF4757' : '#555555') // Red for U-Turn
-            .linkWidth(link => link.isUturn ? 2 : 1)
-            .linkDirectionalParticles(link => link.isUturn ? 4 : 2) // Moving dots
-            .linkDirectionalParticleWidth(link => link.isUturn ? 3 : 1)
-            .linkDirectionalParticleSpeed(link => link.isUturn ? -0.01 : 0.005) // U-turns flow backwards!
+            .nodeVal(n => n.radius)
+            .nodeColor(n => colors[n.group])
+            .nodeLabel(n => `${n.id} (${n.year})\nCitations: ${n.incoming}`)
 
-            // Add custom label text directly onto canvas
+            // Link Visuals (Red dots flow BACKWARDS for U-Turns)
+            .linkColor(l => l.isUturn ? 'rgba(255, 71, 87, 0.4)' : 'rgba(255, 255, 255, 0.1)')
+            .linkWidth(l => l.isUturn ? 2 : 1)
+            .linkDirectionalParticles(l => l.isUturn ? 3 : 2)
+            .linkDirectionalParticleWidth(l => l.isUturn ? 4 : 2)
+            .linkDirectionalParticleColor(l => l.isUturn ? '#FF4757' : '#FFD700')
+            // TRICK: A negative speed makes the particles flow from Target to Source!
+            .linkDirectionalParticleSpeed(l => l.isUturn ? -0.015 : 0.005)
+
+            // Draw names attached to the nodes
             .nodeCanvasObject((node, ctx, globalScale) => {
                 const label = node.id;
-                const fontSize = 12/globalScale;
-                ctx.font = `${fontSize}px Courier`;
-                // Draw Node Circle
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, node.val, 0, 2 * Math.PI, false);
-                ctx.fillStyle = colorMap[node.group];
-                ctx.fill();
-                // Draw Text
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.font = `${14 / globalScale}px Courier`;
+
+                ctx.beginPath(); ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+                ctx.fillStyle = colors[node.group]; ctx.fill();
+
+                ctx.textAlign = 'center'; ctx.textBaseline = 'top';
                 ctx.fillStyle = '#E6F1FF';
-                ctx.fillText(label, node.x, node.y + node.val + (5/globalScale));
+                ctx.fillText(label, node.x, node.y + node.radius + (3 / globalScale));
             });
 
-        // --- 3. DIMENSIONAL SHIFT CONTROLS ---
-        
-        document.getElementById('btn-network').onclick = (e) => {
-            setActiveBtn(e.target);
-            // Default forces
-            Graph.d3Force('x', d3.forceX(0).strength(0.01));
-            Graph.d3Force('y', d3.forceY(0).strength(0.01));
-            Graph.d3Force('charge').strength(-200); // Push nodes apart
-            Graph.alpha(1).restart();
-        };
+        // --- 3. THE "PERSPECTIVE" BUTTON LOGIC ---
 
-        document.getElementById('btn-time').onclick = (e) => {
-            setActiveBtn(e.target);
-            // Y-Axis becomes strictly mapped to Year. X axis pulls to center.
-            Graph.d3Force('y', d3.forceY(node => (node.year - 1950) * 8).strength(1)); 
-            Graph.d3Force('x', d3.forceX(node => (node.group - 1.5) * 50).strength(0.5)); // Separate groups slightly
-            Graph.d3Force('charge').strength(-50); 
-            Graph.alpha(1).restart();
-        };
-
-        document.getElementById('btn-cluster').onclick = (e) => {
-            setActiveBtn(e.target);
-            // Ignore time. Gravity pools into 4 corners based on Group (Paradigm)
-            const clusterMapX = { 0: -200, 1: 200, 2: -200, 3: 200 };
-            const clusterMapY = { 0: -200, 1: -200, 2: 200, 3: 200 };
-            Graph.d3Force('x', d3.forceX(node => clusterMapX[node.group]).strength(0.3));
-            Graph.d3Force('y', d3.forceY(node => clusterMapY[node.group]).strength(0.3));
-            Graph.d3Force('charge').strength(-100); 
-            Graph.alpha(1).restart();
-        };
-
-        function setActiveBtn(target) {
-            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-            target.classList.add('active');
+        function updatePhysics() {
+            // Kickstarts the algorithm so nodes start moving again
+            Graph.d3ReheatSimulation();
         }
 
-        // Setup d3 global required by library inner workings
-        const d3 = Graph.d3Force('charge').constructor.prototype === Function ? null : Object.getPrototypeOf(Graph.d3Force('charge')).constructor;
+        // 1. NEURAL NETWORK: Equal repel, tied by string.
+        document.getElementById('btn-network').onclick = (e) => {
+            setActive(e.target);
+            Graph.d3Force('x', d3.forceX().strength(0.01));
+            Graph.d3Force('y', d3.forceY().strength(0.01));
+            Graph.d3Force('charge', d3.forceManyBody().strength(-300));
+            updatePhysics();
+        };
+
+        // 2. TIMELINE: Strict vertical force based on Date.
+        document.getElementById('btn-time').onclick = (e) => {
+            setActive(e.target);
+            // Lock X-axis to the middle
+            Graph.d3Force('x', d3.forceX(0).strength(0.8));
+            // Lock Y-axis based on math: spread 1840 to 2026 across 800 pixels
+            Graph.d3Force('y', d3.forceY(n => (n.year - 1930) * 7).strength(0.8));
+            // Lower charge so they don't fight the vertical alignment
+            Graph.d3Force('charge', d3.forceManyBody().strength(-50));
+            updatePhysics();
+        };
+
+        // 3. PARADIGMS: Nodes cluster in corners based on concept Group.
+        document.getElementById('btn-cluster').onclick = (e) => {
+            setActive(e.target);
+            // X/Y Coordinates for 4 black holes (Math, Process, Architecture, Flow)
+            const getX = g => g === 0 ? -300 : g === 1 ? 300 : g === 2 ? -300 : 300;
+            const getY = g => g === 0 ? -200 : g === 1 ? -200 : g === 2 ? 200 : 200;
+
+            Graph.d3Force('x', d3.forceX(n => getX(n.group)).strength(0.6));
+            Graph.d3Force('y', d3.forceY(n => getY(n.group)).strength(0.6));
+            Graph.d3Force('charge', d3.forceManyBody().strength(-150));
+            updatePhysics();
+        };
+
+        function setActive(el) {
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+        }
+
     </script>
 </body>
 </html>
