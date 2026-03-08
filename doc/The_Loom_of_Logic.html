@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Loom of Logic: Software Engineering History</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* --- Artistic Palette & Variables --- */
+        :root {
+            --bg-navy: #0A192F;
+            --thread-gold: #FFD700;
+            --node-cyan: #64FFDA;
+            --node-amber: #FF8C00;
+            --ai-violet: #8A2BE2;
+            --text-main: #E6F1FF;
+            --text-muted: #8892B0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-navy);
+            color: var(--text-main);
+            font-family: 'Space Mono', monospace;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Canvas Background --- */
+        #hero-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* --- Hero Section --- */
+        .hero {
+            position: relative;
+            z-index: 1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(10,25,47,0.9) 0%, rgba(20,10,40,0.7) 100%);
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 5rem;
+            color: var(--thread-gold);
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--node-cyan);
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            color: var(--text-muted);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+
+        /* --- The Scroll-Driven Tapestry (Timeline) --- */
+        .tapestry {
+            position: relative;
+            z-index: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 100px 20px;
+        }
+
+        /* The Golden Thread */
+        .tapestry::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--thread-gold), var(--node-amber), var(--node-cyan), var(--ai-violet));
+            box-shadow: 0 0 15px var(--thread-gold);
+            z-index: 1;
+        }
+
+        /* --- Nodes (Constellations) --- */
+        .node-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin: 150px 0;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 1s ease-out;
+        }
+
+        .node-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .node-container:nth-child(odd) { flex-direction: row-reverse; }
+
+        .node-content {
+            width: 45%;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            padding: 30px;
+            border-radius: 15px;
+            position: relative;
+            transition: all 0.4s ease;
+        }
+
+        .node-content:hover {
+            transform: scale(1.05) translateY(-10px);
+            border-color: var(--node-cyan);
+            box-shadow: 0 10px 30px rgba(100, 255, 218, 0.1);
+        }
+
+        .node-content h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: var(--thread-gold);
+            margin-bottom: 10px;
+        }
+
+        .node-content .era {
+            font-size: 0.9rem;
+            color: var(--node-amber);
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .node-content p {
+            font-size: 1rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .node-content .quote {
+            margin-top: 20px;
+            font-style: italic;
+            color: var(--text-main);
+            border-left: 3px solid var(--node-cyan);
+            padding-left: 15px;
+        }
+
+        /* The Star (Center dot) */
+        .node-star {
+            width: 20px;
+            height: 20px;
+            background: var(--bg-navy);
+            border: 4px solid var(--thread-gold);
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            box-shadow: 0 0 20px var(--thread-gold);
+            transition: all 0.3s ease;
+        }
+
+        .node-container:hover .node-star {
+            background: var(--node-cyan);
+            border-color: var(--text-main);
+            box-shadow: 0 0 30px var(--node-cyan);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Generative Background -->
+    <canvas id="hero-canvas"></canvas>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <h1>The Loom of Logic</h1>
+        <p>A Chronological Tapestry of Software Engineering.<br>From the mechanical gears of Ada Lovelace to the fluid, AI-augmented neural webs of 2026.</p>
+        <div class="scroll-indicator">↓ Scroll to traverse time ↓</div>
+    </header>
+
+    <!-- The Influence Map / Timeline -->
+    <section class="tapestry">
+        
+        <!-- Phase 1 -->
+        <div class="node-container">
+            <div class="node-content">
+                <h3>Ada Lovelace & Alan Turing</h3>
+                <span class="era">1840s - 1950s | The Foundations</span>
+                <p>The realization that a machine could manipulate symbols, not just numbers. The birth of computability and "Poetical Science."</p>
+                <div class="quote">"The Analytical Engine weaves algebraic patterns just as the Jacquard loom weaves flowers and leaves."</div>
+            </div>
+            <div class="node-star"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="node-container">
+            <div class="node-content">
+                <h3>Fred Brooks</h3>
+                <span class="era">1975 | The Crisis & The Discipline</span>
+                <p>Establishing the socio-technical limits of software. He taught us that software is "invisible" and fundamentally different from manufacturing.</p>
+                <div class="quote">"Adding manpower to a late software project makes it later."</div>
+            </div>
+            <div class="node-star" style="border-color: var(--node-amber); box-shadow: 0 0 20px var(--node-amber);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="node-container">
+            <div class="node-content">
+                <h3>Kent Beck & Martin Fowler</h3>
+                <span class="era">1999 - 2001 | The Agile Pivot</span>
+                <p>The shift from "Command and Control" to human-centric feedback loops. Extreme Programming and Refactoring broke the rigidity of the Waterfall.</p>
+                <div class="quote">"Optimism is an occupational hazard of programming; feedback is the treatment."</div>
+            </div>
+            <div class="node-star" style="border-color: var(--node-cyan); box-shadow: 0 0 20px var(--node-cyan);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- Phase 4 -->
+        <div class="node-container">
+            <div class="node-content">
+                <h3>Mary & Tom Poppendieck</h3>
+                <span class="era">2003 | The Lean Synthesis</span>
+                <p>Importing the Toyota Production System into software. They provided the industrial "why" to Agile's "what."</p>
+                <div class="quote">"Decide as late as possible."</div>
+            </div>
+            <div class="node-star" style="border-color: var(--node-cyan); box-shadow: 0 0 20px var(--node-cyan);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- Phase 5 -->
+        <div class="node-container">
+            <div class="node-content">
+                <h3>Eric Evans & Vaughn Vernon</h3>
+                <span class="era">2004 - 2016 | Domain-Driven Design</span>
+                <p>Aligning the code with business reality. This became the fundamental architectural pattern required to build scalable Microservices.</p>
+                <div class="quote">"The heart of software is its ability to model the reality of the business."</div>
+            </div>
+            <div class="node-star" style="border-color: var(--ai-violet); box-shadow: 0 0 20px var(--ai-violet);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- Phase 6 -->
+        <div class="node-container">
+            <div class="node-content">
+                <h3>Nicole Forsgren et al.</h3>
+                <span class="era">2018 | The Era of Flow (DORA)</span>
+                <p>The scientific proof of high-performing teams. Shifting focus to system delivery, pipelines, and measurable outcomes.</p>
+                <div class="quote">"High-performing teams are defined by their ability to deliver value quickly and reliably."</div>
+            </div>
+            <div class="node-star" style="border-color: var(--ai-violet); box-shadow: 0 0 20px var(--ai-violet);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+    </section>
+
+    <script>
+        // --- Generative AI/Web Canvas Animation ---
+        const canvas = document.getElementById('hero-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let particles =[];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.radius = Math.random() * 2 + 1;
+            }
+            update(scrollOffset) {
+                this.x += this.vx;
+                this.y += this.vy - (scrollOffset * 0.002); // Move particles slightly on scroll
+
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#64FFDA';
+                ctx.fill();
+            }
+        }
+
+        // Initialize particles
+        for (let i = 0; i < 100; i++) {
+            particles.push(new Particle());
+        }
+
+        let lastScrollY = window.scrollY;
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            let currentScrollY = window.scrollY;
+            let scrollDelta = currentScrollY - lastScrollY;
+            lastScrollY = currentScrollY;
+
+            // Draw connections (The Web/Influence Lines)
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 120) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(255, 215, 0, ${1 - dist/120})`; // Golden thread
+                        ctx.lineWidth = 0.5;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            particles.forEach(p => {
+                p.update(scrollDelta);
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- Scroll Trigger for Nodes ---
+        const nodes = document.querySelectorAll('.node-container');
+        
+        const observerOptions = {
+            threshold: 0.3,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver(function(entries, observer) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        nodes.forEach(node => {
+            observer.observe(node);
+        });
+    </script>
+</body>
+</html>
