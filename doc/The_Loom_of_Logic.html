@@ -54,30 +54,17 @@
 
         .hero h1 {
             font-family: 'Playfair Display', serif;
-            font-size: 5rem;
+            font-size: 4rem;
             color: var(--thread-gold);
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
             margin-bottom: 1rem;
         }
 
         .hero p {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: var(--node-cyan);
             max-width: 600px;
             line-height: 1.6;
-        }
-
-        .scroll-indicator {
-            position: absolute;
-            bottom: 40px;
-            color: var(--text-muted);
-            animation: bounce 2s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-20px); }
-            60% { transform: translateY(-10px); }
         }
 
         /* --- The Scroll-Driven Tapestry (Timeline) --- */
@@ -86,10 +73,10 @@
             z-index: 1;
             max-width: 1000px;
             margin: 0 auto;
-            padding: 100px 20px;
+            padding: 100px 20px 200px 20px;
         }
 
-        /* The Golden Thread */
+        /* The Golden Thread (Central Line) */
         .tapestry::before {
             content: '';
             position: absolute;
@@ -100,7 +87,35 @@
             height: 100%;
             background: linear-gradient(to bottom, var(--thread-gold), var(--node-amber), var(--node-cyan), var(--ai-violet));
             box-shadow: 0 0 15px var(--thread-gold);
-            z-index: 1;
+            z-index: 2;
+        }
+
+        /* --- SVG Influence Lines --- */
+        #influence-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Behind nodes, above canvas */
+            pointer-events: none;
+        }
+
+        .influence-line {
+            fill: none;
+            stroke: var(--text-muted);
+            stroke-width: 2px;
+            stroke-dasharray: 5, 5;
+            opacity: 0.15;
+            transition: all 0.4s ease;
+        }
+
+        .influence-line.active {
+            stroke: var(--thread-gold);
+            stroke-width: 4px;
+            stroke-dasharray: none;
+            opacity: 1;
+            filter: drop-shadow(0 0 10px var(--thread-gold));
         }
 
         /* --- Nodes (Constellations) --- */
@@ -109,10 +124,12 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            margin: 150px 0;
+            margin: 120px 0;
             opacity: 0;
             transform: translateY(50px);
-            transition: all 1s ease-out;
+            transition: all 0.8s ease-out;
+            position: relative;
+            z-index: 3;
         }
 
         .node-container.visible {
@@ -120,51 +137,44 @@
             transform: translateY(0);
         }
 
-        .node-container:nth-child(odd) { flex-direction: row-reverse; }
+        .node-container:nth-child(even) { flex-direction: row-reverse; }
 
         .node-content {
             width: 45%;
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 215, 0, 0.2);
-            padding: 30px;
+            padding: 25px;
             border-radius: 15px;
             position: relative;
             transition: all 0.4s ease;
+            cursor: pointer;
         }
 
         .node-content:hover {
-            transform: scale(1.05) translateY(-10px);
+            transform: scale(1.03) translateY(-5px);
             border-color: var(--node-cyan);
             box-shadow: 0 10px 30px rgba(100, 255, 218, 0.1);
         }
 
         .node-content h3 {
             font-family: 'Playfair Display', serif;
-            font-size: 2rem;
+            font-size: 1.8rem;
             color: var(--thread-gold);
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
 
         .node-content .era {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--node-amber);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             display: block;
         }
 
         .node-content p {
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: var(--text-muted);
-            line-height: 1.6;
-        }
-
-        .node-content .quote {
-            margin-top: 20px;
-            font-style: italic;
-            color: var(--text-main);
-            border-left: 3px solid var(--node-cyan);
-            padding-left: 15px;
+            line-height: 1.5;
         }
 
         /* The Star (Center dot) */
@@ -177,15 +187,44 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 2;
-            box-shadow: 0 0 20px var(--thread-gold);
+            z-index: 4;
+            box-shadow: 0 0 15px var(--thread-gold);
             transition: all 0.3s ease;
         }
 
         .node-container:hover .node-star {
             background: var(--node-cyan);
             border-color: var(--text-main);
-            box-shadow: 0 0 30px var(--node-cyan);
+            box-shadow: 0 0 25px var(--node-cyan);
+            transform: translateX(-50%) scale(1.3);
+        }
+
+        /* --- Time Scrubber --- */
+        .time-scrubber {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+            background: rgba(10, 25, 47, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 30px;
+            border: 1px solid var(--node-cyan);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--thread-gold);
+            font-size: 0.9rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .time-scrubber input[type=range] {
+            flex-grow: 1;
+            accent-color: var(--node-cyan);
+            cursor: pointer;
         }
 
     </style>
@@ -198,94 +237,106 @@
     <!-- Hero Section -->
     <header class="hero">
         <h1>The Loom of Logic</h1>
-        <p>A Chronological Tapestry of Software Engineering.<br>From the mechanical gears of Ada Lovelace to the fluid, AI-augmented neural webs of 2026.</p>
-        <div class="scroll-indicator">↓ Scroll to traverse time ↓</div>
+        <p>A Chronological Tapestry of Software Engineering.<br>Hover over the nodes to reveal the web of intellectual influence.</p>
     </header>
 
     <!-- The Influence Map / Timeline -->
     <section class="tapestry">
-        
-        <!-- Phase 1 -->
-        <div class="node-container">
+        <!-- SVG for dynamic lines -->
+        <svg id="influence-svg"></svg>
+
+        <!-- Phase 1: Foundations -->
+        <div class="node-container" id="node-foundations" data-influences="node-structure">
             <div class="node-content">
-                <h3>Ada Lovelace & Alan Turing</h3>
+                <h3>Lovelace, Turing, Hopper</h3>
                 <span class="era">1840s - 1950s | The Foundations</span>
-                <p>The realization that a machine could manipulate symbols, not just numbers. The birth of computability and "Poetical Science."</p>
-                <div class="quote">"The Analytical Engine weaves algebraic patterns just as the Jacquard loom weaves flowers and leaves."</div>
+                <p>The realization that a machine could manipulate symbols. The birth of computability and the first compilers.</p>
             </div>
             <div class="node-star"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 2 -->
-        <div class="node-container">
+        <!-- Phase 2: Structure -->
+        <div class="node-container" id="node-structure" data-influences="node-craft,node-agile">
             <div class="node-content">
-                <h3>Fred Brooks</h3>
-                <span class="era">1975 | The Crisis & The Discipline</span>
-                <p>Establishing the socio-technical limits of software. He taught us that software is "invisible" and fundamentally different from manufacturing.</p>
-                <div class="quote">"Adding manpower to a late software project makes it later."</div>
+                <h3>Dijkstra & Brooks</h3>
+                <span class="era">1960s - 1970s | Crisis & Structure</span>
+                <p>Establishing the socio-technical limits of software. The death of GOTO and the realization of the "Mythical Man-Month."</p>
             </div>
-            <div class="node-star" style="border-color: var(--node-amber); box-shadow: 0 0 20px var(--node-amber);"></div>
+            <div class="node-star" style="border-color: var(--node-amber);"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 3 -->
-        <div class="node-container">
+        <!-- Phase 3: Craft -->
+        <div class="node-container" id="node-craft" data-influences="node-agile">
             <div class="node-content">
-                <h3>Kent Beck & Martin Fowler</h3>
-                <span class="era">1999 - 2001 | The Agile Pivot</span>
-                <p>The shift from "Command and Control" to human-centric feedback loops. Extreme Programming and Refactoring broke the rigidity of the Waterfall.</p>
-                <div class="quote">"Optimism is an occupational hazard of programming; feedback is the treatment."</div>
+                <h3>Gang of Four & Pragmatic Programmers</h3>
+                <span class="era">1990s | Object-Oriented & Craft</span>
+                <p>Standardizing architectural solutions (Design Patterns) and treating software development as a pragmatic craft.</p>
             </div>
-            <div class="node-star" style="border-color: var(--node-cyan); box-shadow: 0 0 20px var(--node-cyan);"></div>
+            <div class="node-star" style="border-color: var(--node-amber);"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 4 -->
-        <div class="node-container">
+        <!-- Phase 4: Agile & Lean -->
+        <div class="node-container" id="node-agile" data-influences="node-architecture,node-flow">
             <div class="node-content">
-                <h3>Mary & Tom Poppendieck</h3>
-                <span class="era">2003 | The Lean Synthesis</span>
-                <p>Importing the Toyota Production System into software. They provided the industrial "why" to Agile's "what."</p>
-                <div class="quote">"Decide as late as possible."</div>
+                <h3>Beck, Fowler, Poppendieck</h3>
+                <span class="era">1999 - 2003 | The Agile & Lean Pivot</span>
+                <p>The shift to human-centric feedback loops (XP, TDD) and importing the Toyota Production System into software.</p>
             </div>
-            <div class="node-star" style="border-color: var(--node-cyan); box-shadow: 0 0 20px var(--node-cyan);"></div>
+            <div class="node-star" style="border-color: var(--node-cyan);"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 5 -->
-        <div class="node-container">
+        <!-- Phase 5: Architecture -->
+        <div class="node-container" id="node-architecture" data-influences="node-modern">
             <div class="node-content">
-                <h3>Eric Evans & Vaughn Vernon</h3>
+                <h3>Evans & Vernon</h3>
                 <span class="era">2004 - 2016 | Domain-Driven Design</span>
-                <p>Aligning the code with business reality. This became the fundamental architectural pattern required to build scalable Microservices.</p>
-                <div class="quote">"The heart of software is its ability to model the reality of the business."</div>
+                <p>Aligning code with business reality. The fundamental architectural pattern required to build scalable Microservices.</p>
             </div>
-            <div class="node-star" style="border-color: var(--ai-violet); box-shadow: 0 0 20px var(--ai-violet);"></div>
+            <div class="node-star" style="border-color: var(--node-cyan);"></div>
             <div style="width: 45%;"></div>
         </div>
 
-        <!-- Phase 6 -->
-        <div class="node-container">
+        <!-- Phase 6: Flow -->
+        <div class="node-container" id="node-flow" data-influences="node-modern">
             <div class="node-content">
-                <h3>Nicole Forsgren et al.</h3>
-                <span class="era">2018 | The Era of Flow (DORA)</span>
-                <p>The scientific proof of high-performing teams. Shifting focus to system delivery, pipelines, and measurable outcomes.</p>
-                <div class="quote">"High-performing teams are defined by their ability to deliver value quickly and reliably."</div>
+                <h3>Humble, Farley, Forsgren</h3>
+                <span class="era">2010 - 2018 | Continuous Delivery & DORA</span>
+                <p>The science of high-performing teams. Shifting focus to system delivery, automated pipelines, and measurable outcomes.</p>
             </div>
-            <div class="node-star" style="border-color: var(--ai-violet); box-shadow: 0 0 20px var(--ai-violet);"></div>
+            <div class="node-star" style="border-color: var(--ai-violet);"></div>
+            <div style="width: 45%;"></div>
+        </div>
+
+        <!-- Phase 7: Modern -->
+        <div class="node-container" id="node-modern" data-influences="">
+            <div class="node-content">
+                <h3>Richards, Ford & The AI Era</h3>
+                <span class="era">2020 - 2026 | Evolutionary Architecture</span>
+                <p>Automated governance (Fitness Functions) and AI-augmented engineering. The thread becomes a dynamic, generative force.</p>
+            </div>
+            <div class="node-star" style="border-color: var(--ai-violet);"></div>
             <div style="width: 45%;"></div>
         </div>
 
     </section>
 
+    <!-- Time Scrubber -->
+    <div class="time-scrubber">
+        <span>1840</span>
+        <input type="range" id="timeline-slider" min="0" max="6" value="0" step="1">
+        <span>2026</span>
+    </div>
+
     <script>
-        // --- Generative AI/Web Canvas Animation ---
+        // --- 1. Generative AI/Web Canvas Animation ---
         const canvas = document.getElementById('hero-canvas');
         const ctx = canvas.getContext('2d');
-        
         let width, height;
-        let particles =[];
+        let particles = [];
 
         function resize() {
             width = canvas.width = window.innerWidth;
@@ -300,12 +351,11 @@
                 this.y = Math.random() * height;
                 this.vx = (Math.random() - 0.5) * 0.5;
                 this.vy = (Math.random() - 0.5) * 0.5;
-                this.radius = Math.random() * 2 + 1;
+                this.radius = Math.random() * 1.5 + 0.5;
             }
             update(scrollOffset) {
                 this.x += this.vx;
-                this.y += this.vy - (scrollOffset * 0.002); // Move particles slightly on scroll
-
+                this.y += this.vy - (scrollOffset * 0.001);
                 if (this.x < 0) this.x = width;
                 if (this.x > width) this.x = 0;
                 if (this.y < 0) this.y = height;
@@ -319,30 +369,23 @@
             }
         }
 
-        // Initialize particles
-        for (let i = 0; i < 100; i++) {
-            particles.push(new Particle());
-        }
+        for (let i = 0; i < 80; i++) particles.push(new Particle());
 
         let lastScrollY = window.scrollY;
-
         function animate() {
             ctx.clearRect(0, 0, width, height);
-            
             let currentScrollY = window.scrollY;
             let scrollDelta = currentScrollY - lastScrollY;
             lastScrollY = currentScrollY;
 
-            // Draw connections (The Web/Influence Lines)
             for (let i = 0; i < particles.length; i++) {
                 for (let j = i + 1; j < particles.length; j++) {
                     const dx = particles[i].x - particles[j].x;
                     const dy = particles[i].y - particles[j].y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < 120) {
+                    if (dist < 100) {
                         ctx.beginPath();
-                        ctx.strokeStyle = `rgba(255, 215, 0, ${1 - dist/120})`; // Golden thread
+                        ctx.strokeStyle = `rgba(255, 215, 0, ${1 - dist/100})`;
                         ctx.lineWidth = 0.5;
                         ctx.moveTo(particles[i].x, particles[i].y);
                         ctx.lineTo(particles[j].x, particles[j].y);
@@ -350,35 +393,130 @@
                     }
                 }
             }
-
-            particles.forEach(p => {
-                p.update(scrollDelta);
-                p.draw();
-            });
-
+            particles.forEach(p => { p.update(scrollDelta); p.draw(); });
             requestAnimationFrame(animate);
         }
         animate();
 
-        // --- Scroll Trigger for Nodes ---
+        // --- 2. Scroll Trigger for Nodes ---
         const nodes = document.querySelectorAll('.node-container');
-        
-        const observerOptions = {
-            threshold: 0.3,
-            rootMargin: "0px 0px -50px 0px"
-        };
-
-        const observer = new IntersectionObserver(function(entries, observer) {
+        const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
+                if (entry.isIntersecting) entry.target.classList.add('visible');
+            });
+        }, { threshold: 0.2, rootMargin: "0px 0px -50px 0px" });
+        nodes.forEach(node => observer.observe(node));
+
+        // --- 3. Dynamic SVG Influence Lines ---
+        const svg = document.getElementById('influence-svg');
+
+        function drawInfluenceLines() {
+            svg.innerHTML = '';
+            const tapestry = document.querySelector('.tapestry');
+            const tapestryRect = tapestry.getBoundingClientRect();
+
+            // Set SVG dimensions to match the tapestry container
+            svg.setAttribute('width', tapestryRect.width);
+            svg.setAttribute('height', tapestryRect.height);
+
+            nodes.forEach(sourceNode => {
+                const influences = sourceNode.getAttribute('data-influences');
+                if (!influences) return;
+
+                const targets = influences.split(',');
+                targets.forEach(targetId => {
+                    const targetNode = document.getElementById(targetId);
+                    if (!targetNode) return;
+
+                    const sourceStar = sourceNode.querySelector('.node-star');
+                    const targetStar = targetNode.querySelector('.node-star');
+
+                    const sRect = sourceStar.getBoundingClientRect();
+                    const tRect = targetStar.getBoundingClientRect();
+
+                    // Calculate X/Y relative to the tapestry container
+                    const startX = sRect.left - tapestryRect.left + (sRect.width / 2);
+                    const startY = sRect.top - tapestryRect.top + (sRect.height / 2);
+
+                    const endX = tRect.left - tapestryRect.left + (tRect.width / 2);
+                    const endY = tRect.top - tapestryRect.top + (tRect.height / 2);
+
+                    // Draw Bezier curve
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const curve = `M ${startX} ${startY} C ${startX} ${startY + 100}, ${endX} ${endY - 100}, ${endX} ${endY}`;
+
+                    path.setAttribute('d', curve);
+                    path.setAttribute('class', 'influence-line');
+                    path.setAttribute('data-source', sourceNode.id);
+                    path.setAttribute('data-target', targetNode.id);
+
+                    svg.appendChild(path);
+                });
+            });
+        }
+
+        // Draw lines after a slight delay to ensure layout is complete
+        window.addEventListener('load', () => setTimeout(drawInfluenceLines, 100));
+        window.addEventListener('resize', drawInfluenceLines);
+
+        // --- 4. Hover Effects for Lines ---
+        nodes.forEach(node => {
+            node.addEventListener('mouseenter', () => {
+                const nodeId = node.id;
+                document.querySelectorAll('.influence-line').forEach(line => {
+                    if (line.getAttribute('data-source') === nodeId || line.getAttribute('data-target') === nodeId) {
+                        line.classList.add('active');
+                    }
+                });
+            });
+            node.addEventListener('mouseleave', () => {
+                document.querySelectorAll('.influence-line').forEach(line => {
+                    line.classList.remove('active');
+                });
+            });
+        });
+
+        // --- 5. Time Scrubber Logic (Two-Way Binding) ---
+        const slider = document.getElementById('timeline-slider');
+        let isScrollingFromSlider = false;
+
+        // 5a. Slider controls the page
+        slider.addEventListener('input', (e) => {
+            isScrollingFromSlider = true;
+            const index = e.target.value;
+            if(nodes[index]) {
+                nodes[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            // Reset flag after smooth scroll finishes
+            setTimeout(() => { isScrollingFromSlider = false; }, 1000);
+        });
+
+        // 5b. Page scroll controls the slider
+        window.addEventListener('scroll', () => {
+            if (isScrollingFromSlider) return; // Prevent jitter if user is dragging slider
+
+            let closestIndex = 0;
+            let minDistance = Infinity;
+            const viewportCenter = window.innerHeight / 2;
+
+            // Find which node is closest to the center of the screen
+            nodes.forEach((node, index) => {
+                const rect = node.getBoundingClientRect();
+                const nodeCenter = rect.top + (rect.height / 2);
+                const distance = Math.abs(viewportCenter - nodeCenter);
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestIndex = index;
                 }
             });
-        }, observerOptions);
 
-        nodes.forEach(node => {
-            observer.observe(node);
+            // Update slider dot
+            if (slider.value !== closestIndex.toString()) {
+                slider.value = closestIndex;
+            }
         });
+
     </script>
 </body>
 </html>
