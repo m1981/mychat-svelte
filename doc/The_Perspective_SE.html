@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Multi-Dimensional Graph</title>
+    <!-- Import ForceGraph engine from CDN -->
+    <script src="https://unpkg.com/force-graph"></script>
+    <style>
+        body { margin: 0; background-color: #0A192F; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
+        
+        /* Game UI Overlay */
+        #hud {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(10, 25, 47, 0.85); padding: 20px;
+            border: 1px solid #64FFDA; border-radius: 10px; color: #64FFDA; z-index: 10;
+        }
+        h3 { margin-top: 0; text-transform: uppercase; letter-spacing: 2px; }
+        .btn {
+            display: block; width: 100%; margin-top: 10px; padding: 10px;
+            background: transparent; color: #FFD700; border: 1px solid #FFD700;
+            cursor: pointer; text-transform: uppercase; transition: all 0.3s ease;
+        }
+        .btn:hover, .btn.active { background: #FFD700; color: #0A192F; }
+        .instructions { font-size: 12px; color: #8892B0; margin-top: 15px; max-width: 200px;}
+    </style>
+</head>
+<body>
+
+    <!-- Heads Up Display -->
+    <div id="hud">
+        <h3>Perspective Engine</h3>
+        <button class="btn active" id="btn-network">1. Neural Network</button>
+        <button class="btn" id="btn-time">2. Timeline (Time)</button>
+        <button class="btn" id="btn-cluster">3. Paradigms (Gravity)</button>
+        <div class="instructions">
+            - Hover nodes for info.<br>
+            - Drag nodes to interact with physics.<br>
+            - Big nodes = high influence.<br>
+            - Red particles = U-Turns.
+        </div>
+    </div>
+
+    <!-- The Physics Canvas -->
+    <div id="graph"></div>
+
+    <script>
+        // --- 1. THE DATA DNA (16 Anchors) ---
+        // Categories: 0=Math/Foundations, 1=Process, 2=Architecture, 3=Flow
+        const gData = {
+            nodes: [
+                { id: "Lovelace", year: 1843, group: 0 },
+                { id: "Turing", year: 1936, group: 0 },
+                { id: "Hopper", year: 1952, group: 0 },
+                { id: "Dijkstra", year: 1968, group: 0 },
+                { id: "Brooks", year: 1975, group: 1 },
+                { id: "Yourdon", year: 1979, group: 2 },
+                { id: "GoF", year: 1994, group: 2 },
+                { id: "Hunt/Thomas", year: 1999, group: 1 },
+                { id: "Beck", year: 1999, group: 1 },
+                { id: "Fowler", year: 1999, group: 2 },
+                { id: "Poppendieck", year: 2003, group: 3 },
+                { id: "Evans", year: 2004, group: 2 },
+                { id: "Humble/Farley", year: 2010, group: 3 },
+                { id: "Vernon", year: 2016, group: 2 },
+                { id: "Forsgren", year: 2018, group: 3 },
+                { id: "Richards/Ford", year: 2020, group: 2 }
+            ],
+            links: [
+                // Normal Influences
+                { source: "Lovelace", target: "Turing" },
+                { source: "Turing", target: "Hopper" },
+                { source: "Hopper", target: "Dijkstra" },
+                { source: "Dijkstra", target: "Brooks" },
+                { source: "Dijkstra", target: "Yourdon" },
+                { source: "Yourdon", target: "GoF" },
+                { source: "Yourdon", target: "Hunt/Thomas" },
+                { source: "GoF", target: "Beck" },
+                { source: "GoF", target: "Fowler" },
+                { source: "GoF", target: "Evans" },
+                { source: "Hunt/Thomas", target: "Beck" },
+                { source: "Hunt/Thomas", target: "Fowler" },
+                { source: "Beck", target: "Poppendieck" },
+                { source: "Beck", target: "Humble/Farley" },
+                { source: "Fowler", target: "Evans" },
+                { source: "Poppendieck", target: "Humble/Farley" },
+                { source: "Evans", target: "Vernon" },
+                { source: "Humble/Farley", target: "Forsgren" },
+                // U-TURNS (Special attribute: isUturn)
+                { source: "Hunt/Thomas", target: "Hopper", isUturn: true },
+                { source: "Beck", target: "Brooks", isUturn: true },
+                { source: "Fowler", target: "Dijkstra", isUturn: true },
+                { source: "Vernon", target: "Yourdon", isUturn: true },
+                { source: "Richards/Ford", target: "Dijkstra", isUturn: true }
+            ]
+        };
+
+        // Pre-calculate influence size (number of incoming links)
+        gData.nodes.forEach(n => {
+            n.incoming = gData.links.filter(l => l.target === n.id || l.target.id === n.id).length;
+            n.val = (n.incoming * 3) + 3; // Visual Size scaling
+        });
+
+        const colorMap = { 0: '#FF8C00', 1: '#FFD700', 2: '#64FFDA', 3: '#8A2BE2' };
+
+        // --- 2. INITIALIZE ENGINE ---
+        const Graph = ForceGraph()(document.getElementById('graph'))
+            .graphData(gData)
+            .nodeId('id')
+            .nodeVal('val') // Set dynamic radius
+            .nodeColor(node => colorMap[node.group]) // Set Era/Paradigm color
+            .nodeLabel(node => `${node.id}\nYear: ${node.year}\nInfluence Rating: ${node.incoming}`) // Hover text
+            
+            // Link Graphics Logic
+            .linkColor(link => link.isUturn ? '#FF4757' : '#555555') // Red for U-Turn
+            .linkWidth(link => link.isUturn ? 2 : 1)
+            .linkDirectionalParticles(link => link.isUturn ? 4 : 2) // Moving dots
+            .linkDirectionalParticleWidth(link => link.isUturn ? 3 : 1)
+            .linkDirectionalParticleSpeed(link => link.isUturn ? -0.01 : 0.005) // U-turns flow backwards!
+
+            // Add custom label text directly onto canvas
+            .nodeCanvasObject((node, ctx, globalScale) => {
+                const label = node.id;
+                const fontSize = 12/globalScale;
+                ctx.font = `${fontSize}px Courier`;
+                // Draw Node Circle
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.val, 0, 2 * Math.PI, false);
+                ctx.fillStyle = colorMap[node.group];
+                ctx.fill();
+                // Draw Text
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#E6F1FF';
+                ctx.fillText(label, node.x, node.y + node.val + (5/globalScale));
+            });
+
+        // --- 3. DIMENSIONAL SHIFT CONTROLS ---
+        
+        document.getElementById('btn-network').onclick = (e) => {
+            setActiveBtn(e.target);
+            // Default forces
+            Graph.d3Force('x', d3.forceX(0).strength(0.01));
+            Graph.d3Force('y', d3.forceY(0).strength(0.01));
+            Graph.d3Force('charge').strength(-200); // Push nodes apart
+            Graph.alpha(1).restart();
+        };
+
+        document.getElementById('btn-time').onclick = (e) => {
+            setActiveBtn(e.target);
+            // Y-Axis becomes strictly mapped to Year. X axis pulls to center.
+            Graph.d3Force('y', d3.forceY(node => (node.year - 1950) * 8).strength(1)); 
+            Graph.d3Force('x', d3.forceX(node => (node.group - 1.5) * 50).strength(0.5)); // Separate groups slightly
+            Graph.d3Force('charge').strength(-50); 
+            Graph.alpha(1).restart();
+        };
+
+        document.getElementById('btn-cluster').onclick = (e) => {
+            setActiveBtn(e.target);
+            // Ignore time. Gravity pools into 4 corners based on Group (Paradigm)
+            const clusterMapX = { 0: -200, 1: 200, 2: -200, 3: 200 };
+            const clusterMapY = { 0: -200, 1: -200, 2: 200, 3: 200 };
+            Graph.d3Force('x', d3.forceX(node => clusterMapX[node.group]).strength(0.3));
+            Graph.d3Force('y', d3.forceY(node => clusterMapY[node.group]).strength(0.3));
+            Graph.d3Force('charge').strength(-100); 
+            Graph.alpha(1).restart();
+        };
+
+        function setActiveBtn(target) {
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            target.classList.add('active');
+        }
+
+        // Setup d3 global required by library inner workings
+        const d3 = Graph.d3Force('charge').constructor.prototype === Function ? null : Object.getPrototypeOf(Graph.d3Force('charge')).constructor;
+    </script>
+</body>
+</html>
