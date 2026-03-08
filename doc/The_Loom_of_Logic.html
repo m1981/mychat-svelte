@@ -227,6 +227,59 @@
             cursor: pointer;
         }
 
+/* --- Lens Control Panel --- */
+        .lens-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(10, 25, 47, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid var(--text-muted);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .lens-panel h4 {
+            color: var(--thread-gold);
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 5px;
+            font-size: 1.2rem;
+        }
+        .lens-btn {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid transparent;
+            text-align: left;
+            padding: 8px 12px;
+            font-family: 'Space Mono', monospace;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .lens-btn:hover { background: rgba(100, 255, 218, 0.1); border-color: var(--node-cyan); }
+        .lens-btn.active { background: rgba(255, 215, 0, 0.1); color: var(--thread-gold); border-color: var(--thread-gold); }
+
+        /* Dimming effect for filtering */
+        .node-container { transition: opacity 0.5s ease, filter 0.5s ease; }
+        .node-container.dimmed { opacity: 0.15; filter: grayscale(100%); pointer-events: none; }
+
+        /* The U-Turn Arrow */
+        .uturn-line {
+            fill: none;
+            stroke: #ff4757; /* Rebel Red */
+            stroke-width: 3px;
+            stroke-dasharray: 8, 8;
+            opacity: 0.8;
+            filter: drop-shadow(0 0 10px rgba(255, 71, 87, 0.6));
+            animation: dashFlow 20s linear infinite reverse; /* Flows upwards */
+        }
+        @keyframes dashFlow {
+            to { stroke-dashoffset: 1000; }
+        }
+
     </style>
 </head>
 <body>
@@ -240,13 +293,24 @@
         <p>A Chronological Tapestry of Software Engineering.<br>Hover over the nodes to reveal the web of intellectual influence.</p>
     </header>
 
+    <!-- The Paradigm Lenses -->
+    <nav class="lens-panel">
+        <h4>View Through Lens:</h4>
+        <button class="lens-btn active" data-filter="all">All</button>
+        <button class="lens-btn" data-filter="math">Math & Logic</button>
+        <button class="lens-btn" data-filter="process">Process & People</button>
+        <button class="lens-btn" data-filter="architecture">Architecture</button>
+        <button class="lens-btn" data-filter="flow">Flow & Systems</button>
+    </nav>
+
     <!-- The Influence Map / Timeline -->
+<!-- The Influence Map / Timeline -->
     <section class="tapestry">
         <!-- SVG for dynamic lines -->
         <svg id="influence-svg"></svg>
 
         <!-- 1. Ada Lovelace -->
-        <div class="node-container" id="node-lovelace" data-influences="node-turing">
+        <div class="node-container" id="node-lovelace" data-tags="math" data-influences="node-turing">
             <div class="node-content">
                 <h3>Ada Lovelace</h3>
                 <span class="era">1843 | The First Programmer</span>
@@ -258,7 +322,7 @@
         </div>
 
         <!-- 2. Alan Turing -->
-        <div class="node-container" id="node-turing" data-influences="node-hopper">
+        <div class="node-container" id="node-turing" data-tags="math" data-influences="node-hopper">
             <div class="node-content">
                 <h3>Alan Turing</h3>
                 <span class="era">1936 | Theoretical Foundations</span>
@@ -269,7 +333,7 @@
         </div>
 
         <!-- 3. Grace Hopper -->
-        <div class="node-container" id="node-hopper" data-influences="node-dijkstra">
+        <div class="node-container" id="node-hopper" data-tags="math,process" data-influences="node-dijkstra">
             <div class="node-content">
                 <h3>Grace Hopper</h3>
                 <span class="era">1952 | First Compilers</span>
@@ -280,7 +344,7 @@
         </div>
 
         <!-- 4. Edsger Dijkstra -->
-        <div class="node-container" id="node-dijkstra" data-influences="node-brooks,node-yc">
+        <div class="node-container" id="node-dijkstra" data-tags="math,architecture" data-influences="node-brooks,node-yc">
             <div class="node-content">
                 <h3>Edsger Dijkstra</h3>
                 <span class="era">1968 | Structured Programming</span>
@@ -291,7 +355,7 @@
         </div>
 
         <!-- 5. Fred Brooks -->
-        <div class="node-container" id="node-brooks" data-influences="node-yc,node-poppendieck,node-hunt-thomas">
+        <div class="node-container" id="node-brooks" data-tags="process" data-influences="node-yc,node-poppendieck,node-hunt-thomas">
             <div class="node-content">
                 <h3>Fred Brooks</h3>
                 <span class="era">1975 | The Mythical Man-Month</span>
@@ -302,7 +366,7 @@
         </div>
 
         <!-- 6. Yourdon & Constantine -->
-        <div class="node-container" id="node-yc" data-influences="node-gof,node-hunt-thomas">
+        <div class="node-container" id="node-yc" data-tags="architecture" data-influences="node-gof,node-hunt-thomas">
             <div class="node-content">
                 <h3>Yourdon & Constantine</h3>
                 <span class="era">1979 | Structured Design</span>
@@ -313,7 +377,7 @@
         </div>
 
         <!-- 7. Gang of Four -->
-        <div class="node-container" id="node-gof" data-influences="node-beck,node-fowler,node-evans">
+        <div class="node-container" id="node-gof" data-tags="architecture" data-influences="node-beck,node-fowler,node-evans">
             <div class="node-content">
                 <h3>Gang of Four</h3>
                 <span class="era">1994 | Design Patterns</span>
@@ -325,7 +389,8 @@
         </div>
 
         <!-- 8. Hunt & Thomas -->
-        <div class="node-container" id="node-hunt-thomas" data-influences="node-beck,node-fowler">
+        <!-- U-TURN: Pragmatism rebels against rigid math, returning to Hopper's hacker ethos -->
+        <div class="node-container" id="node-hunt-thomas" data-tags="process,architecture" data-influences="node-beck,node-fowler" data-uturn="node-hopper">
             <div class="node-content">
                 <h3>Hunt & Thomas</h3>
                 <span class="era">1999 | The Pragmatic Programmer</span>
@@ -336,7 +401,8 @@
         </div>
 
         <!-- 9. Kent Beck -->
-        <div class="node-container" id="node-beck" data-influences="node-fowler,node-poppendieck,node-humble">
+        <!-- U-TURN: Agile rebels against the heavy upfront design/waterfall era of the 70s -->
+        <div class="node-container" id="node-beck" data-tags="process,flow" data-influences="node-fowler,node-poppendieck,node-humble" data-uturn="node-brooks">
             <div class="node-content">
                 <h3>Kent Beck</h3>
                 <span class="era">1999 | Extreme Programming</span>
@@ -347,7 +413,8 @@
         </div>
 
         <!-- 10. Martin Fowler -->
-        <div class="node-container" id="node-fowler" data-influences="node-evans,node-richards">
+        <!-- U-TURN: Refactoring rebels against Dijkstra's "get it right the first time" proofs -->
+        <div class="node-container" id="node-fowler" data-tags="architecture,process" data-influences="node-evans,node-richards" data-uturn="node-dijkstra">
             <div class="node-content">
                 <h3>Martin Fowler</h3>
                 <span class="era">1999 | Refactoring</span>
@@ -358,7 +425,7 @@
         </div>
 
         <!-- 11. Poppendiecks -->
-        <div class="node-container" id="node-poppendieck" data-influences="node-humble,node-forsgren">
+        <div class="node-container" id="node-poppendieck" data-tags="process,flow" data-influences="node-humble,node-forsgren">
             <div class="node-content">
                 <h3>Mary & Tom Poppendieck</h3>
                 <span class="era">2003 | Lean Software</span>
@@ -369,7 +436,8 @@
         </div>
 
         <!-- 12. Eric Evans -->
-        <div class="node-container" id="node-evans" data-influences="node-vernon,node-richards">
+        <!-- U-TURN: DDD returns to pure Object-Oriented modeling of reality (GoF) away from database-driven CRUD -->
+        <div class="node-container" id="node-evans" data-tags="architecture" data-influences="node-vernon,node-richards" data-uturn="node-gof">
             <div class="node-content">
                 <h3>Eric Evans</h3>
                 <span class="era">2004 | Domain-Driven Design</span>
@@ -380,7 +448,7 @@
         </div>
 
         <!-- 13. Humble & Farley -->
-        <div class="node-container" id="node-humble" data-influences="node-vernon,node-forsgren,node-richards">
+        <div class="node-container" id="node-humble" data-tags="flow,process" data-influences="node-vernon,node-forsgren,node-richards">
             <div class="node-content">
                 <h3>Jez Humble & David Farley</h3>
                 <span class="era">2010 | Continuous Delivery</span>
@@ -391,7 +459,8 @@
         </div>
 
         <!-- 14. Vaughn Vernon -->
-        <div class="node-container" id="node-vernon" data-influences="node-richards">
+        <!-- U-TURN: Microservices are the ultimate return to 1979's "High Cohesion, Low Coupling" -->
+        <div class="node-container" id="node-vernon" data-tags="architecture" data-influences="node-richards" data-uturn="node-yc">
             <div class="node-content">
                 <h3>Vaughn Vernon</h3>
                 <span class="era">2016 | Distilling DDD</span>
@@ -402,7 +471,8 @@
         </div>
 
         <!-- 15. Nicole Forsgren -->
-        <div class="node-container" id="node-forsgren" data-influences="node-richards">
+        <!-- U-TURN: DORA finally provides the empirical math to solve Brooks' 1975 management crises -->
+        <div class="node-container" id="node-forsgren" data-tags="flow,process,math" data-influences="node-richards" data-uturn="node-brooks">
             <div class="node-content">
                 <h3>Nicole Forsgren</h3>
                 <span class="era">2018 | Accelerate & DORA</span>
@@ -413,7 +483,8 @@
         </div>
 
         <!-- 16. Richards & Ford -->
-        <div class="node-container" id="node-richards" data-influences="">
+        <!-- U-TURN: Fitness functions return us to Dijkstra's mathematical governance of code -->
+        <div class="node-container" id="node-richards" data-tags="architecture,flow" data-influences="" data-uturn="node-dijkstra">
             <div class="node-content">
                 <h3>Richards & Ford</h3>
                 <span class="era">2020 | Evolutionary Architecture</span>
@@ -422,7 +493,6 @@
             <div class="node-star" style="border-color: var(--ai-violet);"></div>
             <div style="width: 45%;"></div>
         </div>
-
     </section>
 
     <!-- Time Scrubber -->
@@ -618,6 +688,55 @@
             }
         });
 
+
+        // --- Filtering Logic (The Lenses) ---
+        const lensButtons = document.querySelectorAll('.lens-btn');
+        lensButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update active state
+                lensButtons.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+
+                const filter = e.target.getAttribute('data-filter');
+
+                // Dim non-matching nodes
+                nodes.forEach(node => {
+                    const tags = (node.getAttribute('data-tags') || '').split(',');
+                    if (filter === 'all' || tags.includes(filter)) {
+                        node.classList.remove('dimmed');
+                    } else {
+                        node.classList.add('dimmed');
+                    }
+                });
+            });
+        });
+
+        // --- Add this block INSIDE your drawInfluenceLines() function loop ---
+        const uturn = sourceNode.getAttribute('data-uturn');
+        if (uturn) {
+            const targetNode = document.getElementById(uturn);
+            if (targetNode) {
+                const sRect = sourceNode.querySelector('.node-star').getBoundingClientRect();
+                const tRect = targetNode.querySelector('.node-star').getBoundingClientRect();
+
+                const startX = sRect.left - tapestryRect.left + (sRect.width / 2);
+                const startY = sRect.top - tapestryRect.top + (sRect.height / 2);
+                const endX = tRect.left - tapestryRect.left + (tRect.width / 2);
+                const endY = tRect.top - tapestryRect.top + (tRect.height / 2);
+
+                // Draw Bezier curve that swings wide to the OUTSIDE edge before looping back up
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                // Sweeps widely left (-300px) or right (+300px) depending on screen position
+                const swingX = startX > window.innerWidth / 2 ? startX + 400 : startX - 400;
+
+                const curve = `M ${startX} ${startY} C ${swingX} ${startY}, ${swingX} ${endY}, ${endX} ${endY}`;
+
+                path.setAttribute('d', curve);
+                path.setAttribute('class', 'uturn-line');
+
+                svg.appendChild(path);
+            }
+        }
     </script>
 </body>
 </html>
