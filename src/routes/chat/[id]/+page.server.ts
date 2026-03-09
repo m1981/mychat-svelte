@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		orderBy: (messages, { asc }) => [asc(messages.createdAt)]
 	});
 
-	// Map to AI SDK v5 UIMessage format
+	// Map database rows to the current AI SDK UIMessage shape.
 	const messages = dbMessages.map((m) => ({
 		id: String(m.id),
 		role: m.role as 'user' | 'assistant' | 'system',

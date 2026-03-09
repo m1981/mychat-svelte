@@ -32,7 +32,7 @@ To maintain velocity, the team explicitly agrees **NOT** to build:
 *   **Tech Stack:** SvelteKit v5 (Runes for global state), Drizzle ORM, PostgreSQL + `pgvector`, Vercel AI SDK.
 *   **State Management:** Global state managed via Svelte 5 `$state` classes. **Rule:** All UI updates (creating folders, sending messages) must be *Optimistic* (update DOM instantly using client-generated `cuid2` IDs, then fetch in background).
 *   **Primary LLM:** Anthropic `claude-sonnet-4-6`. OpenAI is used only for embeddings (`text-embedding-3-small`) and is optional.
-*   **Auth/Tenant Isolation:** Pre-auth currently; using `getDefaultUserId()` shim in `src/lib/server/db/user.ts`. **Rule:** Every single DB query must include `where: eq(table.userId, currentUserId)`.
+*   **Auth/Tenant Isolation:** **Current state:** pre-auth, single-user behavior via `getDefaultUserId()` in `src/lib/server/db/user.ts`; the schema already includes some `userId` columns, but universal per-user query scoping is **not** enforced yet. **Future target:** once real auth is added, every tenant-owned DB query should scope by the authenticated user's `userId`.
 *   **UI Layout:** CSS Grid ensuring the Composer stays fixed at the bottom.
     ```text
     ┌─────────────────────────────────────────────────────────────────┐

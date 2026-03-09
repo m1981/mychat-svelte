@@ -84,6 +84,8 @@ Loaded via SvelteKit `+layout.server.ts` (not a standalone API endpoint). Return
 
 #### `POST /api/chats` ✅
 *   **Request:** `{ "id": "cuid", "folderId": null }`
+*   **Runtime defaults:** `title` falls back to `New Chat`; `modelId` falls back to `claude-sonnet-4-6` in the route handler to match the current Anthropic chat runtime.
+*   **Note:** The Drizzle schema still declares a `gpt-4o` column default for `chats.modelId`; that migration is intentionally deferred, so the route sets the runtime default explicitly.
 *   **Response:** Full saved `Chat` row.
 
 #### `PATCH /api/chats/:id` ✅

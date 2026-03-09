@@ -17,7 +17,7 @@ export const POST: RequestHandler = async ({ request, params }) => {
 	// 1. Save the user's incoming message to the database
 	const lastMessage = uiMessages[uiMessages.length - 1];
 
-	// In v5, content is stored in a `parts` array
+	// UI messages store text content inside `parts` entries.
 	const userText = lastMessage.parts?.find((p: any) => p.type === 'text')?.text || '';
 
 	await db.insert(messages).values({
@@ -26,10 +26,10 @@ export const POST: RequestHandler = async ({ request, params }) => {
 		content: userText
 	});
 
-	// 2. Stream the response using Vercel AI SDK v5
+	// 2. Stream the response with the current AI SDK message format.
 	const result = streamText({
 		model: anthropic('claude-sonnet-4-6'),
-		// Convert v5 UIMessages to ModelMessages
+		// convertToModelMessages is async in AI SDK 6.
 		messages: await convertToModelMessages(uiMessages),
 		async onFinish({ text }) {
 			// 3. Automatically save the AI's response when the stream finishes
@@ -74,6 +74,6 @@ export const POST: RequestHandler = async ({ request, params }) => {
 		}
 	});
 
-	// Use the new v5 UI Message Stream Response
+	// Return the UI message stream response expected by the client.
 	return result.toUIMessageStreamResponse();
 };

@@ -13,12 +13,13 @@
 - `src/lib/server/db/index.ts` — DB client init
 - `src/lib/server/db/user.ts` — User queries (getDefaultUserId)
 - `src/lib/state/app.svelte.ts` — Global reactive state (Svelte 5 runes), optimistic updates
-- `src/lib/api/client.ts` — Singleton ApiClient (GET/POST/PUT/PATCH/DELETE)
+- `src/lib/api/client.ts` — Unused helper/prototype; not imported by the current app state/API flow
 - `src/routes/+layout.server.ts` — Loads chats/folders on startup
 - `drizzle.config.ts` — DB migrations, requires DATABASE_URL env var
 
 ## Architecture
 - State: Svelte 5 `$state` runes with optimistic updates + rollback on failure
+- Current UI CRUD/search flows call `fetch` directly inside `src/lib/state/app.svelte.ts`; `src/lib/api/client.ts` is present but not wired into the active architecture
 - API: SvelteKit server routes under `src/routes/api/`
   - `/api/chats`, `/api/chats/[id]`
   - `/api/folders`, `/api/folders/[id]`

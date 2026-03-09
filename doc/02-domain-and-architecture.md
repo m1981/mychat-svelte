@@ -148,6 +148,7 @@ graph TD
 ### 2.2. Component Interaction Patterns
 
 *   **Optimistic UI via CUID2:** The frontend generates all primary keys (`cuid2`) before making network requests. When a user creates a folder, it appears instantly in the UI. The network request happens in the background. If it fails, the UI rolls back the state and shows a Toast error.
+*   **Current API Access Pattern:** Non-streaming CRUD/search traffic flows through `src/lib/state/app.svelte.ts`, which issues direct `fetch` calls to SvelteKit `src/routes/api/*` endpoints. `src/lib/api/client.ts` exists in the repo but is not currently imported, so it should be treated as inactive/prototype infrastructure rather than active architecture.
 *   **Frontend Context Injection:** The backend API is kept "dumb" regarding `@` mentions. If a user types `@Chat-123`, the Svelte frontend fetches the text of `Chat-123` from its local state, wraps it in `<context>` XML tags, and prepends it to the user's prompt before sending it to the `/api/chat` endpoint.
 *   **Server-Sent Events (SSE):** We do not use WebSockets. The Vercel AI SDK establishes an HTTP SSE connection. This is firewall-friendly, natively supported by browsers, and perfectly suited for serverless environments where long-lived WebSocket connections are killed.
 

@@ -17,18 +17,22 @@ describe('Chat lifecycle', () => {
     createdFolderIds.length = 0;
   });
 
-  it('creates a chat with default title "New Chat"', async () => {
-    const chat = await apiJson<{ id: string; title: string; userId: string }>('/api/chats', {
-      method: 'POST',
-      body: JSON.stringify({})
-    });
+	it('creates a chat with default title and model', async () => {
+		const chat = await apiJson<{ id: string; title: string; userId: string; modelId: string }>(
+			'/api/chats',
+			{
+				method: 'POST',
+				body: JSON.stringify({})
+			}
+		);
 
-    createdChatIds.push(chat.id);
+		createdChatIds.push(chat.id);
 
-    expect(chat.id).toBeTruthy();
-    expect(chat.title).toBe('New Chat');
-    expect(chat.userId).toBeTruthy();
-  });
+		expect(chat.id).toBeTruthy();
+		expect(chat.title).toBe('New Chat');
+		expect(chat.modelId).toBe('claude-sonnet-4-6');
+		expect(chat.userId).toBeTruthy();
+	});
 
   it('creates a chat inside a folder', async () => {
     const folder = await apiJson<{ id: string }>('/api/folders', {

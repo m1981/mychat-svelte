@@ -8,6 +8,8 @@
 
 The application state is managed by a single reactive class using Svelte 5 `$state` runes plus getter-based derived values. This keeps the Sidebar, Chat Area, and Secondary Panel in sync without a separate store layer.
 
+For the current REST/JSON app surface, `AppState` methods call `fetch` directly. The repository also contains `src/lib/api/client.ts`, but it is not imported by `src/lib/state/app.svelte.ts` or other active UI flows, so it should be treated as inactive/prototype code rather than the canonical API abstraction.
+
 **File:** `src/lib/state/app.svelte.ts`
 
 ```typescript
