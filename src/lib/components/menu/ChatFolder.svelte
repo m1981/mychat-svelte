@@ -58,7 +58,7 @@
 	}
 </script>
 
-<div class="chat-folder" data-folder-id={folder.id}>
+<div data-testid="folder-item" data-folder-id={folder.id} class="chat-folder">
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
@@ -77,6 +77,7 @@
 		<div class="folder-name-container">
 			{#if isRenaming}
 				<input
+					data-testid="folder-name-input"
 					bind:this={inputElement}
 					type="text"
 					class="chat-name-input"
@@ -87,7 +88,7 @@
 					maxlength="100"
 				/>
 			{:else}
-				<span class="folder-name-text">{folder.name}</span>
+				<span data-testid="folder-name" class="folder-name-text">{folder.name}</span>
 				{#if !hovered}
 				<div
 						class="folder-gradient"
@@ -108,6 +109,7 @@
 				<ColorPaletteIcon />
 			</button>
 			<button
+				data-testid="folder-rename-btn"
 				class="folder-action-btn"
 				class:btn-visible={hovered}
 				style="--button-index: 1;"
@@ -117,6 +119,7 @@
 				<EditIcon />
 			</button>
 			<button
+				data-testid="folder-delete-btn"
 				class="folder-action-btn"
 				class:btn-visible={hovered}
 				style="--button-index: 0;"

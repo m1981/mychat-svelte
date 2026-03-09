@@ -24,6 +24,7 @@
 </script>
 
 <button
+	data-testid="new-chat-btn"
 	class="new-chat-btn {folder ? 'new-chat-btn--folder' : 'new-chat-btn--standalone'} new-chat-btn--normal"
 	onclick={addChat}
 	disabled={creating}
