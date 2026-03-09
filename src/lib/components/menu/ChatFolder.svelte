@@ -7,6 +7,8 @@
 	import ColorPaletteIcon from '$lib/components/icons/ColorPaletteIcon.svelte';
 	import EditIcon from '$lib/components/icons/EditIcon.svelte';
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
+	import { app } from '$lib/state/app.svelte';
+	import { tick } from 'svelte';
 
 	let {
 		folder,
@@ -19,10 +21,40 @@
 	} = $props();
 
 	let hovered = $state(false);
-	let expanded = $state(true); // UI State
+	let expanded = $state(true);
+	let isRenaming = $state(false);
+	let editedName = $state(folder.name);
+	let inputElement: HTMLInputElement | undefined = $state();
 
 	function toggleExpanded() {
 		expanded = !expanded;
+	}
+
+	async function startRename(e: Event) {
+		e.stopPropagation();
+		isRenaming = true;
+		editedName = folder.name;
+		await tick();
+		inputElement?.focus();
+		inputElement?.select();
+	}
+
+	async function handleRename() {
+		isRenaming = false;
+		if (editedName.trim() && editedName.trim() !== folder.name) {
+			await app.renameFolder(folder.id, editedName.trim());
+		}
+	}
+
+	function handleRenameKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') handleRename();
+		else if (e.key === 'Escape') isRenaming = false;
+	}
+
+	async function handleDelete(e: Event) {
+		e.stopPropagation();
+		if (!confirm(`Delete folder "${folder.name}"? Chats inside will be kept.`)) return;
+		await app.deleteFolder(folder.id);
 	}
 </script>
 
@@ -43,14 +75,27 @@
 			<FolderIcon />
 		</div>
 		<div class="folder-name-container">
-			<span class="folder-name-text">{folder.name}</span>
-			{#if !hovered}
-			<div
-					class="folder-gradient"
-					style:background={folder.color
-						? `linear-gradient(to left, ${folder.color}, transparent)`
-						: ''}
-			></div>
+			{#if isRenaming}
+				<input
+					bind:this={inputElement}
+					type="text"
+					class="chat-name-input"
+					bind:value={editedName}
+					onblur={handleRename}
+					onkeydown={handleRenameKeydown}
+					onclick={(e) => e.stopPropagation()}
+					maxlength="100"
+				/>
+			{:else}
+				<span class="folder-name-text">{folder.name}</span>
+				{#if !hovered}
+				<div
+						class="folder-gradient"
+						style:background={folder.color
+							? `linear-gradient(to left, ${folder.color}, transparent)`
+							: ''}
+				></div>
+				{/if}
 			{/if}
 		</div>
 		<div class="folder-actions" onclick={(e) => e.stopPropagation()}>
@@ -67,6 +112,7 @@
 				class:btn-visible={hovered}
 				style="--button-index: 1;"
 				title="Edit folder name"
+				onclick={startRename}
 			>
 				<EditIcon />
 			</button>
@@ -75,6 +121,7 @@
 				class:btn-visible={hovered}
 				style="--button-index: 0;"
 				title="Delete folder"
+				onclick={handleDelete}
 			>
 				<DeleteIcon />
 			</button>

@@ -1,7 +1,7 @@
 // src/lib/api/client.ts
 
 import { AppError, handleError } from '$lib/utils/error-handler';
-import { toast } from '$lib/stores/toast.store';
+import { toast } from '$lib/stores/toast.store.svelte';
 
 interface RequestOptions extends RequestInit {
 	showToast?: boolean;

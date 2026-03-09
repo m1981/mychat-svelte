@@ -1,7 +1,7 @@
 <!-- src/lib/components/ui/ErrorBoundary.svelte -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { toast } from '$lib/stores/toast.store';
+	import { toast } from '$lib/stores/toast.store.svelte';
 
 	let {
 		children,

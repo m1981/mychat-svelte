@@ -1,78 +1,190 @@
 import { createId } from '@paralleldrive/cuid2';
+import { toast } from '$lib/stores/toast.store.svelte';
 import type { Chat, Folder, Note, Highlight } from '$lib/server/db/schema';
 
 class AppState {
-  // ==========================================
-  // 1. CORE DATA (Populated by API)
-  // ==========================================
-  chats = $state<Chat[]>([]);
-  folders = $state<Folder[]>([]);
-  notes = $state<Note[]>([]);
-  highlights = $state<Highlight[]>([]);
+	// ==========================================
+	// 1. CORE DATA (Populated on layout load)
+	// ==========================================
+	chats = $state<Chat[]>([]);
+	folders = $state<Folder[]>([]);
+	notes = $state<Note[]>([]);
+	highlights = $state<Highlight[]>([]);
 
-  // ==========================================
-  // 2. UI STATE
-  // ==========================================
-  activeChatId = $state<string | null>(null);
-  isSidebarOpen = $state(true);
-  secondaryPanelTab = $state<'notes' | 'highlights' | 'closed'>('closed');
+	// ==========================================
+	// 2. UI STATE
+	// ==========================================
+	activeChatId = $state<string | null>(null);
+	isSidebarOpen = $state(true);
+	secondaryPanelTab = $state<'notes' | 'highlights' | 'closed'>('closed');
 
-  // ==========================================
-  // 3. DERIVED STATE (Auto-calculates)
-  // ==========================================
-  get activeChat() {
-    return this.chats.find(c => c.id === this.activeChatId) || null;
-  }
+	// ==========================================
+	// 3. DERIVED STATE
+	// ==========================================
+	get activeChat() {
+		return this.chats.find((c) => c.id === this.activeChatId) ?? null;
+	}
 
-  get activeNotes() {
-    return this.notes.filter(n => n.chatId === this.activeChatId);
-  }
+	get activeNotes() {
+		return this.notes.filter((n) => n.chatId === this.activeChatId);
+	}
 
-  // ==========================================
-  // 4. OPTIMISTIC MUTATIONS (The API Contract)
-  // ==========================================
+	// ==========================================
+	// 4. CHAT MUTATIONS
+	// ==========================================
 
-  // Example: Frontend dev calls this. It updates UI instantly.
-  // Backend dev will later fill in the actual fetch() call.
-  async createFolder(name: string) {
-    const tempId = createId();
-    const newFolder: Folder = {
-      id: tempId,
-      userId: 'temp-user', // Replaced by server
-      name,
-      order: this.folders.length,
-      color: null,
-      createdAt: new Date()
-    };
+	async createChat(folderId?: string | null): Promise<string> {
+		const id = createId();
+		const now = new Date();
+		const optimistic: Chat = {
+			id,
+			userId: 'optimistic',
+			title: 'New Chat',
+			modelId: 'claude-sonnet-4-6',
+			folderId: folderId ?? null,
+			tags: [],
+			createdAt: now,
+			updatedAt: now
+		};
 
-    // 1. Optimistic UI Update
-    this.folders.push(newFolder);
+		this.chats.unshift(optimistic);
 
-    try {
-      // 2. The API Contract (Backend dev implements this endpoint)
-      /*
-      const res = await fetch('/api/folders', {
-        method: 'POST',
-        body: JSON.stringify({ id: tempId, name })
-      });
-      if (!res.ok) throw new Error('Failed to save');
-      */
-    } catch (error) {
-      // 3. Rollback on failure
-      this.folders = this.folders.filter(f => f.id !== tempId);
-      console.error("Failed to create folder", error);
-      // TODO: Trigger global Toast error
-    }
-  }
+		try {
+			const res = await fetch('/api/chats', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id, folderId: folderId ?? null })
+			});
+			if (!res.ok) throw new Error('Server error');
+			const saved: Chat = await res.json();
+			const idx = this.chats.findIndex((c) => c.id === id);
+			if (idx !== -1) this.chats[idx] = saved;
+		} catch {
+			this.chats = this.chats.filter((c) => c.id !== id);
+			toast.error('Failed to create chat');
+			throw new Error('createChat failed');
+		}
 
-  // Frontend dev uses this to switch chats and open the notes panel
-  setActiveChat(chatId: string) {
-    this.activeChatId = chatId;
-    if (this.secondaryPanelTab === 'closed') {
-      this.secondaryPanelTab = 'notes';
-    }
-  }
+		return id;
+	}
+
+	async renameChat(id: string, title: string): Promise<void> {
+		const idx = this.chats.findIndex((c) => c.id === id);
+		if (idx === -1) return;
+
+		const prevTitle = this.chats[idx].title;
+		this.chats[idx] = { ...this.chats[idx], title };
+
+		try {
+			const res = await fetch(`/api/chats/${id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ title })
+			});
+			if (!res.ok) throw new Error('Server error');
+		} catch {
+			const i = this.chats.findIndex((c) => c.id === id);
+			if (i !== -1) this.chats[i] = { ...this.chats[i], title: prevTitle };
+			toast.error('Failed to rename chat');
+		}
+	}
+
+	async deleteChat(id: string): Promise<void> {
+		const snapshot = [...this.chats];
+		this.chats = this.chats.filter((c) => c.id !== id);
+
+		try {
+			const res = await fetch(`/api/chats/${id}`, { method: 'DELETE' });
+			if (!res.ok) throw new Error('Server error');
+		} catch {
+			this.chats = snapshot;
+			toast.error('Failed to delete chat');
+			throw new Error('deleteChat failed');
+		}
+	}
+
+	// ==========================================
+	// 5. FOLDER MUTATIONS
+	// ==========================================
+
+	async createFolder(name: string): Promise<void> {
+		const id = createId();
+		const optimistic: Folder = {
+			id,
+			userId: 'optimistic',
+			name,
+			order: this.folders.length,
+			color: null,
+			createdAt: new Date()
+		};
+
+		this.folders.push(optimistic);
+
+		try {
+			const res = await fetch('/api/folders', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id, name, order: optimistic.order })
+			});
+			if (!res.ok) throw new Error('Server error');
+			const saved: Folder = await res.json();
+			const idx = this.folders.findIndex((f) => f.id === id);
+			if (idx !== -1) this.folders[idx] = saved;
+		} catch {
+			this.folders = this.folders.filter((f) => f.id !== id);
+			toast.error('Failed to create folder');
+		}
+	}
+
+	async renameFolder(id: string, name: string): Promise<void> {
+		const idx = this.folders.findIndex((f) => f.id === id);
+		if (idx === -1) return;
+
+		const prevName = this.folders[idx].name;
+		this.folders[idx] = { ...this.folders[idx], name };
+
+		try {
+			const res = await fetch(`/api/folders/${id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+			if (!res.ok) throw new Error('Server error');
+		} catch {
+			const i = this.folders.findIndex((f) => f.id === id);
+			if (i !== -1) this.folders[i] = { ...this.folders[i], name: prevName };
+			toast.error('Failed to rename folder');
+		}
+	}
+
+	async deleteFolder(id: string): Promise<void> {
+		const snapshotFolders = [...this.folders];
+		const snapshotChats = [...this.chats];
+
+		this.folders = this.folders.filter((f) => f.id !== id);
+		// DB FK (onDelete: 'set null') handles DB side; mirror it in local state
+		this.chats = this.chats.map((c) => (c.folderId === id ? { ...c, folderId: null } : c));
+
+		try {
+			const res = await fetch(`/api/folders/${id}`, { method: 'DELETE' });
+			if (!res.ok) throw new Error('Server error');
+		} catch {
+			this.folders = snapshotFolders;
+			this.chats = snapshotChats;
+			toast.error('Failed to delete folder');
+		}
+	}
+
+	// ==========================================
+	// 6. UI HELPERS
+	// ==========================================
+
+	setActiveChat(chatId: string) {
+		this.activeChatId = chatId;
+		if (this.secondaryPanelTab === 'closed') {
+			this.secondaryPanelTab = 'notes';
+		}
+	}
 }
 
-// Export a singleton instance for the whole app to use
 export const app = new AppState();

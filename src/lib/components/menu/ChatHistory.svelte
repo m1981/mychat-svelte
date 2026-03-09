@@ -6,7 +6,6 @@
 	import EditIcon from '$lib/components/icons/EditIcon.svelte';
 	import DeleteIcon from '$lib/components/icons/DeleteIcon.svelte';
 	import { app } from '$lib/state/app.svelte';
-	import { toast } from '$lib/stores/toast.store';
 	import { tick } from 'svelte';
 
 	let { chat, index }: { chat: Chat; index: number } = $props();
@@ -32,15 +31,11 @@
 		inputElement?.select();
 	}
 
-	function handleRename() {
-		if (editedTitle.trim() && editedTitle !== chat.title) {
-			const chatIndex = app.chats.findIndex(c => c.id === chat.id);
-			if (chatIndex !== -1) {
-				app.chats[chatIndex].title = editedTitle.trim();
-				toast.success('Chat renamed');
-			}
-		}
+	async function handleRename() {
 		isRenaming = false;
+		if (editedTitle.trim() && editedTitle.trim() !== chat.title) {
+			await app.renameChat(chat.id, editedTitle.trim());
+		}
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -52,13 +47,15 @@
 		}
 	}
 
-	function handleDelete(e: Event) {
+	async function handleDelete(e: Event) {
 		e.stopPropagation();
-		if (confirm(`Delete "${chat.title}"?`)) {
-			isDeleting = true;
-			app.chats = app.chats.filter(c => c.id !== chat.id);
-			toast.success('Chat deleted');
+		if (!confirm(`Delete "${chat.title}"?`)) return;
+		isDeleting = true;
+		try {
+			await app.deleteChat(chat.id);
 			if (isActive) goto('/');
+		} finally {
+			isDeleting = false;
 		}
 	}
 </script>

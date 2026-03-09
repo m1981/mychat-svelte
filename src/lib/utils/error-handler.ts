@@ -1,6 +1,6 @@
 // src/lib/utils/error-handler.ts
 
-import { toast } from '$lib/stores/toast.store';
+import { toast } from '$lib/stores/toast.store.svelte';
 
 /**
  * Custom error class for application-specific errors

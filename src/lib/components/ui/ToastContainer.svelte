@@ -1,6 +1,6 @@
 <!-- src/lib/components/ui/ToastContainer.svelte -->
 <script lang="ts">
-	import { toast } from '$lib/stores/toast.store';
+	import { toast } from '$lib/stores/toast.store.svelte';
 	import Toast from './Toast.svelte';
 
 	type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center';
