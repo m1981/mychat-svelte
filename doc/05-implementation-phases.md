@@ -2,7 +2,7 @@
 
 **Document:** Implementation Phases & Checkpoints
 
-**Version:** 1.2 (Track 1 Complete — 2026-03-09)
+**Version:** 1.3 (Phases 1-5 Complete — 2026-03-09)
 
 ---
 
@@ -14,8 +14,8 @@ This plan is designed for an AI coding assistant or human developer. **Do not sk
 ### ✅ Phase 1: Foundation & Database — COMPLETE
 **Goal:** Set up the SvelteKit project, Drizzle ORM, and the PostgreSQL schema.
 
-1.  ✅ Initialized SvelteKit v5, Tailwind v4, DaisyUI.
-2.  ✅ Dependencies installed: `drizzle-orm`, `postgres`, `pgvector`, `@paralleldrive/cuid2`, `ai`, `@ai-sdk/svelte`, `@ai-sdk/anthropic`.
+1.  ✅ Initialized SvelteKit 2 + Svelte 5, Tailwind v4, DaisyUI.
+2.  ✅ Dependencies installed for the shipped stack include `drizzle-orm`, `postgres`, `@paralleldrive/cuid2`, `ai`, `@ai-sdk/svelte`, `@ai-sdk/anthropic`, and `@ai-sdk/openai`.
 3.  ✅ `src/lib/server/db/schema.ts` — users, folders, chats, messages, notes, highlights with HNSW pgvector index.
 4.  ✅ Schema pushed to Neon PostgreSQL via `pnpm db:push`.
 5.  ✅ `src/lib/server/db/user.ts` — `getDefaultUserId()` pre-auth shim (auto-provisions default user).
@@ -35,7 +35,8 @@ This plan is designed for an AI coding assistant or human developer. **Do not sk
 1.  ✅ `src/routes/api/chat/[id]/+server.ts` — `streamText` using **Anthropic** provider (`claude-sonnet-4-6`).
 2.  ✅ `onFinish` callback saves the assistant message to DB.
 3.  ✅ `src/routes/chat/[id]/+page.svelte` — uses `@ai-sdk/svelte` `Chat` class + `DefaultChatTransport`.
-4.  ✅ `MessageComposer.svelte` — textarea with Enter-to-submit, spinner during stream.
+4.  ✅ `MessageComposer.svelte` — textarea with Enter-to-submit, stop button during stream, and `.md` / `.txt` file drop.
+5.  ✅ Assistant markdown rendered with `marked` + `highlight.js`, including copy buttons for code blocks.
 
 **Key implementation detail:** API keys must be loaded via SvelteKit's `$env/static/private` (not `process.env`) — Vite's SSR does not inject `.env` values into `process.env` for server routes. Example:
 ```ts
@@ -61,21 +62,22 @@ const anthropic = createAnthropic({ apiKey: ANTHROPIC_API_KEY });
 
 *   **✅ Checkpoint 3:** Create chat → verify DB row. Rename chat → refresh → title persists. Delete chat → DB cascade. Create/rename/delete folder → all persist. Verified 2026-03-09.
 
-**Remaining Track 1 work (bonus):**
-- [ ] Auto-title generation after first AI response (`PATCH /api/chats/[id]` triggered in `onFinish`)
+**Open backlog after Phase 3:**
 - [ ] Drag-and-drop to move chats into folders
+- [ ] Clone / truncate branching flows
 
 ---
 
-### Phase 4: Knowledge Extraction (Days 7-8)
+### ✅ Phase 4: Knowledge Extraction — COMPLETE (2026-03-09)
 **Goal:** Implement Highlights, Notes, and the Secondary Panel.
 
-1.  Build `SecondaryPanel.svelte` with tabs for Notes and Highlights.
-2.  Implement `POST /api/notes` and `POST /api/highlights`.
-3.  Update `MessageItem.svelte` with the `window.getSelection()` logic to calculate offsets and trigger the Highlight popover.
-4.  Implement the Markdown editor for Notes with a 1-second debounce auto-save.
+1.  ✅ Built `SecondaryPanel.svelte` with Notes and Highlights flows, later extended with Search in Phase 5.
+2.  ✅ Implemented `POST/GET /api/notes`, `PATCH /api/notes/[id]`, `POST /api/highlights`, `DELETE /api/highlights/[id]`, and `GET /api/chats/[id]/highlights`.
+3.  ✅ Added assistant-message text selection with a fixed "Save Highlight" popover.
+4.  ✅ Implemented `NotesTab.svelte` with 1-second debounce auto-save and `HighlightsTab.svelte` with delete support.
+5.  ✅ Saved highlights are re-marked in assistant messages in the chat view.
 
-*   **🛑 Checkpoint 4:** Highlight a sentence in an AI response. Select "Yellow". Verify it appears in the Secondary Panel. Write a Note. Refresh the page and ensure both are still attached to the active chat.
+*   **✅ Checkpoint 4:** Highlight assistant text → save it → verify it appears in the Secondary Panel and renders highlighted in the chat. Write a note, refresh, and confirm the note/highlights reload for the active chat. Verified 2026-03-09.
 
 ---
 
@@ -93,13 +95,14 @@ const anthropic = createAnthropic({ apiKey: ANTHROPIC_API_KEY });
 - `$env/dynamic/private` used instead of `$env/static/private` for optional keys (won't crash build if missing)
 - Search returns `[]` when `OPENAI_API_KEY` not set (graceful degradation)
 
-*   **✅ Checkpoint 5:** 21/21 Vitest tests + 17/17 Playwright tests passing. Screenshots: search panel open, query with empty state, `@` dropdown, mention inserted. Verified 2026-03-09.
+*   **✅ Checkpoint 5:** Vitest + Playwright coverage was used to verify search and composer flows. Screenshots cover the search panel, empty state, `@` dropdown, and inserted mention. Verified 2026-03-09.
 
 ---
 
 ### Phase 6: Polish & Deployment (Day 11)
-1.  Implement global Error Boundaries and Toast notifications.
-2.  Ensure mobile responsiveness (Sidebar collapses into a hamburger menu).
-3.  Deploy to Vercel. Provision a Neon Postgres or Supabase database with `pgvector` enabled.
+1.  Complete auth/session enforcement and real tenant isolation.
+2.  Finish mobile/sidebar reopen UX and replace placeholder header content.
+3.  Implement backlog items still outside the shipped surface (drag-and-drop folders, branching/truncate, richer markdown rendering).
+4.  Deploy to Vercel and validate the production flow against Neon with `pgvector` enabled.
 
 *   **🎉 Final Checkpoint:** Run the full End-to-End user flow in the production environment.
