@@ -2,7 +2,7 @@
 
 **Document:** Domain Understanding & Architecture Overview
 
-**Version:** 1.1 (Lean V1 + Cloning)
+**Version:** 1.2 (Phases 1-5 Complete — 2026-03-09)
 
 ---
 
@@ -87,7 +87,7 @@ classDiagram
     *   Frontend generates a `cuid2` ID and optimistically renders the user message.
     *   Backend receives the prompt, triggers the AI Provider via Vercel AI SDK.
     *   Backend streams the response chunks to the frontend.
-    *   On stream completion, backend saves the final AI message to the DB and synchronously generates its vector embedding.
+    *   On stream completion, backend saves the final AI message to the DB and asynchronously fire-and-forgets embedding generation via OpenAI (skipped if OPENAI_API_KEY absent).
 2.  **The Knowledge Extraction Flow:**
     *   User highlights text in a completed AI message.
     *   Frontend displays a tooltip: "Save Highlight".
@@ -141,7 +141,8 @@ graph TD
     
     Drizzle <--> DB
     AI_SDK -- "LLM Stream" --> Anthropic
-    API_Chat -- "Sync Embeddings" --> Anthropic
+    API_Chat -- "Async Embeddings (optional)" --> OpenAI
+    API_Search -- "Embedding Query" --> OpenAI
 ```
 
 ### 2.2. Component Interaction Patterns
@@ -162,12 +163,12 @@ graph TD
 
 ### 2.4. Integration Points with External Systems
 
-1.  **OpenAI API (`api.openai.com`):**
-    *   *Purpose:* LLM Generation (`gpt-4o`, `gpt-4o-mini`) and Vector Embeddings (`text-embedding-3-small`).
-    *   *Auth:* `OPENAI_API_KEY` environment variable.
-2.  **Anthropic API (`api.anthropic.com`):**
-    *   *Purpose:* Alternative LLM Generation (`claude-3-5-sonnet`).
-    *   *Auth:* `ANTHROPIC_API_KEY` environment variable.
+1.  **Anthropic API (`api.anthropic.com`):**
+    *   *Purpose:* Primary LLM provider. `claude-sonnet-4-6` for chat generation; `claude-haiku-4-5-20251001` for auto-title generation.
+    *   *Auth:* `ANTHROPIC_API_KEY` environment variable (required).
+2.  **OpenAI API (`api.openai.com`):**
+    *   *Purpose:* Vector embeddings only (`text-embedding-3-small`). This is optional — if `OPENAI_API_KEY` is absent, embedding generation is skipped and search returns empty results (graceful degradation). Uses `$env/dynamic/private` to avoid build failures when the key is not set.
+    *   *Auth:* `OPENAI_API_KEY` environment variable (optional).
 3.  **PostgreSQL Database:**
     *   *Purpose:* Primary data store. Must have the `pgvector` extension enabled.
     *   *Auth:* `DATABASE_URL` connection string.
@@ -182,27 +183,29 @@ sequenceDiagram
     participant UI as Svelte Frontend
     participant API as /api/chat/:id
     participant AI as Vercel AI SDK
-    participant OpenAI as OpenAI API
+    participant Anthropic as Anthropic API
+    participant OpenAI as OpenAI API (optional)
     participant DB as PostgreSQL
 
     User->>UI: Types "Summarize @Note-1"
     UI->>UI: Intercept @Note-1, fetch text from local state
     UI->>UI: Prepend Note text to prompt
     UI->>API: POST { messages: [...] }
-    
+
     API->>DB: INSERT User Message
     API->>AI: streamText(messages)
-    AI->>OpenAI: Request LLM Stream
-    
-    OpenAI-->>AI: Stream Chunks
+    AI->>Anthropic: Request LLM Stream
+
+    Anthropic-->>AI: Stream Chunks
     AI-->>API: Stream Chunks
     API-->>UI: HTTP SSE Stream (Typewriter effect)
-    
+
     Note over API,OpenAI: On Stream Finish (Background)
     AI-->>API: onFinish(fullText)
     API->>DB: INSERT Assistant Message
-    
-    API->>OpenAI: POST /embeddings (User Msg + Assistant Msg)
-    OpenAI-->>API: Return [Vector 1, Vector 2]
-    API->>DB: UPDATE messages SET embedding = vectors
+
+    Note over API,OpenAI: Async fire-and-forget (.catch()) — skipped if OPENAI_API_KEY absent
+    API->>OpenAI: POST /embeddings (Assistant Message only)
+    OpenAI-->>API: Return [Vector]
+    API->>DB: UPDATE message SET embedding = vector
 ```

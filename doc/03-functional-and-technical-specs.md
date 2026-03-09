@@ -1,7 +1,7 @@
 **Project:** BetterChatGPT (AI-Powered Personal Knowledge Management)
 
 **Document:** Functional & Technical Specifications
-**Version:** 1.2 (Lean V1 + Rich UX & Cloning)
+**Version:** 1.3 (Phases 1-5 Complete — 2026-03-09)
 
 ---
 
@@ -60,15 +60,15 @@
 | **AI SDK Streaming** | P0 | ✅ Done | `streamText` via `@ai-sdk/anthropic`, `claude-sonnet-4-6`. |
 | **CUID2 Optimistic UI** | P0 | ✅ Done | Instant UI updates with rollback for all chat/folder mutations. |
 | **Chat/Folder CRUD** | P0 | ✅ Done | Full REST API + DB persistence. |
-| **Auto-Title** | P0 | ⏳ Pending | Title update after first AI exchange (Track 1 bonus). |
+| **Auto-Title** | P0 | ✅ Done | `onFinish` fires when `assistantCount === 1`; calls `generateText` with `claude-haiku-4-5-20251001`; updates `chats.title`. |
 | **Clone & Truncate** | P1 | ⏳ Pending | SQL-level duplication of chats and vector embeddings. |
-| **Highlights & Notes** | P1 | ⏳ Pending | Secondary panel for knowledge extraction (Track 2). |
-| **Context Injection (`@`)** | P1 | ⏳ Pending | Frontend interception of `@` mentions to build prompts. |
-| **Semantic Search** | P2 | ⏳ Pending | `pgvector` cosine similarity search across messages. |
+| **Highlights & Notes** | P1 | ✅ Done | SecondaryPanel with NotesTab (1s debounce auto-save) + HighlightsTab; text-selection popover to create highlights. |
+| **Context Injection (`@`)** | P1 | ✅ Done | `@` dropdown in `MessageComposer` inserts `@ChatTitle` text into the prompt. |
+| **Semantic Search** | P2 | ✅ Done | `POST /api/search` with pgvector cosine distance via `text-embedding-3-small`; SearchTab in SecondaryPanel. |
 | **Drag-and-drop folders** | P2 | ⏳ Pending | Move chats between folders in sidebar. |
 
 ### 3.3. Business Logic Descriptions
-*   **Auto-Title Logic:** When the `onFinish` callback of the Vercel AI SDK fires for the *first* message in a chat, the backend asynchronously triggers a secondary, non-streaming LLM call (using a fast model like `claude-haiku-4-5`). The prompt is: *"Generate a concise, descriptive title (5 words or less) for this conversation based on this prompt: [USER_PROMPT]"*. The result updates the `chats.title` column via `PATCH /api/chats/:id`. **Status: not yet implemented.**
+*   **Auto-Title Logic:** When the `onFinish` callback of the Vercel AI SDK fires and `assistantCount === 1` (the first completed AI response in the chat), the backend synchronously calls `generateText` with `claude-haiku-4-5-20251001`. The prompt is: *"Generate a concise, descriptive title (5 words or less) for this conversation based on this prompt: [USER_PROMPT]"*. The result updates the `chats.title` column directly in the database.
 *   **File Drop Logic:** When a user drops a file into the `MessageComposer.svelte`, the frontend checks the MIME type. If it is a text-based file, it uses the browser's `FileReader` API to extract the string, formats it as `\n\n--- File: filename.ext ---\n[CONTENT]\n---\n\n`, and appends it to the textarea. The file itself is never uploaded to the server.
 *   **Vector Cloning Logic:** When executing "Clone up to here", the backend uses `INSERT INTO messages ... SELECT ... FROM messages`. It copies the raw vector data directly within PostgreSQL to ensure the operation is instant and free.
 *   **Context Injection Logic:** The backend API (`/api/chat/:id`) expects a standard array of `{ role, content }` objects. The frontend is strictly responsible for finding `@` mentions, fetching the referenced text from the Svelte `$state`, and formatting it as `<context>[TEXT]</context>` at the top of the user's prompt string before transmission.
@@ -108,6 +108,10 @@ Loaded via SvelteKit `+layout.server.ts` (not a standalone API endpoint). Return
 #### `DELETE /api/chats/:id` ✅
 Cascades to messages. Returns `204`.
 
+#### `GET /api/chats/:id` ✅
+Returns full Chat row. Used by the chat page to refresh title after auto-title generation.
+- **Response:** Full `Chat` row, 404 if not found.
+
 #### `POST /api/folders` ✅
 *   **Request:** `{ "id": "cuid", "name": "Work", "order": 0 }`
 *   **Response:** Full saved `Folder` row.
@@ -118,25 +122,43 @@ Cascades to messages. Returns `204`.
 #### `DELETE /api/folders/:id` ✅
 Sets `chats.folderId = null` for affected chats (FK `onDelete: 'set null'`). Returns `204`.
 
-#### `GET /api/chats/:chatId/messages` (Cursor Pagination)
-*   **Query Params:** `?cursor=<messageId>&limit=50`
-*   **Response:**
-    ```json
-    {
-      "messages": [
-        { "id": "msg1", "role": "user", "content": "Hello", "createdAt": "..." }
-      ],
-      "nextCursor": "msg50"
-    }
-    ```
+#### `GET /api/chats/:chatId/messages` ✅
+Returns all messages for a chat, ordered by `createdAt` ASC.
+- **Response:** `Array<{ id, chatId, role, content, createdAt }>`
 
 #### `POST /api/chats/:chatId/clone`
 *   **Request:** `{ "upToMessageId": "msg_abc123" }`
 *   **Response:** `{ "newChatId": "chat_xyz789" }`
 
-#### `POST /api/search`
-*   **Request:** `{ "query": "How do I configure SvelteKit?" }`
-*   **Response:** Array of results with `similarityScore`.
+#### `POST /api/notes` ✅
+- **Request:** `{ "chatId": "cuid", "content": "markdown text" }`
+- **Response:** Full saved `Note` row (201).
+
+#### `PATCH /api/notes/:id` ✅
+- **Request:** `{ "content": "updated markdown" }`
+- **Response:** Updated `Note` row.
+
+#### `DELETE /api/notes/:id` ✅
+Returns 204.
+
+#### `GET /api/notes?chatId=:chatId` ✅
+Returns all notes for a chat.
+
+#### `POST /api/highlights` ✅
+- **Request:** `{ "messageId": "cuid", "text": "selected text" }`
+- Validates message exists; returns 404 if not.
+- **Response:** Full `Highlight` row (201).
+
+#### `DELETE /api/highlights/:id` ✅
+Returns 204.
+
+#### `GET /api/chats/:chatId/highlights` ✅
+Returns all highlights for messages belonging to the chat (JOIN through messages table).
+
+#### `POST /api/search` ✅
+- **Request:** `{ "query": "semantic search string", "limit": 5 }`
+- Generates embedding via OpenAI `text-embedding-3-small`; returns `[]` if `OPENAI_API_KEY` absent.
+- **Response:** `Array<{ messageId, chatId, chatTitle, content, role, score }>` ordered by cosine similarity.
 
 ### 4.2. Database Schema Design (Summary)
 *Refer to `02-architecture-and-data-model.md` for the exact Drizzle ORM code.*
@@ -148,6 +170,8 @@ Sets `chats.folderId = null` for affected chats (FK `onDelete: 'set null'`). Ret
 *   **JSONB:** `tags` column on `chats` and `notes` to avoid junction tables.
 
 ### 4.3. Authentication and Authorization Approach
+> **Note:** Currently pre-auth: `getDefaultUserId()` in `src/lib/server/db/user.ts` auto-provisions a single default user. Auth.js integration is planned for Phase 6.
+
 *   **Library:** Auth.js for SvelteKit (formerly NextAuth).
 *   **Strategy:** OAuth (GitHub/Google) or Magic Links. No password management.
 *   **Authorization (Tenant Isolation):** Every single database query in the Repository layer *must* include a `where: eq(table.userId, currentUserId)` clause.
