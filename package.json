@@ -54,7 +54,9 @@
 		"@ai-sdk/svelte": "^4.0.116",
 		"@paralleldrive/cuid2": "^3.3.0",
 		"ai": "^6.0.116",
+		"highlight.js": "^11.11.1",
 		"marked": "^17.0.4",
+		"marked-highlight": "^2.2.3",
 		"postgres": "^3.4.5",
 		"svelte-dnd-action": "^0.9.69"
 	},

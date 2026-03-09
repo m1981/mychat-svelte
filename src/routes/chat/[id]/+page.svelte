@@ -6,25 +6,53 @@
 	import { Chat } from '@ai-sdk/svelte';
 	import { DefaultChatTransport } from 'ai';
 	import { marked } from 'marked';
+	import { markedHighlight } from 'marked-highlight';
+	import hljs from 'highlight.js';
 	import MessageComposer from '$lib/components/layout/MessageComposer.svelte';
+
+	// Configure marked once with syntax highlighting
+	marked.use(
+		markedHighlight({
+			langPrefix: 'hljs language-',
+			highlight(code, lang) {
+				const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+				return hljs.highlight(code, { language }).value;
+			}
+		})
+	);
+
+	// Custom renderer: wrap code blocks with copy button
+	const renderer = new marked.Renderer();
+	renderer.code = ({ text, lang }: { text: string; lang?: string }) => {
+		const language = hljs.getLanguage(lang || '') ? lang! : 'plaintext';
+		const highlighted = hljs.highlight(text, { language }).value;
+		return `<div class="code-block relative group my-2">
+<button class="copy-btn absolute top-2 right-2 btn btn-xs btn-ghost opacity-0 group-hover:opacity-100 z-10" data-code="${encodeURIComponent(text)}">Copy</button>
+<pre class="rounded-lg overflow-x-auto"><code class="hljs language-${language}">${highlighted}</code></pre>
+</div>`;
+	};
+	marked.use({ renderer });
 
 	let { data } = $props();
 	const chatId = $derived($page.params.id);
 	const currentChatMetadata = $derived(app.chats.find((c) => c.id === chatId));
 
-	let chatInstance = $state(new Chat({
-		transport: new DefaultChatTransport({ api: `/api/chat/${$page.params.id}` }),
-		messages: data.messages
-	}));
+	let chatInstance = $state(
+		new Chat({
+			transport: new DefaultChatTransport({ api: `/api/chat/${$page.params.id}` }),
+			messages: data.messages
+		})
+	);
 
-	// Map of AI SDK message id -> DB message id
-	// Since page.server.ts sets id: String(m.id), AI SDK ids ARE DB ids for loaded messages
 	let dbMessageMap = $state<Map<string, string>>(
 		new Map(data.messages.map((m) => [m.id, m.id]))
 	);
 
 	// Popover state for text selection
 	let popover = $state<{ x: number; y: number; text: string; messageId: string } | null>(null);
+
+	// Auto-scroll ref
+	let messagesEnd = $state<HTMLDivElement | undefined>();
 
 	$effect(() => {
 		chatInstance = new Chat({
@@ -48,7 +76,16 @@
 		}
 	});
 
-	// Refresh chat title from server after streaming finishes (for auto-title)
+	// Auto-scroll to bottom whenever messages change or streaming progresses
+	$effect(() => {
+		// Track messages length and last message content to trigger on stream updates
+		const _ = chatInstance.messages.length;
+		const lastMsg = chatInstance.messages[chatInstance.messages.length - 1];
+		const __ = lastMsg?.parts?.map((p: any) => p.text).join('');
+		messagesEnd?.scrollIntoView({ behavior: 'smooth' });
+	});
+
+	// Refresh chat title + dbMessageMap after streaming finishes
 	$effect(() => {
 		if (chatInstance.status === 'ready') {
 			const idx = app.chats.findIndex((c) => c.id === chatId);
@@ -62,14 +99,11 @@
 				})
 				.catch(() => {});
 
-			// Refresh DB message IDs after streaming
-			// Match SDK messages to DB messages by position+role to get correct DB IDs
 			fetch(`/api/chats/${chatId}/messages`)
 				.then((r) => r.json())
 				.then((dbMsgs: Array<{ id: string; role: string; content: string }>) => {
 					const sdkMsgs = chatInstance.messages;
 					const newMap = new Map<string, string>();
-					// Match by position: SDK messages and DB messages should be in the same order
 					sdkMsgs.forEach((sdkMsg, i) => {
 						const dbMsg = dbMsgs[i];
 						if (dbMsg && dbMsg.role === sdkMsg.role) {
@@ -91,7 +125,6 @@
 		}
 		const range = selection!.getRangeAt(0);
 		const rect = range.getBoundingClientRect();
-		// Use the DB message ID if available, otherwise use SDK id
 		const dbId = dbMessageMap.get(messageId) ?? messageId;
 		popover = { x: rect.left + rect.width / 2, y: rect.top - 8, text, messageId: dbId };
 	}
@@ -101,6 +134,32 @@
 		await app.saveHighlight(popover.messageId, popover.text);
 		popover = null;
 		window.getSelection()?.removeAllRanges();
+	}
+
+	// Render markdown with saved highlights visually marked
+	function renderMessage(markdown: string, messageId: string): string {
+		let html = marked.parse(markdown) as string;
+		const dbId = dbMessageMap.get(messageId) ?? messageId;
+		const msgHighlights = app.highlights.filter((h) => h.messageId === dbId);
+		for (const h of msgHighlights) {
+			const escaped = h.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			html = html.replace(
+				new RegExp(escaped, 'g'),
+				`<mark class="bg-warning/50 rounded px-0.5">$&</mark>`
+			);
+		}
+		return html;
+	}
+
+	// Handle copy button clicks via event delegation
+	function handleCopyClick(e: MouseEvent) {
+		const btn = (e.target as Element).closest('.copy-btn') as HTMLElement | null;
+		if (!btn) return;
+		const code = decodeURIComponent(btn.dataset.code ?? '');
+		navigator.clipboard.writeText(code).then(() => {
+			btn.textContent = 'Copied!';
+			setTimeout(() => (btn.textContent = 'Copy'), 1500);
+		});
 	}
 </script>
 
@@ -114,6 +173,7 @@
 				popover = null;
 			}
 		}}
+		onclick={handleCopyClick}
 	>
 		<div class="p-4 border-b border-base-300 flex items-center justify-between">
 			<h1 data-testid="chat-view-title" class="text-xl font-bold">{currentChatMetadata.title}</h1>
@@ -167,7 +227,7 @@
 								{#if part.type === 'text'}
 									{#if message.role === 'assistant'}
 										<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-										{@html marked.parse(part.text)}
+										{@html renderMessage(part.text, message.id)}
 									{:else}
 										{part.text}
 									{/if}
@@ -184,6 +244,9 @@
 						</div>
 					</div>
 				{/if}
+
+				<!-- Auto-scroll anchor -->
+				<div bind:this={messagesEnd}></div>
 			{/if}
 		</div>
 
@@ -203,11 +266,11 @@
 			</div>
 		{/if}
 
-		<!-- Pass SDK stores to the composer -->
 		<div class="p-4 bg-base-200 border-t border-base-300">
 			<MessageComposer
 				sendMessage={(msg) => chatInstance.sendMessage(msg)}
 				status={chatInstance.status}
+				onStop={() => chatInstance.stop()}
 			/>
 		</div>
 	</div>
