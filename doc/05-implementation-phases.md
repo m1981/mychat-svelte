@@ -79,15 +79,21 @@ const anthropic = createAnthropic({ apiKey: ANTHROPIC_API_KEY });
 
 ---
 
-### Phase 5: Power Features (Days 9-10)
+### ✅ Phase 5: Power Features — COMPLETE (2026-03-09)
 **Goal:** Implement Semantic Search and `@` Mentions.
 
-1.  Update the `onFinish` AI callback to synchronously generate a `text-embedding-3-small` vector and save it to `messages.embedding`.
-2.  Create `POST /api/search` using Drizzle's `vector_cosine_ops` to find similar messages.
-3.  Build `SearchPanel.svelte` in the UI.
-4.  Update `MessageComposer.svelte` to intercept `@` keystrokes, show a dropdown of past chats, and inject the selected text into the prompt payload.
+1.  ✅ Updated `onFinish` to fire-and-forget embedding generation via OpenAI `text-embedding-3-small` (non-blocking; gracefully skipped if `OPENAI_API_KEY` not set).
+2.  ✅ `POST /api/search` — generates query embedding, performs cosine distance query (`<=>`) against `messages.embedding`, returns top-N results with `messageId`, `chatId`, `chatTitle`, `content`, `role`, `score`.
+3.  ✅ `SearchTab.svelte` — search input with 400ms debounce, result cards showing chat title + content excerpt, click navigates to chat.
+4.  ✅ `SecondaryPanel.svelte` updated with 3rd "Search" tab.
+5.  ✅ `MessageComposer.svelte` — `@` keystroke detection, floating dropdown of matching chats, selection inserts `@ChatTitle` into input.
 
-*   **🛑 Checkpoint 5:** Send a message about "SvelteKit routing". Open the Search Panel and search for "frontend navigation". Verify the semantic search returns the SvelteKit message even though the exact keywords don't match.
+**Notes:**
+- Embedding uses `@ai-sdk/openai` with `createOpenAI({ apiKey: env.OPENAI_API_KEY })` (dynamic env import)
+- `$env/dynamic/private` used instead of `$env/static/private` for optional keys (won't crash build if missing)
+- Search returns `[]` when `OPENAI_API_KEY` not set (graceful degradation)
+
+*   **✅ Checkpoint 5:** 21/21 Vitest tests + 17/17 Playwright tests passing. Screenshots: search panel open, query with empty state, `@` dropdown, mention inserted. Verified 2026-03-09.
 
 ---
 

@@ -1,6 +1,8 @@
-import { streamText, generateText, convertToModelMessages } from 'ai';
+import { streamText, generateText, embed, convertToModelMessages } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 import { ANTHROPIC_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import { messages, chats } from '$lib/server/db/schema';
 import { eq, count, and } from 'drizzle-orm';
@@ -31,11 +33,23 @@ export const POST: RequestHandler = async ({ request, params }) => {
 		messages: await convertToModelMessages(uiMessages),
 		async onFinish({ text }) {
 			// 3. Automatically save the AI's response when the stream finishes
-			await db.insert(messages).values({
-				chatId,
-				role: 'assistant',
-				content: text
-			});
+			const [assistantMsg] = await db
+				.insert(messages)
+				.values({ chatId, role: 'assistant', content: text })
+				.returning({ id: messages.id });
+
+			// 3b. Generate and save embedding asynchronously (non-blocking)
+			if (env.OPENAI_API_KEY && assistantMsg) {
+				const openaiProvider = createOpenAI({ apiKey: env.OPENAI_API_KEY });
+				embed({
+					model: openaiProvider.embedding('text-embedding-3-small'),
+					value: text
+				})
+					.then(({ embedding }) =>
+						db.update(messages).set({ embedding }).where(eq(messages.id, assistantMsg.id))
+					)
+					.catch((e) => console.error('Embedding generation failed:', e));
+			}
 
 			// 4. Auto-title: if this is the first assistant message, generate a short title
 			const [{ value: assistantCount }] = await db
