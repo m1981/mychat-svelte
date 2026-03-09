@@ -23,12 +23,15 @@ importers:
       ai:
         specifier: ^6.0.116
         version: 6.0.116(zod@4.3.6)
+      marked:
+        specifier: ^17.0.4
+        version: 17.0.4
       postgres:
         specifier: ^3.4.5
         version: 3.4.7
       svelte-dnd-action:
-        specifier: ^0.9.65
-        version: 0.9.65(svelte@5.39.6)
+        specifier: ^0.9.69
+        version: 0.9.69(svelte@5.39.6)
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.5
@@ -1827,6 +1830,11 @@ packages:
   magic-string@0.30.19:
     resolution: {integrity: sha512-2N21sPY9Ws53PZvsEpVtNuSW+ScYbQdp4b9qUaL+9QkHUrGFKo56Lg9Emg5s9V/qrtNBmiR01sYhUOwu3H+VOw==}
 
+  marked@17.0.4:
+    resolution: {integrity: sha512-NOmVMM+KAokHMvjWmC5N/ZOvgmSWuqJB8FoYI019j4ogb/PeRMKoKIjReZ2w3376kkA8dSJIP8uD993Kxc0iRQ==}
+    engines: {node: '>= 20'}
+    hasBin: true
+
   merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
@@ -2121,8 +2129,8 @@ packages:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: '>=5.0.0'
 
-  svelte-dnd-action@0.9.65:
-    resolution: {integrity: sha512-GKFtrAtYAjcm27aMELoXOhkLtKA1AEoj2njjCReCer6jh1hnRtTHdEO4Kjfpayz+ZAvE0MMwIvLISW3tsiO9Qg==}
+  svelte-dnd-action@0.9.69:
+    resolution: {integrity: sha512-NAmSOH7htJoYraTQvr+q5whlIuVoq88vEuHr4NcFgscDRUxfWPPxgie2OoxepBCQCikrXZV4pqV86aun60wVyw==}
     peerDependencies:
       svelte: '>=3.23.0 || ^5.0.0-next.0'
 
@@ -3822,6 +3830,8 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  marked@17.0.4: {}
+
   merge2@1.4.1: {}
 
   micromatch@4.0.8:
@@ -4082,7 +4092,7 @@ snapshots:
     transitivePeerDependencies:
       - picomatch
 
-  svelte-dnd-action@0.9.65(svelte@5.39.6):
+  svelte-dnd-action@0.9.69(svelte@5.39.6):
     dependencies:
       svelte: 5.39.6
 

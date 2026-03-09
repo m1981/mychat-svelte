@@ -63,6 +63,8 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+	data-testid="chat-item"
+	data-chat-id={chat.id}
 	class="chat-history-item"
 	class:chat-history-active={isActive}
 	class:chat-history-item--hovered={hovered}
@@ -76,6 +78,7 @@
 		<div class="chat-title-container">
 			{#if isRenaming}
 				<input
+					data-testid="chat-name-input"
 					bind:this={inputElement}
 					type="text"
 					class="chat-name-input"
@@ -86,7 +89,7 @@
 					maxlength="100"
 				/>
 			{:else}
-				<span class="chat-title-text">{chat.title}</span>
+				<span data-testid="chat-title" class="chat-title-text">{chat.title}</span>
 			{/if}
 		</div>
 		<div
@@ -105,6 +108,7 @@
 			<span class="loading loading-spinner loading-sm"></span>
 		{:else}
 		<button
+			data-testid="chat-rename-btn"
 			class="chat-action-btn"
 			style="--button-index: 1;"
 			onclick={startRename}
@@ -114,6 +118,7 @@
 			<EditIcon />
 		</button>
 <button
+			data-testid="chat-delete-btn"
 			class="chat-action-btn"
 			style="--button-index: 0;"
 			onclick={handleDelete}

@@ -11,6 +11,7 @@
 </script>
 
 <button
+	data-testid="new-folder-btn"
 	class="flex items-center rounded-md transition-colors duration-200 text-sm text-base-content whitespace-nowrap hover:bg-base-content/10 px-2 py-2 gap-3 mb-2 border border-base-300 select-none cursor-pointer"
 	onclick={addFolder}
 >

@@ -16,7 +16,7 @@
 	};
 </script>
 
-<div class="toast toast-end {positionClasses[position] || positionClasses['top-right']} z-[9999]">
+<div data-testid="toast-container" class="toast toast-end {positionClasses[position] || positionClasses['top-right']} z-[9999]">
 	<!-- REMOVED the $ from toast -->
 	{#each toast.toasts as toastItem (toastItem.id)}
 		<Toast {toastItem} />

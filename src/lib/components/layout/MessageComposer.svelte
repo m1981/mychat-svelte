@@ -25,6 +25,7 @@
 
 <form onsubmit={handleSubmit} class="w-full max-w-4xl mx-auto relative">
 	<textarea
+		data-testid="message-input"
 		bind:value={input}
 		disabled={status === 'streaming' || status === 'submitted'}
 		rows="1"
@@ -39,6 +40,7 @@
 	></textarea>
 
 	<button
+		data-testid="send-btn"
 		type="submit"
 		class="btn btn-primary btn-square absolute bottom-2 right-2"
 		disabled={!input.trim() || status === 'streaming' || status === 'submitted'}
