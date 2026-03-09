@@ -3,6 +3,7 @@
 	import Header from '$lib/components/layout/Header.svelte';
 	import Main from '$lib/components/layout/Main.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
+	import SecondaryPanel from '$lib/components/layout/SecondaryPanel.svelte';
 	import Menu from '$lib/components/menu/Menu.svelte';
 	import ErrorBoundary from '$lib/components/ui/ErrorBoundary.svelte';
 	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
@@ -28,11 +29,11 @@
 <ErrorBoundary>
 <div class="w-full h-screen flex justify-center bg-base-300" style="padding: var(--layout-container-padding)">
 	<div
-		class="w-full h-full grid shadow-xl rounded-md overflow-hidden grid-rows-[var(--layout-header-height)_1fr] grid-cols-[auto_1fr]"
+		class="w-full h-full grid shadow-xl rounded-md overflow-hidden grid-rows-[var(--layout-header-height)_1fr] grid-cols-[auto_1fr_auto]"
 		style:max-width="var(--layout-app-max-width)"
 		style:grid-template-areas={`
-      "sidebar header"
-      "sidebar content"
+      "sidebar header secondary"
+      "sidebar content secondary"
     `}
 	>
 		<Sidebar isVisible={app.isSidebarOpen}>
@@ -50,6 +51,8 @@
 				{@render children()}
 			</ErrorBoundary>
 		</Main>
+
+		<SecondaryPanel />
 	</div>
 </div>
 </ErrorBoundary>

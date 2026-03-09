@@ -2,6 +2,15 @@ import { createId } from '@paralleldrive/cuid2';
 import { toast } from '$lib/stores/toast.store.svelte';
 import type { Chat, Folder, Note, Highlight } from '$lib/server/db/schema';
 
+export type SearchResult = {
+	messageId: string;
+	chatId: string;
+	chatTitle: string;
+	content: string;
+	role: string;
+	score: number;
+};
+
 class AppState {
 	// ==========================================
 	// 1. CORE DATA (Populated on layout load)
@@ -16,7 +25,9 @@ class AppState {
 	// ==========================================
 	activeChatId = $state<string | null>(null);
 	isSidebarOpen = $state(true);
-	secondaryPanelTab = $state<'notes' | 'highlights' | 'closed'>('closed');
+	secondaryPanelTab = $state<'notes' | 'highlights' | 'search' | 'closed'>('closed');
+	searchResults = $state<SearchResult[]>([]);
+	searchQuery = $state('');
 
 	// ==========================================
 	// 3. DERIVED STATE
@@ -181,8 +192,90 @@ class AppState {
 
 	setActiveChat(chatId: string) {
 		this.activeChatId = chatId;
-		if (this.secondaryPanelTab === 'closed') {
-			this.secondaryPanelTab = 'notes';
+	}
+
+	// ==========================================
+	// 7. KNOWLEDGE MUTATIONS
+	// ==========================================
+
+	async loadChatKnowledge(chatId: string): Promise<void> {
+		const [notesRes, highlightsRes] = await Promise.all([
+			fetch(`/api/notes?chatId=${chatId}`),
+			fetch(`/api/chats/${chatId}/highlights`)
+		]);
+		this.notes = notesRes.ok ? await notesRes.json() : [];
+		this.highlights = highlightsRes.ok ? await highlightsRes.json() : [];
+	}
+
+	async saveNote(chatId: string, content: string): Promise<void> {
+		const existing = this.notes.find((n) => n.chatId === chatId);
+		if (existing) {
+			await fetch(`/api/notes/${existing.id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ content })
+			});
+			const idx = this.notes.findIndex((n) => n.id === existing.id);
+			if (idx !== -1) this.notes[idx] = { ...this.notes[idx], content };
+		} else {
+			const res = await fetch('/api/notes', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ chatId, content })
+			});
+			if (res.ok) {
+				const note = await res.json();
+				this.notes.push(note);
+			}
+		}
+	}
+
+	async saveHighlight(messageId: string, text: string): Promise<void> {
+		const res = await fetch('/api/highlights', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ messageId, text })
+		});
+		if (res.ok) {
+			const highlight = await res.json();
+			this.highlights.push(highlight);
+			toast.success('Highlight saved');
+		} else {
+			toast.error('Failed to save highlight');
+		}
+	}
+
+	async deleteHighlight(id: string): Promise<void> {
+		const snapshot = [...this.highlights];
+		this.highlights = this.highlights.filter((h) => h.id !== id);
+		const res = await fetch(`/api/highlights/${id}`, { method: 'DELETE' });
+		if (!res.ok) {
+			this.highlights = snapshot;
+			toast.error('Failed to delete highlight');
+		}
+	}
+
+	// ==========================================
+	// 8. SEMANTIC SEARCH
+	// ==========================================
+
+	async search(query: string): Promise<void> {
+		this.searchQuery = query;
+		if (!query.trim()) {
+			this.searchResults = [];
+			return;
+		}
+		try {
+			const res = await fetch('/api/search', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ query, limit: 8 })
+			});
+			if (res.ok) {
+				this.searchResults = await res.json();
+			}
+		} catch {
+			toast.error('Search failed');
 		}
 	}
 }
