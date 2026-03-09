@@ -4,13 +4,16 @@
 
 	let {
 		sendMessage,
-		status
+		status,
+		onStop
 	}: {
 		sendMessage: (msg: { text: string }) => void;
 		status: string;
+		onStop?: () => void;
 	} = $props();
 
 	let input = $state('');
+	let isDraggingOver = $state(false);
 
 	// @mention state
 	let mentionQuery = $state('');
@@ -25,12 +28,13 @@
 			: []
 	);
 
+	const isStreaming = $derived(status === 'streaming' || status === 'submitted');
+
 	function handleInput(e: Event) {
 		const target = e.target as HTMLTextAreaElement;
 		const val = target.value;
 		const cursor = target.selectionStart ?? val.length;
 
-		// Find last '@' before cursor with no space after it
 		const textBeforeCursor = val.slice(0, cursor);
 		const atIndex = textBeforeCursor.lastIndexOf('@');
 		if (atIndex !== -1) {
@@ -55,10 +59,7 @@
 
 	function handleSubmit(e?: Event) {
 		if (e) e.preventDefault();
-
-		const isBusy = status === 'streaming' || status === 'submitted';
-		if (!input.trim() || isBusy) return;
-
+		if (!input.trim() || isStreaming) return;
 		sendMessage({ text: input });
 		input = '';
 		mentionStart = -1;
@@ -66,12 +67,15 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		// Escape closes mention dropdown
 		if (e.key === 'Escape' && mentionStart !== -1) {
 			e.preventDefault();
 			mentionStart = -1;
 			mentionQuery = '';
 			return;
 		}
+
+		// Enter: submit or select first mention
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			if (showMentionDropdown && mentionMatches.length > 0) {
@@ -79,7 +83,39 @@
 			} else {
 				handleSubmit();
 			}
+			return;
 		}
+
+		// Cmd/Ctrl+Enter: always submit (even when dropdown is open)
+		if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+			e.preventDefault();
+			handleSubmit();
+		}
+	}
+
+	// File drop handling
+	function handleDragOver(e: DragEvent) {
+		e.preventDefault();
+		isDraggingOver = true;
+	}
+
+	function handleDragLeave() {
+		isDraggingOver = false;
+	}
+
+	function handleDrop(e: DragEvent) {
+		e.preventDefault();
+		isDraggingOver = false;
+		const file = e.dataTransfer?.files[0];
+		if (!file) return;
+		const isText = file.type.startsWith('text/') || file.name.endsWith('.md') || file.name.endsWith('.txt');
+		if (!isText) return;
+		const reader = new FileReader();
+		reader.onload = (ev) => {
+			const content = ev.target?.result as string;
+			input += `\n\n--- File: ${file.name} ---\n${content}\n---\n`;
+		};
+		reader.readAsText(file);
 	}
 </script>
 
@@ -105,27 +141,40 @@
 	<textarea
 		data-testid="message-input"
 		bind:value={input}
-		disabled={status === 'streaming' || status === 'submitted'}
+		disabled={isStreaming}
 		rows="1"
-		class="textarea textarea-bordered w-full pr-16 resize-none"
+		class="textarea textarea-bordered w-full pr-16 resize-none transition-colors {isDraggingOver ? 'border-primary bg-primary/5' : ''}"
 		placeholder="Type your message… (@ to mention a chat)"
 		oninput={handleInput}
 		onkeydown={handleKeydown}
+		ondragover={handleDragOver}
+		ondragleave={handleDragLeave}
+		ondrop={handleDrop}
 	></textarea>
 
-	<button
-		data-testid="send-btn"
-		type="submit"
-		class="btn btn-primary btn-square absolute bottom-2 right-2"
-		disabled={!input.trim() || status === 'streaming' || status === 'submitted'}
-		aria-label="Send message"
-	>
-		{#if status === 'streaming' || status === 'submitted'}
-			<span class="loading loading-spinner"></span>
-		{:else}
+	{#if isStreaming}
+		<button
+			data-testid="stop-btn"
+			type="button"
+			class="btn btn-error btn-square absolute bottom-2 right-2"
+			onclick={onStop}
+			aria-label="Stop generation"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+				<rect x="6" y="6" width="12" height="12" rx="1" />
+			</svg>
+		</button>
+	{:else}
+		<button
+			data-testid="send-btn"
+			type="submit"
+			class="btn btn-primary btn-square absolute bottom-2 right-2"
+			disabled={!input.trim()}
+			aria-label="Send message"
+		>
 			<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
 				<path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
 			</svg>
-		{/if}
-	</button>
+		</button>
+	{/if}
 </form>

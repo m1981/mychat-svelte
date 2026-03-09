@@ -1,5 +1,6 @@
 /* src/app.css */
 @import 'tailwindcss';
+@import 'highlight.js/styles/github-dark.css';
 
 @layer base {
 	html {
