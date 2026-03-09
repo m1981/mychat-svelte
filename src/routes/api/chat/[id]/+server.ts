@@ -1,8 +1,11 @@
 import { streamText, convertToModelMessages } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { ANTHROPIC_API_KEY } from '$env/static/private';
 import { db } from '$lib/server/db';
 import { messages } from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
+
+const anthropic = createAnthropic({ apiKey: ANTHROPIC_API_KEY });
 
 export const POST: RequestHandler = async ({ request, params }) => {
 	const { messages: uiMessages } = await request.json();
@@ -22,7 +25,7 @@ export const POST: RequestHandler = async ({ request, params }) => {
 
 	// 2. Stream the response using Vercel AI SDK v5
 	const result = streamText({
-		model: openai('gpt-4o'),
+		model: anthropic('claude-sonnet-4-6'),
 		// Convert v5 UIMessages to ModelMessages
 		messages: await convertToModelMessages(uiMessages),
 		async onFinish({ text }) {

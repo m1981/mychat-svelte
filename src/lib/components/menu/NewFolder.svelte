@@ -2,7 +2,7 @@
 <script lang="ts">
 	import NewFolderIcon from '$lib/components/icons/NewFolderIcon.svelte';
 	import { app } from '$lib/state/app.svelte';
-	import { toast } from '$lib/stores/toast.store';
+	import { toast } from '$lib/stores/toast.store.svelte';
 
 	function addFolder() {
 		app.createFolder('New Folder');

@@ -10,10 +10,16 @@ Once these two files are merged, the team can split into parallel tracks.
 ### Approach A: Vertical Slicing (Feature Squads) - *Recommended*
 Instead of splitting by Frontend/Backend, we split by **Feature Domains**. Each developer (or pair) builds their feature from the database up to the UI.
 
-#### 🟦 Track 1: The Core Chat Engine (Dev A)
+#### ✅ 🟦 Track 1: The Core Chat Engine — COMPLETE (2026-03-09)
 *   **Focus:** Getting the AI to talk to the user.
 *   **Scope:** `chats` and `messages` tables, Vercel AI SDK integration, `MessageComposer.svelte`, and `ChatView.svelte`.
-*   **Isolation:** Dev A doesn't care about folders, notes, or search. They just hardcode a single `chatId` to test their streaming logic.
+*   **Delivered:**
+    - Full DB persistence for chats and folders (all CRUD with optimistic UI + rollback)
+    - Streaming via Anthropic `claude-sonnet-4-6` (`@ai-sdk/anthropic`)
+    - `app.svelte.ts` global state class with `$state` runes
+    - `ChatHistory.svelte` + `ChatFolder.svelte` wired to real API
+    - Pre-auth `getDefaultUserId()` shim in `src/lib/server/db/user.ts`
+*   **Pending (bonus):** Auto-title after first AI exchange; drag-and-drop into folders.
 
 #### 🟩 Track 2: Knowledge Extraction (Dev B)
 *   **Focus:** Highlights and Notes.

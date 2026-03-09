@@ -55,18 +55,20 @@
 
 ### 3.2. Feature Specifications with Priority Levels
 
-| Feature | Priority | Description |
-| :--- | :--- | :--- |
-| **Vercel AI SDK Streaming** | P0 | Core chat functionality using `useChat`. |
-| **CUID2 Optimistic UI** | P0 | Instant UI updates for folders, chats, and notes. |
-| **Clone & Truncate** | P1 | SQL-level duplication of chats and vector embeddings. |
-| **Highlights & Notes** | P1 | Secondary panel for knowledge extraction. |
-| **Context Injection (`@`)** | P1 | Frontend interception of `@` mentions to build prompts. |
-| **Semantic Search** | P2 | `pgvector` cosine similarity search across messages. |
-| **Flat Folders & Tags** | P2 | Sidebar organization and JSONB tagging. |
+| Feature | Priority | Status | Description |
+| :--- | :--- | :--- | :--- |
+| **AI SDK Streaming** | P0 | ✅ Done | `streamText` via `@ai-sdk/anthropic`, `claude-sonnet-4-6`. |
+| **CUID2 Optimistic UI** | P0 | ✅ Done | Instant UI updates with rollback for all chat/folder mutations. |
+| **Chat/Folder CRUD** | P0 | ✅ Done | Full REST API + DB persistence. |
+| **Auto-Title** | P0 | ⏳ Pending | Title update after first AI exchange (Track 1 bonus). |
+| **Clone & Truncate** | P1 | ⏳ Pending | SQL-level duplication of chats and vector embeddings. |
+| **Highlights & Notes** | P1 | ⏳ Pending | Secondary panel for knowledge extraction (Track 2). |
+| **Context Injection (`@`)** | P1 | ⏳ Pending | Frontend interception of `@` mentions to build prompts. |
+| **Semantic Search** | P2 | ⏳ Pending | `pgvector` cosine similarity search across messages. |
+| **Drag-and-drop folders** | P2 | ⏳ Pending | Move chats between folders in sidebar. |
 
 ### 3.3. Business Logic Descriptions
-*   **Auto-Title Logic:** When the `onFinish` callback of the Vercel AI SDK fires for the *first* message in a chat, the backend asynchronously triggers a secondary, non-streaming LLM call (using a fast model like `gpt-4o-mini`). The prompt is: *"Generate a concise, descriptive title (5 words or less) for this conversation based on this prompt: [USER_PROMPT]"*. The result updates the `chats.title` column.
+*   **Auto-Title Logic:** When the `onFinish` callback of the Vercel AI SDK fires for the *first* message in a chat, the backend asynchronously triggers a secondary, non-streaming LLM call (using a fast model like `claude-haiku-4-5`). The prompt is: *"Generate a concise, descriptive title (5 words or less) for this conversation based on this prompt: [USER_PROMPT]"*. The result updates the `chats.title` column via `PATCH /api/chats/:id`. **Status: not yet implemented.**
 *   **File Drop Logic:** When a user drops a file into the `MessageComposer.svelte`, the frontend checks the MIME type. If it is a text-based file, it uses the browser's `FileReader` API to extract the string, formats it as `\n\n--- File: filename.ext ---\n[CONTENT]\n---\n\n`, and appends it to the textarea. The file itself is never uploaded to the server.
 *   **Vector Cloning Logic:** When executing "Clone up to here", the backend uses `INSERT INTO messages ... SELECT ... FROM messages`. It copies the raw vector data directly within PostgreSQL to ensure the operation is instant and free.
 *   **Context Injection Logic:** The backend API (`/api/chat/:id`) expects a standard array of `{ role, content }` objects. The frontend is strictly responsible for finding `@` mentions, fetching the referenced text from the Svelte `$state`, and formatting it as `<context>[TEXT]</context>` at the top of the user's prompt string before transmission.
@@ -80,26 +82,41 @@
 All endpoints require authentication. The `userId` is extracted from the session (e.g., `event.locals.user.id`) and applied to every database query to ensure tenant isolation.
 
 #### `POST /api/chat/:chatId` (AI Generation)
-Powered by Vercel AI SDK.
-*   **Request:**
+Powered by Vercel AI SDK v6 + `@ai-sdk/anthropic`. Model: `claude-sonnet-4-6`.
+*   **Request** (AI SDK v6 UIMessage format):
     ```json
     {
       "messages": [
-        { "role": "user", "content": "<context>...</context>\n\nActual prompt" }
-      ],
-      "data": { "modelId": "gpt-4o" }
+        { "id": "cuid", "role": "user", "parts": [{ "type": "text", "text": "Hello" }] }
+      ]
     }
     ```
-*   **Response:** `text/plain` (Data Stream Protocol).
+*   **Response:** `text/event-stream` (UI Message Stream Protocol — `data: {"type":"text-delta",...}`).
+*   **Side effects:** Saves user message on entry, assistant message in `onFinish`. ✅ Implemented.
 
-#### `GET /api/chats` (Sidebar Initialization)
-*   **Response:**
-    ```json
-    {
-      "folders": [{ "id": "cuid1", "name": "Work", "order": 0 }],
-      "chats": [{ "id": "cuid2", "title": "Project Alpha", "folderId": "cuid1", "tags": ["#urgent"] }]
-    }
-    ```
+#### Sidebar Initialization
+Loaded via SvelteKit `+layout.server.ts` (not a standalone API endpoint). Returns `{ chats, folders }` as page data. ✅ Implemented.
+
+#### `POST /api/chats` ✅
+*   **Request:** `{ "id": "cuid", "folderId": null }`
+*   **Response:** Full saved `Chat` row.
+
+#### `PATCH /api/chats/:id` ✅
+*   **Request:** `{ "title": "New name" }`
+*   **Response:** Updated `Chat` row.
+
+#### `DELETE /api/chats/:id` ✅
+Cascades to messages. Returns `204`.
+
+#### `POST /api/folders` ✅
+*   **Request:** `{ "id": "cuid", "name": "Work", "order": 0 }`
+*   **Response:** Full saved `Folder` row.
+
+#### `PATCH /api/folders/:id` ✅
+*   **Request:** `{ "name": "New name" }`
+
+#### `DELETE /api/folders/:id` ✅
+Sets `chats.folderId = null` for affected chats (FK `onDelete: 'set null'`). Returns `204`.
 
 #### `GET /api/chats/:chatId/messages` (Cursor Pagination)
 *   **Query Params:** `?cursor=<messageId>&limit=50`

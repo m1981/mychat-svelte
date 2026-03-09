@@ -140,9 +140,8 @@ graph TD
     State -- "REST JSON" --> API_Search
     
     Drizzle <--> DB
-    AI_SDK -- "LLM Stream" --> OpenAI
     AI_SDK -- "LLM Stream" --> Anthropic
-    API_Chat -- "Sync Embeddings" --> OpenAI
+    API_Chat -- "Sync Embeddings" --> Anthropic
 ```
 
 ### 2.2. Component Interaction Patterns

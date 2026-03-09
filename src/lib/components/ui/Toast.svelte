@@ -2,8 +2,8 @@
 <script lang="ts">
 	import { fly, fade } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
-	import type { Toast as ToastType } from '$lib/stores/toast.store';
-	import { toast } from '$lib/stores/toast.store';
+	import type { Toast as ToastType } from '$lib/stores/toast.store.svelte';
+	import { toast } from '$lib/stores/toast.store.svelte';
 
 	let { toastItem }: { toastItem: ToastType } = $props();
 
