@@ -4,6 +4,12 @@ import { chats } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 
+export const GET: RequestHandler = async ({ params }) => {
+	const [chat] = await db.select().from(chats).where(eq(chats.id, params.id));
+	if (!chat) throw error(404, 'Chat not found');
+	return json(chat);
+};
+
 export const PATCH: RequestHandler = async ({ request, params }) => {
 	const body = await request.json();
 

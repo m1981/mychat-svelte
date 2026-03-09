@@ -1,8 +1,9 @@
-import { streamText, convertToModelMessages } from 'ai';
+import { streamText, generateText, convertToModelMessages } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { ANTHROPIC_API_KEY } from '$env/static/private';
 import { db } from '$lib/server/db';
-import { messages } from '$lib/server/db/schema';
+import { messages, chats } from '$lib/server/db/schema';
+import { eq, count, and } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 
 const anthropic = createAnthropic({ apiKey: ANTHROPIC_API_KEY });
@@ -36,7 +37,26 @@ export const POST: RequestHandler = async ({ request, params }) => {
 				content: text
 			});
 
-			// TODO: Generate and save pgvector embedding here synchronously
+			// 4. Auto-title: if this is the first assistant message, generate a short title
+			const [{ value: assistantCount }] = await db
+				.select({ value: count() })
+				.from(messages)
+				.where(and(eq(messages.chatId, chatId), eq(messages.role, 'assistant')));
+
+			if (Number(assistantCount) === 1) {
+				try {
+					const { text: title } = await generateText({
+						model: anthropic('claude-haiku-4-5-20251001'),
+						prompt: `Generate a concise chat title (3-5 words, no quotes) for this conversation starter: "${userText}"`
+					});
+					await db
+						.update(chats)
+						.set({ title: title.trim().slice(0, 100), updatedAt: new Date() })
+						.where(eq(chats.id, chatId));
+				} catch (e) {
+					console.error('Auto-title generation failed:', e);
+				}
+			}
 		}
 	});
 
