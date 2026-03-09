@@ -1,8 +1,7 @@
 **Project:** BetterChatGPT (AI-Powered Personal Knowledge Management)
 
 **Document:** Functional & Technical Specifications
-
-**Version:** 1.1 (Lean V1 + Cloning)
+**Version:** 1.2 (Lean V1 + Rich UX & Cloning)
 
 ---
 
@@ -11,15 +10,24 @@
 ### 3.1. User Stories with Acceptance Criteria
 
 **Epic 1: Core Chat & AI Interaction (P0)**
-*   **Story:** As a user, I want to send messages to an AI and see the response stream in real-time so I don't have to wait for the full generation.
+*   **Story:** As a user, I want to send messages and see the response stream in real-time.
     *   *AC 1:* The UI displays a typewriter effect as chunks arrive.
     *   *AC 2:* The UI auto-scrolls to the bottom as new text appears.
-    *   *AC 3:* If the network drops, the UI displays an error toast and keeps my original prompt in the input box.
-*   **Story:** As a user, I want to choose between different AI models (e.g., GPT-4o, Claude 3.5) per chat.
-    *   *AC 1:* A dropdown in the chat header allows model selection.
-    *   *AC 2:* The selected model is saved to the `chats.modelId` database column.
+    *   *AC 3:* I can click a "Stop" button to abort the generation mid-stream.
+*   **Story:** As a user, I want my chats to be automatically named so I don't have a sidebar full of "New Chat".
+    *   *AC 1:* After the first AI response completes, the chat title updates automatically to a 3-5 word summary.
 
-**Epic 2: Knowledge Extraction (P1)**
+**Epic 2: Rich Content & UX (P1)**
+*   **Story:** As a user, I want the AI's code, math, and diagrams to be formatted beautifully.
+    *   *AC 1:* Code blocks have syntax highlighting and a "Copy" button.
+    *   *AC 2:* LaTeX equations render properly using KaTeX.
+    *   *AC 3:* Mermaid code blocks render as actual SVG diagrams.
+*   **Story:** As a user, I want to quickly include local files in my prompt.
+    *   *AC 1:* Dragging a `.txt` or `.md` file into the composer extracts the text and pastes it into the input box.
+*   **Story:** As a user, I want to use keyboard shortcuts for speed.
+    *   *AC 1:* `Ctrl/Cmd + Enter` submits the prompt. `Shift + Enter` creates a new line.
+
+**Epic 3: Knowledge Extraction (P1)**
 *   **Story:** As a user, I want to highlight text in an AI response and save it.
     *   *AC 1:* Selecting text triggers a floating "Save Highlight" button.
     *   *AC 2:* Saved highlights appear in the right-hand Secondary Panel.
@@ -58,8 +66,9 @@
 | **Flat Folders & Tags** | P2 | Sidebar organization and JSONB tagging. |
 
 ### 3.3. Business Logic Descriptions
-
-*   **Vector Cloning Logic:** When executing a "Clone up to here" operation, the backend must use an `INSERT INTO messages ... SELECT ... FROM messages` SQL statement. It must *not* fetch the messages to the Node.js server and re-insert them, nor should it call the OpenAI embedding API again. The raw vector data must be copied directly within PostgreSQL to ensure the operation is instant and free.
+*   **Auto-Title Logic:** When the `onFinish` callback of the Vercel AI SDK fires for the *first* message in a chat, the backend asynchronously triggers a secondary, non-streaming LLM call (using a fast model like `gpt-4o-mini`). The prompt is: *"Generate a concise, descriptive title (5 words or less) for this conversation based on this prompt: [USER_PROMPT]"*. The result updates the `chats.title` column.
+*   **File Drop Logic:** When a user drops a file into the `MessageComposer.svelte`, the frontend checks the MIME type. If it is a text-based file, it uses the browser's `FileReader` API to extract the string, formats it as `\n\n--- File: filename.ext ---\n[CONTENT]\n---\n\n`, and appends it to the textarea. The file itself is never uploaded to the server.
+*   **Vector Cloning Logic:** When executing "Clone up to here", the backend uses `INSERT INTO messages ... SELECT ... FROM messages`. It copies the raw vector data directly within PostgreSQL to ensure the operation is instant and free.
 *   **Context Injection Logic:** The backend API (`/api/chat/:id`) expects a standard array of `{ role, content }` objects. The frontend is strictly responsible for finding `@` mentions, fetching the referenced text from the Svelte `$state`, and formatting it as `<context>[TEXT]</context>` at the top of the user's prompt string before transmission.
 
 ---
@@ -105,39 +114,12 @@ Powered by Vercel AI SDK.
     ```
 
 #### `POST /api/chats/:chatId/clone`
-*   **Request:**
-    ```json
-    {
-      "upToMessageId": "msg_abc123"
-    }
-    ```
-*   **Response:**
-    ```json
-    {
-      "newChatId": "chat_xyz789"
-    }
-    ```
+*   **Request:** `{ "upToMessageId": "msg_abc123" }`
+*   **Response:** `{ "newChatId": "chat_xyz789" }`
 
 #### `POST /api/search`
-*   **Request:**
-    ```json
-    {
-      "query": "How do I configure SvelteKit?"
-    }
-    ```
-*   **Response:**
-    ```json
-    {
-      "results": [
-        {
-          "chatId": "cuid1",
-          "messageId": "msg1",
-          "content": "...configure SvelteKit by...",
-          "similarityScore": 0.89
-        }
-      ]
-    }
-    ```
+*   **Request:** `{ "query": "How do I configure SvelteKit?" }`
+*   **Response:** Array of results with `similarityScore`.
 
 ### 4.2. Database Schema Design (Summary)
 *Refer to `02-architecture-and-data-model.md` for the exact Drizzle ORM code.*
