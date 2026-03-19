@@ -6,20 +6,8 @@
 	import { Chat } from '@ai-sdk/svelte';
 	import { DefaultChatTransport } from 'ai';
 	import { marked } from 'marked';
-	import { markedHighlight } from 'marked-highlight';
 	import hljs from 'highlight.js';
 	import MessageComposer from '$lib/components/layout/MessageComposer.svelte';
-
-	// Configure marked once with syntax highlighting
-	marked.use(
-		markedHighlight({
-			langPrefix: 'hljs language-',
-			highlight(code, lang) {
-				const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-				return hljs.highlight(code, { language }).value;
-			}
-		})
-	);
 
 	// Custom renderer: wrap code blocks with copy button
 	const renderer = new marked.Renderer();
