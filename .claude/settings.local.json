@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat src/routes/api/chats/[id]/+server.ts)",
+      "Bash(pnpm test:*)",
+      "Bash(curl -s http://localhost:5173/api/chats -X POST -H 'Content-Type: application/json' -d '{}')",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\(''''modelId'''',''''MISSING''''\\)\\)\")",
+      "Bash(curl -v http://localhost:5173/api/chats/test123 -X PATCH -H 'Content-Type: application/json' -d '{\"\"\"\"title\"\"\"\":\"\"\"\"test\"\"\"\"}')"
+    ]
+  },
+  "outputStyle": "Explanatory"
+}
