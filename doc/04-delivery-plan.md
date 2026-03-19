@@ -27,8 +27,9 @@ Development is split by **Feature Domains** (Vertical Slices) rather than techni
 *   Semantic Search (`POST /api/search`) via OpenAI embeddings.
 *   Context Injection (`@` mentions) UI implemented in Composer.
 
-### ⏳ Phase 6: Polish & Branching (NEXT SPRINT)
-*   **Pending:** "Clone up to here" (SQL-level duplication of chats).
-*   **Pending:** Destructive Regeneration (Edit past message & truncate).
-*   **Pending:** Multi-model selection dropdown.
-*   **Pending:** Auth.js integration.
+### 🔄 Phase 6: Polish & Branching (IN PROGRESS)
+*   ✅ **Bug fix:** Removed `markedHighlight` plugin — it pre-modified token text before the custom renderer ran, causing `hljs` to double-process and render raw HTML spans as escaped text. Custom `renderer.code` handles all highlighting directly.
+*   ✅ **Clone up to here:** `POST /api/chats/[id]/clone` — copies chat + messages up to a given `upToMessageId` into a new chat (title suffixed `(clone)`). Hover-revealed "Clone up to here" button on every message bubble; button gated on `dbMessageMap.has(message.id)` to prevent the race between streaming end and DB ID resolution.
+*   ⏳ **Destructive Regeneration:** Edit a past user message, truncate all messages after it, re-stream from that point.
+*   ⏳ **Multi-model selection dropdown.**
+*   ⏳ **Auth.js integration.**

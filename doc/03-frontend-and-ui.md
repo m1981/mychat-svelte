@@ -20,10 +20,11 @@ CSS Grid ensures the Composer stays fixed at the bottom while the chat scrolls.
 ```
 
 ## 3. Core Components & Rendering
-*   **Rich Content (Markdown):** AI responses must be parsed to support:
-    *   Code blocks with syntax highlighting and a "Copy" button.
-    *   Inline and block mathematics via KaTeX.
-    *   Diagrams via Mermaid.js.
+*   **Rich Content (Markdown):** AI responses are parsed via `marked` with a **custom `renderer.code`** that:
+    *   Calls `hljs.highlight()` directly to syntax-highlight code blocks (do **not** also add the `markedHighlight` plugin — it pre-modifies `token.text` to HTML before the renderer runs, causing double-processing that renders raw `<span>` tags as escaped text).
+    *   Wraps the result in a `div.code-block.group` with a hover-revealed "Copy" button (event-delegated via `onclick` on the chat container).
+    *   Inline and block mathematics via KaTeX (planned).
+    *   Diagrams via Mermaid.js (planned).
 *   **The `dbMessageMap`:** Because the Vercel AI SDK generates ephemeral client-side IDs during streaming, the chat page must maintain a mapping of `Client_ID -> DB_CUID2`. This map is refreshed after every stream completes so that Highlights can be saved against the correct database row.
 
 ## 4. UX Interaction Patterns
@@ -33,6 +34,7 @@ CSS Grid ensures the Composer stays fixed at the bottom while the chat scrolls.
     *   Selecting an item inserts `@ChatTitle` into the textarea.
     *   On submit, the frontend fetches the *full raw text* of the referenced chat from local state, wraps it in `<context>` tags, and prepends it to the prompt payload.
 *   **Notes Auto-Save:** The markdown editor in the Secondary Panel uses a 1-second debounce to auto-save to the database.
+*   **Clone up to here:** Each message row renders a hover-revealed "Clone up to here" button (DaisyUI `group` + `opacity-0 group-hover:opacity-100`). The button is only mounted when `dbMessageMap.has(message.id)` — ensuring the DB CUID2 is resolved before the action is available. On click, calls `POST /api/chats/[id]/clone` then navigates to the new chat.
 *   **Streaming Indicators:** Uses DaisyUI `loading-dots` while `chatInstance.status` is active.
 
 ## 5. Smart Input & Quality of Life
