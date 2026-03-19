@@ -14,6 +14,10 @@ export const POST: RequestHandler = async ({ request, params }) => {
 	const { messages: uiMessages } = await request.json();
 	const chatId = params.id;
 
+	// 0. Resolve the model for this chat
+	const [chat] = await db.select({ modelId: chats.modelId }).from(chats).where(eq(chats.id, chatId));
+	const modelId = chat?.modelId ?? 'claude-sonnet-4-6';
+
 	// 1. Save the user's incoming message to the database
 	const lastMessage = uiMessages[uiMessages.length - 1];
 
@@ -28,7 +32,7 @@ export const POST: RequestHandler = async ({ request, params }) => {
 
 	// 2. Stream the response using Vercel AI SDK v5
 	const result = streamText({
-		model: anthropic('claude-sonnet-4-6'),
+		model: anthropic(modelId),
 		// Convert v5 UIMessages to ModelMessages
 		messages: await convertToModelMessages(uiMessages),
 		async onFinish({ text }) {

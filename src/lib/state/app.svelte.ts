@@ -100,6 +100,27 @@ class AppState {
 		}
 	}
 
+	async updateModel(id: string, modelId: string): Promise<void> {
+		const idx = this.chats.findIndex((c) => c.id === id);
+		if (idx === -1) return;
+
+		const prevModelId = this.chats[idx].modelId;
+		this.chats[idx] = { ...this.chats[idx], modelId };
+
+		try {
+			const res = await fetch(`/api/chats/${id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ modelId })
+			});
+			if (!res.ok) throw new Error('Server error');
+		} catch {
+			const i = this.chats.findIndex((c) => c.id === id);
+			if (i !== -1) this.chats[i] = { ...this.chats[i], modelId: prevModelId };
+			toast.error('Failed to update model');
+		}
+	}
+
 	async truncateAfter(chatId: string, messageId: string): Promise<void> {
 		const res = await fetch(`/api/chats/${chatId}/messages/after`, {
 			method: 'DELETE',

@@ -212,7 +212,18 @@
 	>
 		<div class="p-4 border-b border-base-300 flex items-center justify-between">
 			<h1 data-testid="chat-view-title" class="text-xl font-bold">{currentChatMetadata.title}</h1>
-			<div class="flex gap-2">
+			<div class="flex gap-2 items-center">
+				<select
+					data-testid="model-selector"
+					class="select select-sm select-ghost"
+					value={currentChatMetadata.modelId}
+					onchange={(e) => app.updateModel(chatId, (e.target as HTMLSelectElement).value)}
+					disabled={chatInstance.status === 'streaming'}
+				>
+					<option value="claude-haiku-4-5-20251001">Haiku 4.5 (fast)</option>
+					<option value="claude-sonnet-4-6">Sonnet 4.6 (balanced)</option>
+					<option value="claude-opus-4-6">Opus 4.6 (powerful)</option>
+				</select>
 				<button
 					data-testid="toggle-notes-btn"
 					class="btn btn-sm btn-ghost"

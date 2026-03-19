@@ -14,7 +14,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			id,
 			userId,
 			title: title ?? 'New Chat',
-			modelId: modelId ?? 'gpt-4o',
+			modelId: modelId ?? 'claude-sonnet-4-6',
 			folderId: folderId ?? null,
 			tags: []
 		})
