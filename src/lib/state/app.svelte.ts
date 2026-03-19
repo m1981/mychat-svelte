@@ -100,6 +100,30 @@ class AppState {
 		}
 	}
 
+	async truncateAfter(chatId: string, messageId: string): Promise<void> {
+		const res = await fetch(`/api/chats/${chatId}/messages/after`, {
+			method: 'DELETE',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ messageId })
+		});
+		if (!res.ok) {
+			toast.error('Failed to truncate messages');
+			throw new Error('truncateAfter failed');
+		}
+	}
+
+	async truncateFrom(chatId: string, messageId: string): Promise<void> {
+		const res = await fetch(`/api/chats/${chatId}/messages/after`, {
+			method: 'DELETE',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ messageId, inclusive: true })
+		});
+		if (!res.ok) {
+			toast.error('Failed to truncate messages');
+			throw new Error('truncateFrom failed');
+		}
+	}
+
 	async cloneChat(chatId: string, upToMessageId: string): Promise<string> {
 		const res = await fetch(`/api/chats/${chatId}/clone`, {
 			method: 'POST',

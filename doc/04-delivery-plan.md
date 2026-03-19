@@ -30,6 +30,6 @@ Development is split by **Feature Domains** (Vertical Slices) rather than techni
 ### 🔄 Phase 6: Polish & Branching (IN PROGRESS)
 *   ✅ **Bug fix:** Removed `markedHighlight` plugin — it pre-modified token text before the custom renderer ran, causing `hljs` to double-process and render raw HTML spans as escaped text. Custom `renderer.code` handles all highlighting directly.
 *   ✅ **Clone up to here:** `POST /api/chats/[id]/clone` — copies chat + messages up to a given `upToMessageId` into a new chat (title suffixed `(clone)`). Hover-revealed "Clone up to here" button on every message bubble; button gated on `dbMessageMap.has(message.id)` to prevent the race between streaming end and DB ID resolution.
-*   ⏳ **Destructive Regeneration:** Edit a past user message, truncate all messages after it, re-stream from that point.
+*   ✅ **Destructive Regeneration:** Hover-revealed Edit button on user bubbles (gated on `dbMessageMap`). Clicking opens inline textarea; confirming calls `DELETE /api/chats/[id]/messages/after` with `inclusive:true`, directly reassigns `chatInstance = new Chat({ messages: kept })` (synchronous `$state` mutation bypassing SvelteKit data pipeline), then calls `chatInstance.sendMessage({ text: draft })` after `tick()`. 4 E2E tests green.
 *   ⏳ **Multi-model selection dropdown.**
 *   ⏳ **Auth.js integration.**

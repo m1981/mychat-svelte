@@ -17,11 +17,11 @@ export class ChatPage {
     await this.sendBtn.click();
   }
 
-  async waitForResponse(timeout = 60000) {
+  async waitForResponse(timeout = 60000, expectedCount = 2) {
     // Wait for user bubble to appear first
     await expect(this.messageBubbles.first()).toBeVisible({ timeout: 10000 });
-    // Then wait for AI response bubble (at least 2 total: user + assistant)
-    await expect(this.messageBubbles).toHaveCount(2, { timeout });
+    // Wait for the expected number of bubbles (user + assistant pairs)
+    await expect(this.messageBubbles).toHaveCount(expectedCount, { timeout });
     // Wait for the textarea to be re-enabled (streaming done)
     await expect(this.composerInput).toBeEnabled({ timeout });
   }

@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { app } from '$lib/state/app.svelte';
 	import { goto } from '$app/navigation';
+	import { tick } from 'svelte';
 	import { Chat } from '@ai-sdk/svelte';
 	import { DefaultChatTransport } from 'ai';
 	import { marked } from 'marked';
@@ -39,9 +40,14 @@
 	// Popover state for text selection
 	let popover = $state<{ x: number; y: number; text: string; messageId: string } | null>(null);
 
+	// Edit-in-place state: which SDK message ID is being edited + draft text
+	let editingMessageId = $state<string | null>(null);
+	let editDraft = $state('');
+
 	// Auto-scroll ref
 	let messagesEnd = $state<HTMLDivElement | undefined>();
 
+	// Recreate chatInstance on navigation (chatId or server data changes)
 	$effect(() => {
 		chatInstance = new Chat({
 			transport: new DefaultChatTransport({ api: `/api/chat/${chatId}` }),
@@ -139,6 +145,41 @@
 		return html;
 	}
 
+	function startEdit(messageId: string, currentText: string) {
+		editingMessageId = messageId;
+		editDraft = currentText;
+	}
+
+	function cancelEdit() {
+		editingMessageId = null;
+		editDraft = '';
+	}
+
+	async function confirmEdit(sdkMessageId: string) {
+		if (!editDraft.trim()) return;
+		const dbId = dbMessageMap.get(sdkMessageId) ?? sdkMessageId;
+		const idx = chatInstance.messages.findIndex((m) => m.id === sdkMessageId);
+		const kept = chatInstance.messages.slice(0, idx);
+		const draft = editDraft;
+
+		editingMessageId = null;
+		editDraft = '';
+
+		// 1. Delete the edited message AND everything after it from DB (inclusive)
+		await app.truncateFrom(chatId, dbId);
+
+		// 2. Directly reassign $state — Svelte 5 re-renders the message list immediately
+		chatInstance = new Chat({
+			transport: new DefaultChatTransport({ api: `/api/chat/${chatId}` }),
+			messages: kept
+		});
+		dbMessageMap = new Map(kept.map((m: { id: string }) => [m.id, m.id]));
+		await tick();
+
+		// 3. Send the edited message into the fresh (truncated) chat instance
+		await chatInstance.sendMessage({ text: draft });
+	}
+
 	async function cloneUpToHere(messageId: string) {
 		const dbId = dbMessageMap.get(messageId) ?? messageId;
 		const newChatId = await app.cloneChat(chatId, dbId);
@@ -206,37 +247,77 @@
 					<p>No messages yet. Start the conversation!</p>
 				</div>
 			{:else}
-				{#each chatInstance.messages as message}
+			{#each chatInstance.messages as message}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div class="group chat {message.role === 'user' ? 'chat-end' : 'chat-start'}">
-						<div
-							data-testid="message-bubble"
-							data-message-id={message.id}
-							class="chat-bubble"
-							onmouseup={message.role === 'assistant'
-								? () => handleSelectionChange(message.id)
-								: undefined}
-						>
-							{#each message.parts as part}
-								{#if part.type === 'text'}
-									{#if message.role === 'assistant'}
-										<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-										{@html renderMessage(part.text, message.id)}
-									{:else}
-										{part.text}
-									{/if}
-								{/if}
-							{/each}
-						</div>
-						{#if chatInstance.status !== 'streaming' && dbMessageMap.has(message.id)}
-							<button
-								data-testid="clone-btn"
-								class="chat-footer mt-1 btn btn-xs btn-ghost opacity-0 group-hover:opacity-100 transition-opacity"
-								onclick={() => cloneUpToHere(message.id)}
-								title="Clone chat up to this message"
+						{#if editingMessageId === message.id}
+							<!-- Edit-in-place for user messages -->
+							<div class="chat-bubble flex flex-col gap-2 w-full max-w-[80%]">
+								<textarea
+									data-testid="edit-input"
+									class="textarea textarea-bordered w-full text-sm resize-none"
+									rows={3}
+									bind:value={editDraft}
+									onkeydown={(e) => {
+										if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) confirmEdit(message.id);
+										if (e.key === 'Escape') cancelEdit();
+									}}
+								></textarea>
+								<div class="flex gap-2 justify-end">
+									<button
+										data-testid="edit-cancel-btn"
+										class="btn btn-xs btn-ghost"
+										onclick={cancelEdit}
+									>Cancel</button>
+									<button
+										data-testid="edit-confirm-btn"
+										class="btn btn-xs btn-warning"
+										onclick={() => confirmEdit(message.id)}
+									>Regenerate</button>
+								</div>
+							</div>
+						{:else}
+							<div
+								data-testid="message-bubble"
+								data-message-id={message.id}
+								class="chat-bubble"
+								onmouseup={message.role === 'assistant'
+									? () => handleSelectionChange(message.id)
+									: undefined}
 							>
-								Clone up to here
-							</button>
+								{#each message.parts as part}
+									{#if part.type === 'text'}
+										{#if message.role === 'assistant'}
+											<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+											{@html renderMessage(part.text, message.id)}
+										{:else}
+											{part.text}
+										{/if}
+									{/if}
+								{/each}
+							</div>
+						{/if}
+
+						{#if chatInstance.status !== 'streaming' && dbMessageMap.has(message.id) && editingMessageId === null}
+							<div class="chat-footer mt-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+								{#if message.role === 'user'}
+									<button
+										data-testid="edit-btn"
+										class="btn btn-xs btn-ghost"
+										onclick={() => {
+											const text = message.parts.find((p: any) => p.type === 'text')?.text ?? '';
+											startEdit(message.id, text);
+										}}
+										title="Edit and regenerate from here"
+									>Edit</button>
+								{/if}
+								<button
+									data-testid="clone-btn"
+									class="btn btn-xs btn-ghost"
+									onclick={() => cloneUpToHere(message.id)}
+									title="Clone chat up to this message"
+								>Clone up to here</button>
+							</div>
 						{/if}
 					</div>
 				{/each}
