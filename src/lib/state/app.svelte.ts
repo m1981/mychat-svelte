@@ -100,6 +100,21 @@ class AppState {
 		}
 	}
 
+	async cloneChat(chatId: string, upToMessageId: string): Promise<string> {
+		const res = await fetch(`/api/chats/${chatId}/clone`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ upToMessageId })
+		});
+		if (!res.ok) {
+			toast.error('Failed to clone chat');
+			throw new Error('cloneChat failed');
+		}
+		const cloned: Chat = await res.json();
+		this.chats.unshift(cloned);
+		return cloned.id;
+	}
+
 	async deleteChat(id: string): Promise<void> {
 		const snapshot = [...this.chats];
 		this.chats = this.chats.filter((c) => c.id !== id);

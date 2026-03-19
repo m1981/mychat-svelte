@@ -139,6 +139,12 @@
 		return html;
 	}
 
+	async function cloneUpToHere(messageId: string) {
+		const dbId = dbMessageMap.get(messageId) ?? messageId;
+		const newChatId = await app.cloneChat(chatId, dbId);
+		goto(`/chat/${newChatId}`);
+	}
+
 	// Handle copy button clicks via event delegation
 	function handleCopyClick(e: MouseEvent) {
 		const btn = (e.target as Element).closest('.copy-btn') as HTMLElement | null;
@@ -201,8 +207,8 @@
 				</div>
 			{:else}
 				{#each chatInstance.messages as message}
-					<div class="chat {message.role === 'user' ? 'chat-end' : 'chat-start'}">
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div class="group chat {message.role === 'user' ? 'chat-end' : 'chat-start'}">
 						<div
 							data-testid="message-bubble"
 							data-message-id={message.id}
@@ -222,6 +228,16 @@
 								{/if}
 							{/each}
 						</div>
+						{#if chatInstance.status !== 'streaming' && dbMessageMap.has(message.id)}
+							<button
+								data-testid="clone-btn"
+								class="chat-footer mt-1 btn btn-xs btn-ghost opacity-0 group-hover:opacity-100 transition-opacity"
+								onclick={() => cloneUpToHere(message.id)}
+								title="Clone chat up to this message"
+							>
+								Clone up to here
+							</button>
+						{/if}
 					</div>
 				{/each}
 
