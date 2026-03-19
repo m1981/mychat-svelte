@@ -35,6 +35,7 @@ CSS Grid ensures the Composer stays fixed at the bottom while the chat scrolls.
     *   On submit, the frontend fetches the *full raw text* of the referenced chat from local state, wraps it in `<context>` tags, and prepends it to the prompt payload.
 *   **Notes Auto-Save:** The markdown editor in the Secondary Panel uses a 1-second debounce to auto-save to the database.
 *   **Clone up to here:** Each message row renders a hover-revealed "Clone up to here" button (DaisyUI `group` + `opacity-0 group-hover:opacity-100`). The button is only mounted when `dbMessageMap.has(message.id)` — ensuring the DB CUID2 is resolved before the action is available. On click, calls `POST /api/chats/[id]/clone` then navigates to the new chat.
+*   **Destructive Regeneration:** User bubbles render a hover-revealed "Edit" button (same `dbMessageMap` guard). Clicking switches the bubble to an inline `<textarea>` (edit-in-place). On confirm: (1) calls `DELETE /api/chats/[id]/messages/after` with `inclusive:true` to truncate the DB; (2) directly reassigns `chatInstance = new Chat({ messages: kept })` — a synchronous `$state` mutation that bypasses SvelteKit's data pipeline entirely; (3) calls `chatInstance.sendMessage({ text: draft })` after `tick()` so Svelte flushes effects before streaming begins. Cancel returns to the original bubble without any network call.
 *   **Streaming Indicators:** Uses DaisyUI `loading-dots` while `chatInstance.status` is active.
 
 ## 5. Smart Input & Quality of Life

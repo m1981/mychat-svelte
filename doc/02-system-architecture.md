@@ -59,4 +59,7 @@ classDiagram
 *   `POST /api/folders`, `PATCH /api/folders/:id`, `DELETE /api/folders/:id`: Standard CRUD.
 *   `POST /api/notes`, `PATCH /api/notes/:id`, `DELETE /api/notes/:id`: Standard CRUD.
 *   `POST /api/highlights`, `DELETE /api/highlights/:id`: Standard CRUD.
+*   `GET /api/chats/:id/highlights`: Returns all highlights for a chat.
 *   `POST /api/search`: Expects `{ query, limit }`. Returns array of matching messages with cosine score.
+*   `POST /api/chats/:id/clone`: Expects `{ upToMessageId }`. Copies chat + messages up to and including that message into a new chat (title suffixed `(clone)`). Returns new Chat object.
+*   `DELETE /api/chats/:id/messages/after`: Expects `{ messageId, inclusive? }`. `inclusive=false` (default) deletes messages after the pivot; `inclusive=true` deletes the pivot and everything after. Returns `{ deleted: number }`.

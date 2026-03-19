@@ -29,12 +29,12 @@
 
 ## Documentation
 All specs in `/doc/`:
-- `implementaion-plan.md` — quick-reference: what's built, key decisions, file map, what's next
-- `05-implementation-phases.md` — authoritative phase record with checkpoints
-- `00-master-spec.md`, `02-domain-and-architecture.md`, `03-functional-and-technical-specs.md`
-- `04-ui-ux-and-state.md`, `00-vertial-slicing.md`
-- `principles_ai_sdk.md`, `principles_useChat.md`, `principles_svelte.md`
-- `principles_daisyui.md`, `principles-css.md`, `principles-playwright.md`
+- `04-delivery-plan.md` — authoritative phase record: what's built, key decisions, what's next
+- `02-system-architecture.md` — domain model, DB schema, API contracts
+- `03-frontend-and-ui.md` — state management, component patterns, UX interactions
+- `01-product-requirements.md`, `00-vertial-slicing.md` — product vision and vertical slices
+- `principles_ai_sdk.md`, `principles_useChat.md`, `principles-svelte.md`
+- `principles_daisyui.md`, `principles-css.md`, `principles-playwright.md`, `principles_tests.md`
 
 ## Database / Migrations
 - Neon project: `summer-thunder-21343395` (Azure, gwc region, `mychat`)
