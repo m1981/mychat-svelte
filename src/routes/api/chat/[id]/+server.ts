@@ -24,7 +24,7 @@ export const POST: RequestHandler = async (event) => {
 	const lastMessage = uiMessages[uiMessages.length - 1];
 
 	// In v5, content is stored in a `parts` array
-	const userText = lastMessage.parts?.find((p: any) => p.type === 'text')?.text || '';
+	const userText = lastMessage.parts?.find((p: { type: string; text?: string }) => p.type === 'text')?.text || '';
 
 	await db.insert(messages).values({
 		chatId,

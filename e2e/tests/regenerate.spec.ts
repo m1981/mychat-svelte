@@ -12,7 +12,7 @@ test.describe('Destructive Regeneration', () => {
     chatId = '';
   });
 
-  test('@smoke Edit button appears on hover for user messages only', async ({ app, chat, page }) => {
+  test('@smoke Edit button appears on hover for user messages only', async ({ app, chat }) => {
     test.setTimeout(60000);
     chatId = await app.createChatViaApi();
 

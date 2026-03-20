@@ -10,7 +10,7 @@ test.describe('Chat Messaging', () => {
     }
   });
 
-  test('@smoke navigating to a chat shows the composer', async ({ app, chat, page }) => {
+  test('@smoke navigating to a chat shows the composer', async ({ app, chat }) => {
     test.setTimeout(60000);
     chatId = await app.createChatViaApi();
 
@@ -26,7 +26,7 @@ test.describe('Chat Messaging', () => {
     await app.screenshot('chat-messaging-composer-visible');
   });
 
-  test('@regression sending a message shows user bubble and AI response bubble', async ({ app, chat, page }) => {
+  test('@regression sending a message shows user bubble and AI response bubble', async ({ app, chat }) => {
     test.setTimeout(60000);
     chatId = await app.createChatViaApi();
 
@@ -56,7 +56,7 @@ test.describe('Chat Messaging', () => {
     console.log(`AI response bubble text: "${secondBubble}"`);
   });
 
-  test('@regression @visual after first AI message, title is auto-updated', async ({ app, chat, sidebar, page }) => {
+  test('@regression @visual after first AI message, title is auto-updated', async ({ app, chat, page }) => {
     test.setTimeout(60000);
     chatId = await app.createChatViaApi();
 

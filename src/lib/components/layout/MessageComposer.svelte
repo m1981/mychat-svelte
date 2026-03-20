@@ -125,7 +125,7 @@
 			data-testid="mention-dropdown"
 			class="absolute bottom-full left-0 mb-1 w-64 bg-base-200 border border-base-300 rounded-lg shadow-lg z-50 overflow-hidden"
 		>
-			{#each mentionMatches as chat}
+			{#each mentionMatches as chat (chat.id)}
 				<button
 					type="button"
 					data-testid="mention-option"

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AugmentWebviewStateStore">
+    <option name="stateMap">
+      <map>
+        <entry key="CHAT_STATE" value="[[&quot;currentConversationId&quot;,&quot;pins&quot;,&quot;agentExecutionMode&quot;,&quot;isPanelCollapsed&quot;,&quot;displayedAnnouncements&quot;,&quot;conversations&quot;,&quot;onboarding&quot;,&quot;a|0|1|2|3|4|5|6&quot;,&quot;__NEW_AGENT__&quot;,&quot;o|&quot;,&quot;auto&quot;,&quot;b|F&quot;,&quot;a|&quot;,&quot;3e134172-e5f6-4b9c-abf9-f9b7e7f2036a&quot;,&quot;a|D|8&quot;,&quot;id&quot;,&quot;createdAtIso&quot;,&quot;lastInteractedAtIso&quot;,&quot;selectedModelId&quot;,&quot;requestIds&quot;,&quot;isPinned&quot;,&quot;isShareable&quot;,&quot;extraData&quot;,&quot;personaType&quot;,&quot;rootTaskUuid&quot;,&quot;feedbackStates&quot;,&quot;toolUseStates&quot;,&quot;chatHistory&quot;,&quot;draftExchange&quot;,&quot;a|F|G|H|I|J|K|L|M|N|O|P|Q|R|S&quot;,&quot;2026-03-05T19:35:38.358Z&quot;,&quot;2026-03-05T23:28:19.036Z&quot;,&quot;claude-sonnet-4-6&quot;,&quot;isAgentConversation&quot;,&quot;baselineTimestamp&quot;,&quot;a|X|Y&quot;,&quot;n|0&quot;,&quot;o|Z|B|a&quot;,&quot;bd1c1a2c-6f0a-4ce6-a812-913a3eaa99b6&quot;,&quot;request_message&quot;,&quot;rich_text_json_repr&quot;,&quot;status&quot;,&quot;mentioned_items&quot;,&quot;a|d|e|f|g&quot;,&quot;&quot;,&quot;type&quot;,&quot;content&quot;,&quot;a|j|k&quot;,&quot;doc&quot;,&quot;a|j&quot;,&quot;paragraph&quot;,&quot;o|n|o&quot;,&quot;a|p&quot;,&quot;o|l|m|q&quot;,&quot;draft&quot;,&quot;o|h|i|r|s|C&quot;,&quot;o|T|D|U|V|W|C|B|B|b|a|c|9|9|C|t&quot;,&quot;a|F|G|H|I|J|K|L|M|N|Q|R|P|S&quot;,&quot;2026-03-19T22:15:10.272Z&quot;,&quot;gpt-5-4&quot;,&quot;a|X&quot;,&quot;b|T&quot;,&quot;o|y|z&quot;,&quot;a|d|e|f&quot;,&quot;o|11|i|r|s&quot;,&quot;o|v|8|w|w|x|C|B|B|10|a|9|C|9|12&quot;,&quot;o|E|u|13&quot;,&quot;shown&quot;,&quot;workspaceQuestions&quot;,&quot;a|15|16&quot;,&quot;o|17|B|C&quot;,&quot;o|7|8|9|A|B|C|14|18&quot;],&quot;19&quot;]" />
+      </map>
+    </option>
+  </component>
+</project>

@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, varchar, jsonb, integer, vector, index, primaryKey } from 'drizzle-orm/pg-core';
-import { relations, type InferSelectModel } from 'drizzle-orm';
+import { type InferSelectModel } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 
 // ==========================================

@@ -79,7 +79,7 @@ describe('Notes lifecycle', () => {
     });
     createdChatIds.push(chat.id);
 
-    const note = await apiJson<{ id: string }>('/api/notes', {
+    const _note = await apiJson<{ id: string }>('/api/notes', {
       method: 'POST',
       body: JSON.stringify({ chatId: chat.id, content: 'Note on chat' })
     });

@@ -12,12 +12,10 @@
 
 	let {
 		folder,
-		folderChats,
-		chats
+		folderChats
 	}: {
 		folder: Folder;
 		folderChats: Chat[];
-		chats: Chat[];
 	} = $props();
 
 	let hovered = $state(false);
@@ -137,8 +135,7 @@
 			<NewChat folder={folder.id} showOnHover={hovered} />
 			<div class="folder-droppable-area">
 				{#each folderChats as chat (chat.id)}
-					{@const chatIndex = chats.findIndex((c) => c.id === chat.id)}
-					<ChatHistory {chat} index={chatIndex} />
+					<ChatHistory {chat} />
 				{/each}
 			</div>
 		</div>

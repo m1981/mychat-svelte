@@ -1,7 +1,6 @@
 // src/lib/api/client.ts
 
-import { AppError, handleError } from '$lib/utils/error-handler';
-import { toast } from '$lib/stores/toast.store.svelte';
+import { AppError } from '$lib/utils/error-handler';
 
 interface RequestOptions extends RequestInit {
 	showToast?: boolean;
@@ -25,7 +24,7 @@ class ApiClient {
 		endpoint: string,
 		options: RequestOptions = {}
 	): Promise<T> {
-		const { showToast = true, customErrorMessage, ...fetchOptions } = options;
+		const { showToast: _showToast = true, customErrorMessage, ...fetchOptions } = options;
 
 		const url = `${this.baseUrl}${endpoint}`;
 
@@ -155,7 +154,7 @@ class ApiClient {
 					try {
 						const data = JSON.parse(xhr.responseText);
 						resolve(data);
-					} catch (error) {
+					} catch (_error) {
 						reject(new AppError('Failed to parse response', 'PARSE_ERROR'));
 					}
 				} else {

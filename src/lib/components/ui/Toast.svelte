@@ -1,6 +1,6 @@
 <!-- src/lib/components/ui/Toast.svelte -->
 <script lang="ts">
-	import { fly, fade } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
 	import type { Toast as ToastType } from '$lib/stores/toast.store.svelte';
 	import { toast } from '$lib/stores/toast.store.svelte';
@@ -42,8 +42,9 @@
 	in:fly={{ x: 300, duration: 300, easing: quintOut }}
 	out:fly={{ x: 300, duration: 200, easing: quintOut }}
 >
-	<!-- Icon -->
+	<!-- Icon — SVGs are static strings defined in this file, not user input -->
 	<div class="flex-shrink-0">
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 		{@html icons[toastItem.type]}
 	</div>
 

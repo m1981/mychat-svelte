@@ -30,8 +30,7 @@
 		<p class="text-sm text-base-content/50 text-center mt-4">No results found</p>
 	{/if}
 
-	{#each app.searchResults as result}
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
+	{#each app.searchResults as result (result.messageId)}
 		<div
 			data-testid="search-result"
 			class="card card-compact bg-base-200 cursor-pointer hover:bg-base-300 transition-colors"

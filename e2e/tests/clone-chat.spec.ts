@@ -15,7 +15,7 @@ test.describe('Clone Chat', () => {
     clonedChatId = '';
   });
 
-  test('@smoke clone button is hidden by default and visible on hover', async ({ app, chat, page }) => {
+  test('@smoke clone button is hidden by default and visible on hover', async ({ app, chat }) => {
     test.setTimeout(90000);
     sourceChatId = await app.createChatViaApi();
 

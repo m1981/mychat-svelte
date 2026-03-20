@@ -8,7 +8,7 @@
 	import { app } from '$lib/state/app.svelte';
 	import { tick } from 'svelte';
 
-	let { chat, index }: { chat: Chat; index: number } = $props();
+	let { chat }: { chat: Chat } = $props();
 
 	let isRenaming = $state(false);
 	let editedTitle = $state(chat.title);

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { app } from '$lib/state/app.svelte';
 
+	// eslint-disable-next-line svelte/prefer-writable-derived -- textarea needs two-way binding; $state + $effect is correct here
 	let content = $state(app.notes.find((n) => n.chatId === app.activeChatId)?.content ?? '');
 	let saveTimer: ReturnType<typeof setTimeout>;
 

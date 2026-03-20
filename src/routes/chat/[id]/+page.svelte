@@ -6,6 +6,7 @@
 	import { tick } from 'svelte';
 	import { Chat } from '@ai-sdk/svelte';
 	import { DefaultChatTransport } from 'ai';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { marked } from 'marked';
 	import hljs from 'highlight.js';
 	import MessageComposer from '$lib/components/layout/MessageComposer.svelte';
@@ -33,9 +34,8 @@
 		})
 	);
 
-	let dbMessageMap = $state<Map<string, string>>(
-		new Map(data.messages.map((m) => [m.id, m.id]))
-	);
+	// eslint-disable-next-line svelte/no-unnecessary-state-wrap
+	let dbMessageMap = $state(new SvelteMap<string, string>(data.messages.map((m) => [m.id, m.id])));
 
 	// Popover state for text selection
 	let popover = $state<{ x: number; y: number; text: string; messageId: string } | null>(null);
@@ -53,7 +53,7 @@
 			transport: new DefaultChatTransport({ api: `/api/chat/${chatId}` }),
 			messages: data.messages
 		});
-		dbMessageMap = new Map(data.messages.map((m) => [m.id, m.id]));
+		dbMessageMap = new SvelteMap(data.messages.map((m) => [m.id, m.id]));
 	});
 
 	$effect(() => {
@@ -72,10 +72,10 @@
 
 	// Auto-scroll to bottom whenever messages change or streaming progresses
 	$effect(() => {
-		// Track messages length and last message content to trigger on stream updates
-		const _ = chatInstance.messages.length;
+		// Access messages + last part text to subscribe to stream updates
+		const _messagesCount = chatInstance.messages.length;
 		const lastMsg = chatInstance.messages[chatInstance.messages.length - 1];
-		const __ = lastMsg?.parts?.map((p: any) => p.text).join('');
+		const _lastMsgText = lastMsg?.parts?.map((p: { type: string; text?: string }) => p.text).join('');
 		messagesEnd?.scrollIntoView({ behavior: 'smooth' });
 	});
 
@@ -97,7 +97,7 @@
 				.then((r) => r.json())
 				.then((dbMsgs: Array<{ id: string; role: string; content: string }>) => {
 					const sdkMsgs = chatInstance.messages;
-					const newMap = new Map<string, string>();
+					const newMap = new SvelteMap<string, string>();
 					sdkMsgs.forEach((sdkMsg, i) => {
 						const dbMsg = dbMsgs[i];
 						if (dbMsg && dbMsg.role === sdkMsg.role) {
@@ -156,7 +156,7 @@
 	}
 
 	async function confirmEdit(sdkMessageId: string) {
-		if (!editDraft.trim()) return;
+		if (!chatId || !editDraft.trim()) return;
 		const dbId = dbMessageMap.get(sdkMessageId) ?? sdkMessageId;
 		const idx = chatInstance.messages.findIndex((m) => m.id === sdkMessageId);
 		const kept = chatInstance.messages.slice(0, idx);
@@ -173,7 +173,7 @@
 			transport: new DefaultChatTransport({ api: `/api/chat/${chatId}` }),
 			messages: kept
 		});
-		dbMessageMap = new Map(kept.map((m: { id: string }) => [m.id, m.id]));
+		dbMessageMap = new SvelteMap(kept.map((m: { id: string }) => [m.id, m.id]));
 		await tick();
 
 		// 3. Send the edited message into the fresh (truncated) chat instance
@@ -181,6 +181,7 @@
 	}
 
 	async function cloneUpToHere(messageId: string) {
+		if (!chatId) return;
 		const dbId = dbMessageMap.get(messageId) ?? messageId;
 		const newChatId = await app.cloneChat(chatId, dbId);
 		goto(`/chat/${newChatId}`);
@@ -200,6 +201,7 @@
 
 {#if currentChatMetadata}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
 		data-testid="chat-view"
 		class="flex flex-col h-full"
@@ -217,7 +219,7 @@
 					data-testid="model-selector"
 					class="select select-sm select-ghost"
 					value={currentChatMetadata.modelId}
-					onchange={(e) => app.updateModel(chatId, (e.target as HTMLSelectElement).value)}
+					onchange={(e) => chatId && app.updateModel(chatId, (e.target as HTMLSelectElement).value)}
 					disabled={chatInstance.status === 'streaming'}
 				>
 					<option value="claude-haiku-4-5-20251001">Haiku 4.5 (fast)</option>
@@ -258,7 +260,7 @@
 					<p>No messages yet. Start the conversation!</p>
 				</div>
 			{:else}
-			{#each chatInstance.messages as message}
+			{#each chatInstance.messages as message (message.id)}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div class="group chat {message.role === 'user' ? 'chat-end' : 'chat-start'}">
 						{#if editingMessageId === message.id}
@@ -296,7 +298,7 @@
 									? () => handleSelectionChange(message.id)
 									: undefined}
 							>
-								{#each message.parts as part}
+								{#each message.parts as part, i (i)}
 									{#if part.type === 'text'}
 										{#if message.role === 'assistant'}
 											<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -316,7 +318,7 @@
 										data-testid="edit-btn"
 										class="btn btn-xs btn-ghost"
 										onclick={() => {
-											const text = message.parts.find((p: any) => p.type === 'text')?.text ?? '';
+											const text = message.parts.find((p: { type: string; text?: string }) => p.type === 'text')?.text ?? '';
 											startEdit(message.id, text);
 										}}
 										title="Edit and regenerate from here"

@@ -33,7 +33,7 @@
 		)
 	);
 
-	function handleDndFinalize(e: CustomEvent) {
+	function handleDndFinalize(_e: CustomEvent) {
 		// Update app.folders and app.chats based on e.detail.items
 		// (Implementation remains similar, just mutating app.folders array instead of object)
 	}
@@ -44,10 +44,9 @@
 		<div>
 			{#if item.dndType === 'folder'}
 				{@const folderChats = app.chats.filter((c) => c.folderId === item.id)}
-				<ChatFolder folder={item} {folderChats} chats={app.chats} />
+				<ChatFolder folder={item} {folderChats} />
 			{:else if item.dndType === 'chat' && !item.folderId}
-				{@const chatIndex = app.chats.findIndex((c) => c.id === item.id)}
-				<ChatHistory chat={item} index={chatIndex} />
+				<ChatHistory chat={item} />
 			{/if}
 		</div>
 	{/each}

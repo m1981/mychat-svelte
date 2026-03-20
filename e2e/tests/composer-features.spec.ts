@@ -17,7 +17,7 @@ test.describe('Stop Streaming Button', () => {
     chatId = '';
   });
 
-  test('@smoke stop button appears while AI is streaming', async ({ app, chat, page }) => {
+  test('@smoke stop button appears while AI is streaming', async ({ app, chat }) => {
     test.setTimeout(60000);
     chatId = await app.createChatViaApi();
 
@@ -36,7 +36,7 @@ test.describe('Stop Streaming Button', () => {
     await app.screenshot('stop-btn-visible');
   });
 
-  test('@regression clicking stop button aborts the stream and re-shows send button', async ({ app, chat, page }) => {
+  test('@regression clicking stop button aborts the stream and re-shows send button', async ({ app, chat }) => {
     test.setTimeout(60000);
     chatId = await app.createChatViaApi();
 
@@ -76,7 +76,7 @@ test.describe('File Drop into Composer', () => {
     chatId = '';
   });
 
-  test('@smoke dropping a .txt file appends its content to the textarea', async ({ app, chat, page }) => {
+  test('@smoke dropping a .txt file appends its content to the textarea', async ({ app, chat }) => {
     test.setTimeout(30000);
     chatId = await app.createChatViaApi();
 
@@ -93,7 +93,7 @@ test.describe('File Drop into Composer', () => {
     await app.screenshot('file-drop-txt');
   });
 
-  test('@smoke dropping a .md file appends its content to the textarea', async ({ app, chat, page }) => {
+  test('@smoke dropping a .md file appends its content to the textarea', async ({ app, chat }) => {
     test.setTimeout(30000);
     chatId = await app.createChatViaApi();
 
@@ -109,7 +109,7 @@ test.describe('File Drop into Composer', () => {
     await app.screenshot('file-drop-md');
   });
 
-  test('@regression dropped file content can be sent as a message', async ({ app, chat, page }) => {
+  test('@regression dropped file content can be sent as a message', async ({ app, chat }) => {
     test.setTimeout(30000);
     chatId = await app.createChatViaApi();
 
@@ -162,7 +162,7 @@ test.describe('Syntax Highlighting & Copy Button', () => {
     await app.screenshot('code-block-hljs');
   });
 
-  test('@regression Copy button is present inside each code block', async ({ app, chat, page }) => {
+  test('@regression Copy button is present inside each code block', async ({ app, chat }) => {
     test.setTimeout(90000);
     chatId = await app.createChatViaApi();
 
