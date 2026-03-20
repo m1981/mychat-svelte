@@ -16,18 +16,18 @@ test.describe('Clone Chat', () => {
   });
 
   test('@smoke clone button is hidden by default and visible on hover', async ({ app, chat }) => {
-    test.setTimeout(90000);
+    test.setTimeout(5000);
     sourceChatId = await app.createChatViaApi();
 
     await app.goto(`/chat/${sourceChatId}`);
     await chat.sendMessage('Say only: hello');
-    await chat.waitForResponse(60000);
+    await chat.waitForResponse(5000);
 
     const firstBubble = chat.messageBubbles.first();
     const cloneBtn = firstBubble.locator('..').locator('[data-testid="clone-btn"]');
 
     // Button appears once dbMessageMap is populated (async after streaming completes)
-    await expect(cloneBtn).toBeAttached({ timeout: 10000 });
+    await expect(cloneBtn).toBeAttached({ timeout: 5000 });
 
     // Hover over the message row to reveal the button (opacity-0 → opacity-100)
     await firstBubble.hover();
@@ -37,12 +37,12 @@ test.describe('Clone Chat', () => {
   });
 
   test('@regression clicking clone navigates to new chat with same messages', async ({ app, chat, page }) => {
-    test.setTimeout(90000);
+    test.setTimeout(5000);
     sourceChatId = await app.createChatViaApi();
 
     await app.goto(`/chat/${sourceChatId}`);
     await chat.sendMessage('Say only: clone test');
-    await chat.waitForResponse(60000);
+    await chat.waitForResponse(5000);
 
     // We have 2 messages: user + assistant. Clone up to the assistant (last) message.
     const bubbles = chat.messageBubbles;
@@ -69,7 +69,7 @@ test.describe('Clone Chat', () => {
     expect(clonedChatId).not.toBe(sourceChatId);
 
     // Cloned chat should show the same number of messages
-    await expect(chat.messageBubbles).toHaveCount(2, { timeout: 10000 });
+    await expect(chat.messageBubbles).toHaveCount(2, { timeout: 5000 });
 
     // Title should indicate it's a clone
     const title = await chat.chatTitle.textContent();
@@ -79,12 +79,12 @@ test.describe('Clone Chat', () => {
   });
 
   test('@smoke cloning up to first message gives a chat with one message', async ({ app, chat, page }) => {
-    test.setTimeout(90000);
+    test.setTimeout(5000);
     sourceChatId = await app.createChatViaApi();
 
     await app.goto(`/chat/${sourceChatId}`);
     await chat.sendMessage('Say only: truncation test');
-    await chat.waitForResponse(60000);
+    await chat.waitForResponse(5000);
 
     // Hover over the FIRST message (user) and clone up to it
     const firstBubble = chat.messageBubbles.first();
@@ -101,7 +101,7 @@ test.describe('Clone Chat', () => {
     clonedChatId = page.url().split('/chat/')[1];
 
     // Only the first (user) message should be present
-    await expect(chat.messageBubbles).toHaveCount(1, { timeout: 10000 });
+    await expect(chat.messageBubbles).toHaveCount(1, { timeout: 5000 });
 
     await app.screenshot('clone-truncated');
   });

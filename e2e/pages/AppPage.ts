@@ -3,30 +3,50 @@ import type { Page, APIRequestContext } from '@playwright/test';
 export class AppPage {
   constructor(readonly page: Page, readonly request: APIRequestContext) {}
 
-  async goto(path = '/') { await this.page.goto(path); }
+  private get authHeaders() {
+    return { 'x-test-auth-token': 'vitest-test-bypass-token' };
+  }
+
+  async goto(path = '/') {
+    // Set auth cookie/header for page navigation
+    await this.page.setExtraHTTPHeaders(this.authHeaders);
+    await this.page.goto(path);
+  }
 
   async createChatViaApi(): Promise<string> {
-    const res = await this.request.post('/api/chats', { data: {} });
+    const res = await this.request.post('/api/chats', {
+      data: {},
+      headers: this.authHeaders
+    });
     const chat = await res.json();
     return chat.id;
   }
 
   async createFolderViaApi(name = 'Test Folder'): Promise<string> {
-    const res = await this.request.post('/api/folders', { data: { name, order: 0 } });
+    const res = await this.request.post('/api/folders', {
+      data: { name, order: 0 },
+      headers: this.authHeaders
+    });
     const folder = await res.json();
     return folder.id;
   }
 
   async deleteChatViaApi(id: string) {
-    await this.request.delete(`/api/chats/${id}`);
+    await this.request.delete(`/api/chats/${id}`, {
+      headers: this.authHeaders
+    });
   }
 
   async deleteFolderViaApi(id: string) {
-    await this.request.delete(`/api/folders/${id}`);
+    await this.request.delete(`/api/folders/${id}`, {
+      headers: this.authHeaders
+    });
   }
 
   async getChatViaApi(id: string) {
-    const res = await this.request.get(`/api/chats/${id}`);
+    const res = await this.request.get(`/api/chats/${id}`, {
+      headers: this.authHeaders
+    });
     return res.json();
   }
 

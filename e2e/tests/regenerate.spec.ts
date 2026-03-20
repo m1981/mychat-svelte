@@ -13,12 +13,12 @@ test.describe('Destructive Regeneration', () => {
   });
 
   test('@smoke Edit button appears on hover for user messages only', async ({ app, chat }) => {
-    test.setTimeout(60000);
+    test.setTimeout(5000);
     chatId = await app.createChatViaApi();
 
     await app.goto(`/chat/${chatId}`);
     await chat.sendMessage('Say only: hello');
-    await chat.waitForResponse(30000);
+    await chat.waitForResponse(5000);
 
     // Wait for dbMessageMap to populate (edit btn appears)
     const userBubble = chat.messageBubbles.first();

@@ -11,15 +11,15 @@ test.describe('Chat Messaging', () => {
   });
 
   test('@smoke navigating to a chat shows the composer', async ({ app, chat }) => {
-    test.setTimeout(60000);
     chatId = await app.createChatViaApi();
 
     await app.goto(`/chat/${chatId}`);
     await app.screenshot('chat-messaging-composer-initial');
 
-    await expect(chat.composerInput).toBeVisible();
-    await expect(chat.sendBtn).toBeVisible();
-    await expect(chat.chatTitle).toBeVisible();
+    // Use soft assertions to check all elements and report all failures together
+    await expect.soft(chat.composerInput).toBeVisible();
+    await expect.soft(chat.sendBtn).toBeVisible();
+    await expect.soft(chat.chatTitle).toBeVisible();
 
     const titleText = await chat.chatTitle.textContent();
     console.log(`Chat page title: "${titleText}"`);
@@ -27,7 +27,6 @@ test.describe('Chat Messaging', () => {
   });
 
   test('@regression sending a message shows user bubble and AI response bubble', async ({ app, chat }) => {
-    test.setTimeout(60000);
     chatId = await app.createChatViaApi();
 
     await app.goto(`/chat/${chatId}`);
@@ -42,8 +41,8 @@ test.describe('Chat Messaging', () => {
     await app.screenshot('chat-messaging-send-user-bubble');
 
     // Wait for AI response: textarea re-enabled signals streaming done
-    await expect(chat.composerInput).toBeEnabled({ timeout: 30000 });
-    await expect(chat.messageBubbles).toHaveCount(2, { timeout: 30000 });
+    await expect(chat.composerInput).toBeEnabled({ timeout: 10000 });
+    await expect(chat.messageBubbles).toHaveCount(2, { timeout: 10000 });
 
     await app.screenshot('chat-messaging-send-after');
 
@@ -56,8 +55,7 @@ test.describe('Chat Messaging', () => {
     console.log(`AI response bubble text: "${secondBubble}"`);
   });
 
-  test('@regression @visual after first AI message, title is auto-updated', async ({ app, chat, page }) => {
-    test.setTimeout(60000);
+  test('@regression @visual after first AI message, title is auto-updated', async ({ app, chat }) => {
     chatId = await app.createChatViaApi();
 
     await app.goto(`/chat/${chatId}`);
@@ -70,11 +68,11 @@ test.describe('Chat Messaging', () => {
     await chat.sendMessage('Say hello and give me a title for this chat about cats');
 
     // Wait for AI response to complete: textarea re-enabled signals streaming done
-    await expect(chat.composerInput).toBeEnabled({ timeout: 30000 });
-    await expect(chat.messageBubbles).toHaveCount(2, { timeout: 30000 });
+    await expect(chat.composerInput).toBeEnabled({ timeout: 10000 });
+    await expect(chat.messageBubbles).toHaveCount(2, { timeout: 10000 });
 
-    // Give time for title update to propagate
-    await page.waitForTimeout(2000);
+    // Wait for title to change from initial value (proper wait condition instead of arbitrary timeout)
+    await expect(chat.chatTitle).not.toHaveText(initialTitle || '', { timeout: 5000 });
     await app.screenshot('chat-messaging-title-after');
 
     const updatedTitle = await chat.chatTitle.textContent();
@@ -83,5 +81,6 @@ test.describe('Chat Messaging', () => {
     // After AI responds, the chat is still accessible and has a title
     await expect(chat.chatTitle).toBeVisible();
     expect(updatedTitle).toBeTruthy();
+    expect(updatedTitle).not.toBe(initialTitle);
   });
 });
