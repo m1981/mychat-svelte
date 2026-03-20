@@ -1,3 +1,5 @@
+.env
+.env.*
 /playwright-report/
 /node_modules/
 /test-results/
