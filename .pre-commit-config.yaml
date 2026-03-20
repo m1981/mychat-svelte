@@ -21,12 +21,12 @@ repos:
         # We disable passing individual filenames to prevent appending them to "eslint ."
         pass_filenames: false
         types_or: [javascript, ts, svelte]
-#
-#      - id: vitest
-#        name: Unit Tests (Vitest)
-#        # Vitest runs in watch mode by default. We MUST pass --run so it exits after testing!
-#        # If your package.json script is just "vitest", we append "--run" here.
-#        entry: pnpm run test:unit -- --run
-#        language: system
-#        pass_filenames: false
-#        types_or: [javascript, ts, svelte]
+
+      - id: vitest
+        name: Unit Tests (Vitest)
+        # Vitest runs in watch mode by default. We MUST pass --run so it exits after testing!
+        # If your package.json script is just "vitest", we append "--run" here.
+        entry: pnpm run test:unit -- --run
+        language: system
+        pass_filenames: false
+        types_or: [javascript, ts, svelte]
