@@ -13,6 +13,15 @@ export class AppPage {
     await this.page.goto(path);
   }
 
+  // Full page reload that re-applies auth headers to the new page context.
+  // page.reload() alone may not carry setExtraHTTPHeaders through to JS-initiated
+  // fetch calls in the reloaded page; re-applying after reload ensures all
+  // subsequent fetch calls (e.g. loadChatKnowledge) include the test bypass token.
+  async reload() {
+    await this.page.reload();
+    await this.page.setExtraHTTPHeaders(this.authHeaders);
+  }
+
   async createChatViaApi(): Promise<string> {
     const res = await this.request.post('/api/chats', {
       data: {},
@@ -48,6 +57,11 @@ export class AppPage {
       headers: this.authHeaders
     });
     return res.json();
+  }
+
+  // Raw authenticated GET — returns the full response so callers can check status
+  async apiGet(path: string) {
+    return this.request.get(path, { headers: this.authHeaders });
   }
 
   async screenshot(name: string) {

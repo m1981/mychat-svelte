@@ -80,8 +80,8 @@ test.describe('Sidebar Chat Management', () => {
     const deletedId = chatId;
     chatId = '';
 
-    // Verify it's gone via API (expect 404 or empty)
-    const res = await app.request.get(`/api/chats/${deletedId}`);
+    // Verify it's gone via API (expect 404) — must use authenticated request
+    const res = await app.apiGet(`/api/chats/${deletedId}`);
     expect(res.status()).toBe(404);
   });
 });

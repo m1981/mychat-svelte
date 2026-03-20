@@ -38,14 +38,33 @@ test.describe('Secondary Panel', () => {
     await page.getByTestId('toggle-notes-btn').click();
     await expect(page.getByTestId('secondary-panel')).toBeVisible();
 
-    // Type into textarea
+    // Type into textarea — debounce fires after 1000ms
     await page.getByTestId('notes-textarea').fill('Integration test note');
 
-    // Wait for debounce (1000ms) + buffer
-    await page.waitForTimeout(1500);
+    // Wait for the actual save request to land (debounce + network round-trip to Neon)
+    // Using waitForResponse is more reliable than a fixed timeout: it resolves as soon
+    // as the POST /api/notes response arrives, regardless of database latency.
+    await page.waitForResponse(
+      resp => resp.url().includes('/api/notes') && resp.status() === 201,
+      { timeout: 8000 }
+    );
 
-    // Reload page
-    await page.reload();
+    // Svelte $effects run as microtasks after the initial paint, so networkidle
+    // can resolve before loadChatKnowledge even starts. Instead, wait explicitly
+    // for the GET /api/notes response that loadChatKnowledge fires on mount.
+    // IMPORTANT: set up the promise BEFORE reload — after reload the Svelte $effect
+    // fires loadChatKnowledge immediately, and the GET may complete before we
+    // register the waiter if we set it up after the await.
+    const notesLoadedPromise = page.waitForResponse(
+      resp => resp.url().includes('/api/notes') && resp.request().method() === 'GET',
+      { timeout: 10000 }
+    );
+
+    // Reload page — use app.reload() so auth headers are re-applied to the new
+    // page context; bare page.reload() can drop setExtraHTTPHeaders on some builds
+    await app.reload();
+
+    await notesLoadedPromise;
 
     // Re-open notes panel
     await page.getByTestId('toggle-notes-btn').click();
