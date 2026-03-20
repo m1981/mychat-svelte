@@ -3,14 +3,14 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: false,
-  retries: process.env.CI ? 2 : 1,
+  retries: process.env.CI ? 2 : 0,
 
   // 1. Global Test Timeout: Maximum time one test can run (30 seconds)
-  timeout: 30 * 1000,
+  timeout: 10 * 1000,
 
   // 2. Expect Timeout: Maximum time for expect() assertions (30 seconds)
   expect: {
-    timeout: 30 * 1000,
+    timeout: 5 * 1000,
   },
 
   reporter: [
