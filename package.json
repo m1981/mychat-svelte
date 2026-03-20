@@ -52,6 +52,8 @@
 		"@ai-sdk/anthropic": "^3.0.58",
 		"@ai-sdk/openai": "^3.0.41",
 		"@ai-sdk/svelte": "^4.0.116",
+		"@auth/drizzle-adapter": "^1.11.1",
+		"@auth/sveltekit": "^1.11.1",
 		"@paralleldrive/cuid2": "^3.3.0",
 		"ai": "^6.0.116",
 		"highlight.js": "^11.11.1",

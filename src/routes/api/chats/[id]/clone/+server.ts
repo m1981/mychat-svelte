@@ -1,16 +1,18 @@
 import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { chats, messages } from '$lib/server/db/schema';
-import { eq, lte, asc } from 'drizzle-orm';
+import { eq, asc, and } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
+import { requireUserId } from '$lib/server/auth-utils';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ params, request }) => {
-	const { upToMessageId } = await request.json();
+export const POST: RequestHandler = async (event) => {
+	const userId = await requireUserId(event);
+	const { upToMessageId } = await event.request.json();
 	if (!upToMessageId) throw error(400, 'upToMessageId is required');
 
 	// 1. Load source chat
-	const [sourceChat] = await db.select().from(chats).where(eq(chats.id, params.id));
+	const [sourceChat] = await db.select().from(chats).where(and(eq(chats.id, event.params.id), eq(chats.userId, userId)));
 	if (!sourceChat) throw error(404, 'Chat not found');
 
 	// 2. Find the target message to get its createdAt timestamp
@@ -24,7 +26,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const sourceMessages = await db
 		.select()
 		.from(messages)
-		.where(eq(messages.chatId, params.id))
+		.where(eq(messages.chatId, event.params.id))
 		.orderBy(asc(messages.createdAt));
 
 	// Slice to include only up to the target message

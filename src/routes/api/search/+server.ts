@@ -5,10 +5,12 @@ import { db } from '$lib/server/db';
 import { messages, chats } from '$lib/server/db/schema';
 import { sql, eq } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
+import { requireUserId } from '$lib/server/auth-utils';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ request }) => {
-	const body = await request.json();
+export const POST: RequestHandler = async (event) => {
+	await requireUserId(event);
+	const body = await event.request.json();
 	const { query, limit = 5 } = body;
 
 	if (!query || typeof query !== 'string' || query.trim().length === 0) {

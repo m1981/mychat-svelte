@@ -1,7 +1,8 @@
 import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { chats } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { requireUserId } from '$lib/server/auth-utils';
 import type { RequestHandler } from './$types';
 
 const SUPPORTED_MODELS = new Set([
@@ -10,14 +11,16 @@ const SUPPORTED_MODELS = new Set([
 	'claude-opus-4-6'
 ]);
 
-export const GET: RequestHandler = async ({ params }) => {
-	const [chat] = await db.select().from(chats).where(eq(chats.id, params.id));
+export const GET: RequestHandler = async (event) => {
+	const userId = await requireUserId(event);
+	const [chat] = await db.select().from(chats).where(and(eq(chats.id, event.params.id), eq(chats.userId, userId)));
 	if (!chat) throw error(404, 'Chat not found');
 	return json(chat);
 };
 
-export const PATCH: RequestHandler = async ({ request, params }) => {
-	const body = await request.json();
+export const PATCH: RequestHandler = async (event) => {
+	const userId = await requireUserId(event);
+	const body = await event.request.json();
 
 	if (body.modelId !== undefined && !SUPPORTED_MODELS.has(body.modelId)) {
 		throw error(400, `Unsupported model. Allowed: ${[...SUPPORTED_MODELS].join(', ')}`);
@@ -26,14 +29,15 @@ export const PATCH: RequestHandler = async ({ request, params }) => {
 	const [updated] = await db
 		.update(chats)
 		.set({ ...body, updatedAt: new Date() })
-		.where(eq(chats.id, params.id))
+		.where(and(eq(chats.id, event.params.id), eq(chats.userId, userId)))
 		.returning();
 
 	if (!updated) throw error(404, 'Chat not found');
 	return json(updated);
 };
 
-export const DELETE: RequestHandler = async ({ params }) => {
-	await db.delete(chats).where(eq(chats.id, params.id));
+export const DELETE: RequestHandler = async (event) => {
+	const userId = await requireUserId(event);
+	await db.delete(chats).where(and(eq(chats.id, event.params.id), eq(chats.userId, userId)));
 	return json({ success: true });
 };

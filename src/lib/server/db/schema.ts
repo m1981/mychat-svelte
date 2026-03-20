@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, varchar, jsonb, integer, vector, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, varchar, jsonb, integer, vector, index, primaryKey } from 'drizzle-orm/pg-core';
 import { relations, type InferSelectModel } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 
@@ -8,9 +8,50 @@ import { createId } from '@paralleldrive/cuid2';
 
 export const users = pgTable('users', {
   id: varchar('id', { length: 32 }).$defaultFn(() => createId()).primaryKey(),
+  name: varchar('name', { length: 255 }),
   email: varchar('email', { length: 255 }).unique().notNull(),
+  emailVerified: timestamp('email_verified'),
+  image: text('image'),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
+
+// ==========================================
+// 2. AUTH.JS TABLES (required by @auth/drizzle-adapter)
+// ==========================================
+
+export const accounts = pgTable('accounts', {
+  userId: varchar('user_id', { length: 32 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: varchar('type', { length: 32 }).notNull(),
+  provider: varchar('provider', { length: 32 }).notNull(),
+  providerAccountId: varchar('provider_account_id', { length: 255 }).notNull(),
+  refresh_token: text('refresh_token'),
+  access_token: text('access_token'),
+  expires_at: integer('expires_at'),
+  token_type: varchar('token_type', { length: 32 }),
+  scope: text('scope'),
+  id_token: text('id_token'),
+  session_state: text('session_state')
+}, (table) => ({
+  pk: primaryKey({ columns: [table.provider, table.providerAccountId] })
+}));
+
+export const sessions = pgTable('sessions', {
+  sessionToken: varchar('session_token', { length: 255 }).primaryKey(),
+  userId: varchar('user_id', { length: 32 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expires: timestamp('expires').notNull()
+});
+
+export const verificationTokens = pgTable('verification_tokens', {
+  identifier: varchar('identifier', { length: 255 }).notNull(),
+  token: varchar('token', { length: 255 }).notNull(),
+  expires: timestamp('expires').notNull()
+}, (table) => ({
+  pk: primaryKey({ columns: [table.identifier, table.token] })
+}));
+
+// ==========================================
+// 3. DOMAIN ENTITIES
+// ==========================================
 
 export const folders = pgTable('folders', {
   id: varchar('id', { length: 32 }).$defaultFn(() => createId()).primaryKey(),
@@ -26,7 +67,7 @@ export const chats = pgTable('chats', {
   userId: varchar('user_id', { length: 32 }).references(() => users.id, { onDelete: 'cascade' }).notNull(),
   folderId: varchar('folder_id', { length: 32 }).references(() => folders.id, { onDelete: 'set null' }),
   title: varchar('title', { length: 100 }).notNull(),
-  modelId: varchar('model_id', { length: 50 }).default('gpt-4o').notNull(),
+  modelId: varchar('model_id', { length: 50 }).default('claude-sonnet-4-6').notNull(),
   tags: jsonb('tags').$type<string[]>().default([]).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
@@ -45,7 +86,7 @@ export const messages = pgTable('messages', {
 }));
 
 // ==========================================
-// 2. KNOWLEDGE EXTRACTION ENTITIES
+// 4. KNOWLEDGE EXTRACTION ENTITIES
 // ==========================================
 
 export const notes = pgTable('notes', {
@@ -66,7 +107,7 @@ export const highlights = pgTable('highlights', {
 });
 
 // ==========================================
-// 3. EXPORTED TYPES (The Contract for Frontend)
+// 5. EXPORTED TYPES (The Contract for Frontend)
 // ==========================================
 export type User = InferSelectModel<typeof users>;
 export type Folder = InferSelectModel<typeof folders>;

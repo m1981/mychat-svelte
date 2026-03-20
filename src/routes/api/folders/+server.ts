@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { folders } from '$lib/server/db/schema';
-import { getDefaultUserId } from '$lib/server/db/user';
+import { requireUserId } from '$lib/server/auth-utils';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ request }) => {
-	const { id, name, order } = await request.json();
-	const userId = await getDefaultUserId();
+export const POST: RequestHandler = async (event) => {
+	const { id, name, order } = await event.request.json();
+	const userId = await requireUserId(event);
 
 	const [folder] = await db
 		.insert(folders)

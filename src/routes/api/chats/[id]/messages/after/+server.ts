@@ -2,10 +2,12 @@ import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { messages } from '$lib/server/db/schema';
 import { eq, inArray, asc } from 'drizzle-orm';
+import { requireUserId } from '$lib/server/auth-utils';
 import type { RequestHandler } from './$types';
 
-export const DELETE: RequestHandler = async ({ params, request }) => {
-	const body = await request.json();
+export const DELETE: RequestHandler = async (event) => {
+	await requireUserId(event);
+	const body = await event.request.json();
 	const { messageId, inclusive = false } = body as { messageId?: string; inclusive?: boolean };
 	if (!messageId) throw error(400, 'messageId is required');
 
@@ -13,7 +15,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	const chatMessages = await db
 		.select()
 		.from(messages)
-		.where(eq(messages.chatId, params.id))
+		.where(eq(messages.chatId, event.params.id))
 		.orderBy(asc(messages.createdAt));
 
 	const pivotIdx = chatMessages.findIndex((m) => m.id === messageId);

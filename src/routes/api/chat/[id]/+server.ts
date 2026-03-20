@@ -6,13 +6,15 @@ import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import { messages, chats } from '$lib/server/db/schema';
 import { eq, count, and } from 'drizzle-orm';
+import { requireUserId } from '$lib/server/auth-utils';
 import type { RequestHandler } from './$types';
 
 const anthropic = createAnthropic({ apiKey: ANTHROPIC_API_KEY });
 
-export const POST: RequestHandler = async ({ request, params }) => {
-	const { messages: uiMessages } = await request.json();
-	const chatId = params.id;
+export const POST: RequestHandler = async (event) => {
+	await requireUserId(event);
+	const { messages: uiMessages } = await event.request.json();
+	const chatId = event.params.id;
 
 	// 0. Resolve the model for this chat
 	const [chat] = await db.select({ modelId: chats.modelId }).from(chats).where(eq(chats.id, chatId));

@@ -9,6 +9,7 @@
 	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
 	import { app } from '$lib/state/app.svelte';
 	import { page } from '$app/stores';
+	import { signOut } from '@auth/sveltekit/client';
 
 	let { children, data } = $props();
 
@@ -43,7 +44,18 @@
 		</Sidebar>
 
 		<Header>
-			<div class="text-base-content/50">Header Content</div>
+			{#if data.session?.user}
+				<div class="flex items-center gap-2">
+					{#if data.session.user.image}
+						<img src={data.session.user.image} alt="avatar" class="w-7 h-7 rounded-full" />
+					{/if}
+					<span class="text-sm text-base-content/70">{data.session.user.name ?? data.session.user.email}</span>
+					<button
+						data-testid="signout-btn"
+						class="btn btn-xs btn-ghost"
+						onclick={() => signOut()}>Sign out</button>
+				</div>
+			{/if}
 		</Header>
 
 		<Main>
