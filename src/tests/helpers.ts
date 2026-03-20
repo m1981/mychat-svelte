@@ -1,8 +1,13 @@
 export const BASE_URL = 'http://localhost:5173';
 
+// Must match TEST_AUTH_TOKEN in .env — server only honours this when that
+// env var is set (never in production).
+const TEST_AUTH_TOKEN = 'vitest-test-bypass-token';
+
 export async function api(path: string, init?: RequestInit): Promise<Response> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'x-test-auth-token': TEST_AUTH_TOKEN,
     ...(init?.headers as Record<string, string> ?? {})
   };
   return fetch(`${BASE_URL}${path}`, { ...init, headers });
