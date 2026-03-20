@@ -13,14 +13,14 @@ repos:
         pass_filenames: false
         types_or: [svelte, ts, javascript]
 
-#      - id: eslint
-#        name: ESLint
-#        entry: pnpm run lint
-#        language: system
-#        # Since your script is "eslint .", it lints everything.
-#        # We disable passing individual filenames to prevent appending them to "eslint ."
-#        pass_filenames: false
-#        types_or: [javascript, ts, svelte]
+      - id: eslint
+        name: ESLint
+        entry: pnpm run lint
+        language: system
+        # Since your script is "eslint .", it lints everything.
+        # We disable passing individual filenames to prevent appending them to "eslint ."
+        pass_filenames: false
+        types_or: [javascript, ts, svelte]
 #
 #      - id: vitest
 #        name: Unit Tests (Vitest)
